@@ -9,7 +9,25 @@ Initial development will be focused on implementing a core set of 802.11 explora
 ## Feature List
 
 * Soft AP
+    * Deferred - None of the sample APs work
+    * To implement later
 * Web Server serving a page and various endpoints
+    * Given a soft AP isn't possible, a console API will be implemented first
+    * Once complete can make a decision between implementing an AP with web server, or STA with web server
+* Implement console component with commands:
+    * beacon:
+    * probe
+    * deauth
+    * mana
+    * stalk
+    * ap-dos
+    * ap-clone
+    * scan ( FASTAP | AP | STA )
+    * set/get
+    * view: view [ SSID | STA | TRACKING ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated.
+    * select: select ( SSID | STA | TRACKING ) <specifier> - Select/deselect targets for the included tools. TRACKING includes/excludes the selected device from the homing feature.
+    * handshake
+    * target-ssids: target-ssids list | add | remove - Manage the set of SSIDs used for beacon spam and probe flood attacks
 * Beacon spam - Rickroll
 * Beacon spam - User-specified SSIDs
 * Beacon spam - Fuzzing (Random strings)
