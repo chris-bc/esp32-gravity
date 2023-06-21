@@ -25,13 +25,13 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Homing attack (Focus on RSSI for selected STA(s) or AP)
 * Capture authentication frames for cracking
 * DOS AP
-    ** Use target's MAC
-    ** Respond to frames directed at AP with a deauth packet
+** Use target's MAC
+** Respond to frames directed at AP with a deauth packet
 * Clone AP
-    ** Use target's MAC
-    ** Respond to probe requests with forged beacon frames
-    ** (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
-    ** Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
+** Use target's MAC
+** Respond to probe requests with forged beacon frames
+** (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
+** Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
 * Scan 802.15.1 (BLE/BT) devices and types
 * Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
