@@ -10,7 +10,7 @@
     "idf.openOcdConfigs": [
         "board/esp32c6-ftdi.cfg"
     ],
-    "idf.port": "/dev/ttyACM0",
+    "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/chris/.espressif/python_env/idf5.1_py3.10_env/bin/python",
     "idf.toolsPath": "/home/chris/.espressif",
     "idf.flashType": "UART"
