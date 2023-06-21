@@ -1,5 +1,41 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C6 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- |
+| Supported Targets | ESP32-C6 |
+| ----------------- | -------- |
+
+# ESP32-C6 Wireless Tools
+
+This project contains an evolving collection of wireless utilities for use on the ESP32-C6.
+Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into BLE and 802.15.4 (ZigBee).
+
+## Feature List
+
+* Soft AP
+* Web Server serving a page and various endpoints
+* Beacon spam - Rickroll
+* Beacon spam - User-specified SSIDs
+* Beacon spam - Fuzzing (Random strings)
+* Receive and parse 802.11 frames
+* Commands to Get/Set channel, hopping mode, MAC, etc.
+* Scan APs - Fast (API)
+* Scan APs - Continual (SSID + lastSeen when beacons seen)
+* Commands to select/view/remove APs/STAs in scope
+* Scan STAs - Only include clients of selected AP(s), or all
+* Probe Flood - broadcast/specific
+* Deauth - broadcast/specific
+* Mana attack - Respond to all probes
+* Homing attack (Focus on RSSI for selected STA(s) or AP)
+* Capture authentication frames for cracking
+* DOS AP
+    ** Use target's MAC
+    ** Respond to frames directed at AP with a deauth packet
+* Clone AP
+    ** Use target's MAC
+    ** Respond to probe requests with forged beacon frames
+    ** (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
+    ** Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
+* Scan 802.15.1 (BLE/BT) devices and types
+* Incorporate BLE/BT devices into homing attack
+* BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
+
 
 # Wi-Fi SoftAP Example
 
