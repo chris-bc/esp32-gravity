@@ -15,10 +15,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * Given a soft AP isn't possible, a console API will be implemented first
     * Once complete can make a decision between implementing an AP with web server, or STA with web server
 * Implement console component with commands:
-    * beacon:
-    * probe
-    * deauth
-    * mana
+    * beacon: beacon ( RICKROLL | RANDOM | USER ) - target-ssids must be specified for USER option
+    * probe: probe ( ALL | MACS ) ( ANY | SSIDS ) - Send probe requests to either broadcast or specified MACs, requesting information either all or specified SSIDs
+    * deauth: deauth [STA] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
+    * mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
     * stalk
     * ap-dos
     * ap-clone
