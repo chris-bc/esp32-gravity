@@ -40,7 +40,7 @@ static const char* TAG = "example";
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
-        .hint = "Beacon spam attack. Usage: beacon [ ( ( RICKROLL | RANDOM | USER ) [ TARGET MAC ] ) | OFF ]. Beacon without parameters returns the current status of the module, single argument \"OFF\" disables a running beacon attack. User-defined attack requires target-ssids to be set.",
+        .hint = "Beacon spam attack. Usage: beacon [ ( ( RICKROLL | RANDOM | USER ) [ TARGET MAC ] ) | OFF ]. Beacon without parameters returns the current status of the module, single argument \"OFF\" disables a running beacon attack. User-defined attack requires target-ssids to be set. \"TARGET MAC\" is not currently supported but may be in the future.",
         .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. USER will generate SSIDs as specified in target-ssids.",
         .func = cmd_beacon
     }, {
@@ -107,69 +107,93 @@ esp_console_cmd_t commands[CMD_COUNT] = {
 };
 
 int cmd_beacon(int argc, char **argv) {
+    /* rickroll | random | user | off | status */
+    /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
+    /* argc must be 1 or 2 - no arguments, or rickroll/random/user/off */
+    if (argc < 1 || argc > 2) {
+        ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
+        return ESP_OK;
+    }
 
+    /* Handle argument to beacon */
+    if (!strcasecmp(argv[1], "rickroll")) {
+        //
+    } else if (!strcasecmp(argv[1], "random")) {
+        //
+    } else if (!strcasecmp(argv[1], "user")) {
+        //
+    } else if (!strcasecmp(argv[1], "off")) {
+        //
+    } else {
+        ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
+        return ESP_ERR_INVALID_ARG;
+    }
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_probe(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_deauth(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_mana(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_stalk(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_ap_dos(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_ap_clone(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_scan(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_set(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_get(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_view(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_select(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 int cmd_handshake(int argc, char **argv) {
 
-    return 0;
+    return ESP_OK;
 }
 
 static int register_console_commands() {

@@ -53,6 +53,16 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
 
+## Migration notes
+
+#define ATTACK_BEACON 0
+#define ATTACK_PROBE 1
+#define ATTACK_DEAUTH 2
+#define ATTACK_MANA 3
+#define ATTACK_AP_DOS 4
+#define ATTACK_AP_CLONE 5
+#define ATTACK_SCAN 6
+#define ATTACK_HANDSHAKE 7
 
 # Wi-Fi SoftAP Example
 

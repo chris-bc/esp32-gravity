@@ -1,3 +1,20 @@
+#include <stdbool.h>
+
+/*  Globals to track module status information */
+enum {
+    ATTACK_BEACON,
+    ATTACK_PROBE,
+    ATTACK_DEAUTH,
+    ATTACK_MANA,
+    ATTACK_AP_DOS,
+    ATTACK_AP_CLONE,
+    ATTACK_SCAN,
+    ATTACK_HANDSHAKE,
+    ATTACKS_COUNT
+};
+static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false};
+
+/* Console callbacks */
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);
 int cmd_deauth(int argc, char **argv);
