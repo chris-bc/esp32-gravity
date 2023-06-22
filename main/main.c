@@ -23,7 +23,7 @@
 
 #include "main.h"
 
-static const char* TAG = "example";
+static const char* TAG = "WiFi";
 #define PROMPT_STR CONFIG_IDF_TARGET
 
 /* Console command history can be stored to and loaded from a file.
@@ -121,18 +121,24 @@ int cmd_beacon(int argc, char **argv) {
 
     /* Handle argument to beacon */
     if (!strcasecmp(argv[1], "rickroll")) {
-        //
+        return beacon_start(ATTACK_BEACON_RICKROLL);
     } else if (!strcasecmp(argv[1], "random")) {
-        //
+        if (SSID_LEN_MIN == 0) {
+            SSID_LEN_MIN = 8;
+        }
+        if (SSID_LEN_MAX == 0) {
+            SSID_LEN_MAX = 32;
+        }
+        return beacon_start(ATTACK_BEACON_RANDOM);
     } else if (!strcasecmp(argv[1], "user")) {
-        //
+        // Need a strategy to build user-specified list
+        return beacon_start(ATTACK_BEACON_USER);
     } else if (!strcasecmp(argv[1], "off")) {
-        //
+        return beacon_stop();
     } else {
         ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
         return ESP_ERR_INVALID_ARG;
     }
-
     return ESP_OK;
 }
 

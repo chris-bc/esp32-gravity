@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include "beacon.c"
 
 /*  Globals to track module status information */
 enum {
