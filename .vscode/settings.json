@@ -13,5 +13,6 @@
     "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/chris/.espressif/python_env/idf5.1_py3.10_env/bin/python",
     "idf.toolsPath": "/home/chris/.espressif",
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/build/bootloader/compile_commands.json"
 }

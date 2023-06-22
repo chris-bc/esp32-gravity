@@ -15,19 +15,18 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * Given a soft AP isn't possible, a console API will be implemented first
     * Once complete can make a decision between implementing an AP with web server, or STA with web server
 * Implement console component with commands:
-    * beacon: beacon ( RICKROLL | RANDOM | USER ) - target-ssids must be specified for USER option
-    * probe: probe ( ALL | MACS ) ( ANY | SSIDS ) - Send probe requests to either broadcast or specified MACs, requesting information either all or specified SSIDs
+    * beacon: beacon ( RICKROLL | RANDOM | USER ) [ TARGET MAC ]  - target SSIDs must be specified for USER option
+    * probe: probe ( ALL | MACS ) ( ANY | SSIDS ) - Send probe requests to either broadcast or targetted MACs, requesting information either all or targetted SSIDs.
     * deauth: deauth [STA] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
     * stalk
     * ap-dos
     * ap-clone
     * scan ( FASTAP | AP | STA )
-    * set/get
-    * view: view [ SSID | STA | TRACKING ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated.
-    * select: select ( SSID | STA | TRACKING ) <specifier> - Select/deselect targets for the included tools. TRACKING includes/excludes the selected device from the homing feature.
+    * set/get SSID_LEN_MIN SSID_LEN_MAX 
+    * view: view [ SSID | STA | MAC ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated.
+    * select: select ( SSID | STA | MAC ) <specifier> - Select/deselect targets for the included tools.
     * handshake
-    * target-ssids: target-ssids list | add | remove - Manage the set of SSIDs used for beacon spam and probe flood attacks
 * Beacon spam - Rickroll
 * Beacon spam - User-specified SSIDs
 * Beacon spam - Fuzzing (Random strings)

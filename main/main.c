@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "esp_err.h"
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_console.h"
@@ -19,6 +20,8 @@
 #include "cmd_system.h"
 #include "cmd_wifi.h"
 #include "cmd_nvs.h"
+
+#include "main.h"
 
 static const char* TAG = "example";
 #define PROMPT_STR CONFIG_IDF_TARGET
@@ -31,6 +34,56 @@ static const char* TAG = "example";
 
 #define MOUNT_PATH "/data"
 #define HISTORY_PATH MOUNT_PATH "/history.txt"
+
+/* Command specifications */
+esp_console_cmd_t commands[13] = {
+    {
+        .command = "beacon",
+        .hint = "Toggle beacon spam attack. Usage: beacon ( RICKROLL | RANDOM | USER ) [ TARGET MAC ]. User-defined attack requires target-ssids to be set.",
+        .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. USER will generate SSIDs as specified in target-ssids.",
+        .func = cmd_beacon
+    }
+};
+
+int cmd_beacon(int argc, char **argv) {
+
+
+    return 0;
+}
+
+static int register_console_commands() {
+    esp_console_cmd_t *config;
+    config = malloc(sizeof(esp_console_cmd_t));
+    if (config == NULL) {
+        ESP_LOGE(TAG, "Unable to allocate memory for BEACON command. PANIC!");
+        return ESP_ERR_NO_MEM;
+    }
+    config->command = "beacon";
+    config->hint = "Toggle beacon spam attack. Usage: beacon ( RICKROLL | RANDOM | USER ) [ TARGET MAC ]. User-defined attack requires target-ssids to be set.";
+    config->help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. USER will generate SSIDs as specified in target-ssids.";
+    config->func = cmd_beacon;
+    config->argtable = NULL;
+    esp_err_t err = esp_console_cmd_register(config);
+    switch (err) {
+    case ESP_OK:
+        ESP_LOGI(TAG, "Registered command BEACON...");
+        break;
+    case ESP_ERR_NO_MEM:
+        ESP_LOGE(TAG, "Out of memory registering command BEACON!");
+        return ESP_ERR_NO_MEM;
+    case ESP_ERR_INVALID_ARG:
+        ESP_LOGW(TAG, "Invalid arguments provided during registration of BEACON. Skipping...");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    config = malloc(sizeof(esp_console_cmd_t));
+    if (config == NULL ) {
+        //
+    }
+
+
+    return ESP_OK;
+}
 
 static void initialize_filesystem(void)
 {
@@ -77,7 +130,21 @@ void app_main(void)
     ESP_LOGI(TAG, "Command history disabled");
 #endif
 
-    /* Register commands */
+    /* Initialise console */
+    esp_console_config_t *config;
+    config = malloc(sizeof(esp_console_config_t));
+    if (config == NULL) {
+        ESP_LOGE(TAG, "Unable to allocate memory for console configuration. PANIC");
+        return;
+    }
+    config->hint_bold = 1;
+    config->hint_color = atoi(LOG_COLOR_GREEN);
+    config->max_cmdline_args = 3;
+    config->max_cmdline_length = 64;
+    esp_console_init(config);
+
+    /* Register console commands */
+    register_console_commands();
     esp_console_register_help_command();
     register_system_common();
 #ifndef CONFIG_IDF_TARGET_ESP32H2  // needs deep sleep support, IDF-6268
