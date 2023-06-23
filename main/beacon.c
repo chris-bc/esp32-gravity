@@ -49,6 +49,7 @@ static char *rick_ssids[] = {
 };
 
 static char **attack_ssids = NULL;
+static char **user_ssids = NULL;
 
 #define BEACON_SSID_OFFSET 38
 #define SRCADDR_OFFSET 10
@@ -68,8 +69,63 @@ static beacon_attack_t attackType;
 static int SSID_LEN_MIN = 8;
 static int SSID_LEN_MAX = 32;
 static int SSID_COUNT = DEFAULT_SSID_COUNT;
+static int user_ssid_count = 0;
 
 static TaskHandle_t task;
+
+int addSsid(char *ssid) {
+	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
+	if (newSsids == NULL) {
+		ESP_LOGE("GRAVITY", "Insufficient memory to add new SSID");
+		return ESP_ERR_NO_MEM;
+	}
+	for (int i=0; i < user_ssid_count; ++i) {
+		newSsids[i] = user_ssids[i];
+	}
+
+	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
+	if (newSsids[user_ssid_count] == NULL) {
+		ESP_LOGE("GRAVITY", "Insufficient memory to add SSID \"%s\"", ssid);
+		return ESP_ERR_NO_MEM;
+	}
+	strcpy(newSsids[user_ssid_count], ssid);
+	++user_ssid_count;
+	free(user_ssids);
+	user_ssids = newSsids;
+
+	return ESP_OK;
+}
+
+int rmSsid(char *ssid) {
+	int idx;
+
+	// Get index of ssid if it exists
+	for (idx = 0; (idx < user_ssid_count && strcasecmp(ssid, user_ssids[idx])); ++idx) {}
+	if (idx == user_ssid_count) {
+		ESP_LOGW("GRAVITY", "Asked to remove SSID \'%s\', but could not find it in user_ssids", ssid);
+		return ESP_ERR_INVALID_ARG;
+	}
+
+	char **newSsids = malloc(sizeof(char*) * (user_ssid_count - 1));
+	if (newSsids == NULL) {
+		ESP_LOGE("GRAVITY", "Unable to allocate memory to remove SSID \'%s\'", ssid);
+		return ESP_ERR_NO_MEM;
+	}
+
+	// Copy shrunk array to newSsids
+	for (int i = 0; i < user_ssid_count; ++i) {
+		if (i < idx) {
+			newSsids[i] = user_ssids[i];
+		} else if (i > idx) {
+			newSsids[i-1] = user_ssids[i];
+		}
+	}
+	free(user_ssids[idx]);
+	free(user_ssids);
+	user_ssids = newSsids;
+	--user_ssid_count;
+	return ESP_OK;
+}
 
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;
@@ -157,11 +213,15 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 	if (attackType == ATTACK_BEACON_RICKROLL) {
 		SSID_COUNT = RICK_SSID_COUNT;
 		attack_ssids = rick_ssids;
+		ESP_LOGI("GRAVITY", "Starting RickRoll: %d SSIDs", SSID_COUNT);
 	} else if (attackType == ATTACK_BEACON_RANDOM) {
 		SSID_COUNT = (ssidCount>0)?ssidCount:DEFAULT_SSID_COUNT;
 		attack_ssids = generate_random_ssids();
+		ESP_LOGI("GRAVITY", "Starting %d random SSIDs", SSID_COUNT);
 	} else if (attackType == ATTACK_BEACON_USER) {
-		// TODO
+		SSID_COUNT = user_ssid_count;
+		attack_ssids = user_ssids;
+		ESP_LOGI("GRAVITY", "Starting %d SSIDs", SSID_COUNT);
 	}
     
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &task);

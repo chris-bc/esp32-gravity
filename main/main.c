@@ -54,7 +54,6 @@ int cmd_beacon(int argc, char **argv) {
         }
         ret = beacon_start(ATTACK_BEACON_RANDOM, ssidCount);
     } else if (!strcasecmp(argv[1], "user")) {
-        // Need a strategy to build user-specified list
         ret = beacon_start(ATTACK_BEACON_USER, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
@@ -75,6 +74,33 @@ int cmd_beacon(int argc, char **argv) {
 }
 
 int cmd_target_ssids(int argc, char **argv) {
+    // Must have no args (return current value) or two (add/remove SSID)
+    if ((argc != 1 && argc != 3) || (argc == 1 && user_ssid_count == 0)) {
+        if (user_ssid_count == 0) {
+            ESP_LOGI(TAG, "targt-ssids has no elements.");
+        } else {
+            ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
+        }
+        return ESP_ERR_INVALID_ARG;
+    }
+    char temp[40];
+    if (argc == 1) {
+        char *strSsids = malloc(sizeof(char) * user_ssid_count * 32);
+        if (strSsids == NULL) {
+            ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
+            return ESP_ERR_NO_MEM;
+        }
+        strcpy(strSsids, user_ssids[0]);
+        for (int i = 1; i < user_ssid_count; ++i) {
+            sprintf(temp, " , %s", user_ssids[i]);
+            strcat(strSsids, temp);
+        }
+        printf("Selected SSIDs: %s\n", strSsids);
+    } else if (!strcasecmp(argv[1], "add")) {
+        return addSsid(argv[2]);
+    } else if (!strcasecmp(argv[1], "remove")) {
+        return rmSsid(argv[2]);
+    }
 
     return ESP_OK;
 }
