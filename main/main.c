@@ -25,7 +25,7 @@ int cmd_beacon(int argc, char **argv) {
     /* rickroll | random | user | off | status */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
     /* argc must be 1 or 2 - no arguments, or rickroll/random/user/off */
-    if (argc < 1 || argc > 2) {
+    if (argc < 1 || argc > 3) {
         ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
         return ESP_ERR_INVALID_ARG;
     }
@@ -34,10 +34,11 @@ int cmd_beacon(int argc, char **argv) {
         return ESP_OK;
     }
 
-    /* Handle argument to beacon */
+    /* Handle arguments to beacon */
     int ret = ESP_OK;
+    int ssidCount = DEFAULT_SSID_COUNT;
     if (!strcasecmp(argv[1], "rickroll")) {
-        ret = beacon_start(ATTACK_BEACON_RICKROLL);
+        ret = beacon_start(ATTACK_BEACON_RICKROLL, 0);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
             SSID_LEN_MIN = 8;
@@ -45,10 +46,16 @@ int cmd_beacon(int argc, char **argv) {
         if (SSID_LEN_MAX == 0) {
             SSID_LEN_MAX = 32;
         }
-        ret = beacon_start(ATTACK_BEACON_RANDOM);
+        if (argc == 3) {
+            ssidCount = atoi(argv[2]);
+            if (ssidCount == 0) {
+                ssidCount = DEFAULT_SSID_COUNT;
+            }
+        }
+        ret = beacon_start(ATTACK_BEACON_RANDOM, ssidCount);
     } else if (!strcasecmp(argv[1], "user")) {
         // Need a strategy to build user-specified list
-        ret = beacon_start(ATTACK_BEACON_USER);
+        ret = beacon_start(ATTACK_BEACON_USER, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {
@@ -129,7 +136,7 @@ int cmd_handshake(int argc, char **argv) {
 
 int initialise_wifi() {
     /* Initialise WiFi if needed */
-    if (!BEACON_INITIALISED) {
+    if (!WIFI_INITIALISED) {
         esp_err_t ret = nvs_flash_init();
         if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
             ESP_ERROR_CHECK(nvs_flash_erase());
@@ -165,7 +172,7 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
         ESP_ERROR_CHECK(esp_wifi_start());
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-        BEACON_INITIALISED = true;
+        WIFI_INITIALISED = true;
     }
     return ESP_OK;
 }
