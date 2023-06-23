@@ -5,6 +5,7 @@
 #include <esp_err.h>
 #include <stdbool.h>
 #include <nvs_flash.h>
+#include <string.h>
 
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
@@ -60,8 +61,44 @@ static int SSID_LEN_MIN = 8;
 static int SSID_LEN_MAX = 32;
 static bool BEACON_INITIALISED = false;
 
-int beacon_stop() {
+static TaskHandle_t task;
 
+void beaconSpam(void *pvParameter) {
+	uint8_t line = 0;
+
+	// Keep track of beacon sequence numbers on a per-songline-basis
+	uint16_t seqnum[TOTAL_LINES] = { 0 };
+
+	for (;;) {
+		vTaskDelay(100 / TOTAL_LINES / portTICK_PERIOD_MS);
+
+		// Insert line of Rick Astley's "Never Gonna Give You Up" into beacon packet
+		uint8_t beacon_rick[200];
+		memcpy(beacon_rick, beacon_raw, BEACON_SSID_OFFSET - 1);
+		beacon_rick[BEACON_SSID_OFFSET - 1] = strlen(rick_ssids[line]);
+		memcpy(&beacon_rick[BEACON_SSID_OFFSET], rick_ssids[line], strlen(rick_ssids[line]));
+		memcpy(&beacon_rick[BEACON_SSID_OFFSET + strlen(rick_ssids[line])], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
+
+		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one song line each
+		beacon_rick[SRCADDR_OFFSET + 5] = line;
+		beacon_rick[BSSID_OFFSET + 5] = line;
+
+		// Update sequence number
+		beacon_rick[SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
+		beacon_rick[SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
+		seqnum[line]++;
+		if (seqnum[line] > 0xfff)
+			seqnum[line] = 0;
+
+		esp_wifi_80211_tx(WIFI_IF_AP, beacon_rick, sizeof(beacon_raw) + strlen(rick_ssids[line]), false);
+
+		if (++line >= TOTAL_LINES)
+			line = 0;
+	}
+}
+
+int beacon_stop() {
+	vTaskDelete(task);
     return ESP_OK;
 }
 
@@ -72,8 +109,9 @@ int beacon_start(beacon_attack_t type) {
     }
     attackType = type;
 
+	// TODO: Prepare the appropriate beacon array
     
-    //xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, NULL);
+    xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &task);
     
 
     return ESP_OK;

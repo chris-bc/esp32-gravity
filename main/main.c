@@ -35,8 +35,9 @@ int cmd_beacon(int argc, char **argv) {
     }
 
     /* Handle argument to beacon */
+    int ret = ESP_OK;
     if (!strcasecmp(argv[1], "rickroll")) {
-        return beacon_start(ATTACK_BEACON_RICKROLL);
+        ret = beacon_start(ATTACK_BEACON_RICKROLL);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
             SSID_LEN_MIN = 8;
@@ -44,17 +45,26 @@ int cmd_beacon(int argc, char **argv) {
         if (SSID_LEN_MAX == 0) {
             SSID_LEN_MAX = 32;
         }
-        return beacon_start(ATTACK_BEACON_RANDOM);
+        ret = beacon_start(ATTACK_BEACON_RANDOM);
     } else if (!strcasecmp(argv[1], "user")) {
         // Need a strategy to build user-specified list
-        return beacon_start(ATTACK_BEACON_USER);
+        ret = beacon_start(ATTACK_BEACON_USER);
     } else if (!strcasecmp(argv[1], "off")) {
-        return beacon_stop();
+        ret = beacon_stop();
     } else {
         ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
         return ESP_ERR_INVALID_ARG;
     }
-    return ESP_OK;
+
+    // Update attack_status[ATTACK_BEACON] appropriately
+    if (ret == ESP_OK) {
+        if (!strcasecmp(argv[1], "off")) {
+            attack_status[ATTACK_BEACON] = false;
+        } else {
+            attack_status[ATTACK_BEACON] = true;
+        }
+    }
+    return ret;
 }
 
 int cmd_probe(int argc, char **argv) {
