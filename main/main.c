@@ -74,6 +74,11 @@ int cmd_beacon(int argc, char **argv) {
     return ret;
 }
 
+int cmd_target_ssids(int argc, char **argv) {
+
+    return ESP_OK;
+}
+
 int cmd_probe(int argc, char **argv) {
 
     return ESP_OK;

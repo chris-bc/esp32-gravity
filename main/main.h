@@ -28,14 +28,20 @@ int cmd_get(int argc, char **argv);
 int cmd_view(int argc, char **argv);
 int cmd_select(int argc, char **argv);
 int cmd_handshake(int argc, char **argv);
+int cmd_target_ssids(int argc, char **argv);
 
-#define CMD_COUNT 13
+#define CMD_COUNT 14
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
         .hint = "Beacon spam attack. Usage: beacon [ ( ( RICKROLL | RANDOM [ COUNT ] | USER ) [ TARGET MAC ] ) | OFF ]",
         .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. USER will generate SSIDs as specified in target-ssids.",
         .func = cmd_beacon
+    }, {
+        .command = "target-ssids",
+        .hint = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <SSID_NAME> ]",
+        .help = "ssid-targets may be specified for several attacks, including BEACON and PROBE.",
+        .func = cmd_target_ssids
     }, {
         .command = "probe",
         .hint = "Probe flood attack. Usage: probe [ ( ( ALL | MACS ) ( ANY | SSIDs ) ) | OFF ]",
