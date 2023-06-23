@@ -1,4 +1,4 @@
-menu "ESP32-C6 Wireless Tools"
+menu "Example Configuration"
 
     config CONSOLE_STORE_HISTORY
         bool "Store command history in flash"
