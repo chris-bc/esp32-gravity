@@ -14,7 +14,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Web Server serving a page and various endpoints
     * Given a soft AP isn't possible, a console API will be implemented first
     * Once complete can make a decision between implementing an AP with web server, or STA with web server
-* Implement console component with commands:
+* **DONE** Implement console component with commands:
     * beacon: beacon [ ( ( RICKROLL | RANDOM | USER ) [ TARGET MAC ] ) | ON | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
     * probe: probe [ ( ( ALL | MACS ) ( ANY | SSIDS ) ) | ON | OFF ] - Send probe requests to either broadcast or targetted MACs, requesting information either all or targetted SSIDs.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
@@ -27,9 +27,9 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * view: view [ SSID | STA | MAC ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
     * select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
     * handshake
-* Beacon spam - Rickroll
+* **DONE** Beacon spam - Rickroll
 * Beacon spam - User-specified SSIDs
-* Beacon spam - Fuzzing (Random strings)
+* **DONE** Beacon spam - Fuzzing (Random strings)
 * Receive and parse 802.11 frames
 * Commands to Get/Set channel, hopping mode, MAC, etc.
 * Scan APs - Fast (API)
