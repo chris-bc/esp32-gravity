@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "esp_err.h"
 #include "probe.h"
 
 uint8_t probe_raw[] = {
@@ -51,11 +52,19 @@ TaskHandle_t probeTask = NULL;
 
 void probeCallback(void *pvParameter) {
     //
-
+    ESP_LOGI(PROBE_TAG, "Starting probeCallback()");
+    for (;;) {
+        vTaskDelay(5);
+        //
+    }
 }
 
 int probe_stop() {
+    #ifdef DEBUG
+        ESP_LOGI(PROBE_TAG, "Trace: probe_stop()");
+    #endif
     if (probeTask != NULL) {
+        ESP_LOGI(PROBE_TAG, "Found a probe task, killing %p", probeTask);
         vTaskDelete(probeTask);
         probeTask = NULL;
     }
@@ -64,8 +73,23 @@ int probe_stop() {
 }
 
 int probe_start(probe_attack_t type, int probeCount) {
+    char strType[25];
+    switch (type) {
+    case ATTACK_PROBE_UNDIRECTED:
+        strcpy(strType, "ATTACK_PROBE_UNDIRECTED");
+        break;
+    case ATTACK_PROBE_DIRECTED:
+        strcpy(strType, "ATTACK_PROBE_DIRECTED");
+        break;
+    case ATTACK_PROBE_NONE:
+        ESP_LOGW(PROBE_TAG, "GRAVITY: Starting an attack of type ATTACK_PROBE_NONE doesn't do very much...");
+        return ESP_ERR_INVALID_ARG;
+    }
+    ESP_LOGI(PROBE_TAG, "Entering probe_start(%s, %d)", strType, probeCount);
+
     // Stop the existing probe attack if there is one
     if (attackType != ATTACK_PROBE_NONE) {
+        ESP_LOGI(PROBE_TAG, "Halting existing %sdirected probe...", (attackType==ATTACK_PROBE_UNDIRECTED)?"un-":"");
         probe_stop();
     }
     attackType = type;

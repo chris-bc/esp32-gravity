@@ -122,6 +122,10 @@ int cmd_target_ssids(int argc, char **argv) {
 
 int cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]
+    #ifdef DEBUG
+        printf("cmd_probe start\n");
+    #endif
+
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ].  SSIDS uses the target-ssids specification.");
         return ESP_ERR_INVALID_ARG;
@@ -129,7 +133,10 @@ int cmd_probe(int argc, char **argv) {
 
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
     int probeCount = DEFAULT_PROBE_COUNT;
-    if (!strcasecmp(argv[1], "OFF")) {
+
+    if (argc == 1) {
+        ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
+    } else if (!strcasecmp(argv[1], "OFF")) {
         ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
         probe_stop();
     } else {
@@ -149,13 +156,30 @@ int cmd_probe(int argc, char **argv) {
             probeCount = atoi(argv[2]);
             if (probeCount <= 0) {
                 probeCount = DEFAULT_PROBE_COUNT;
+                ESP_LOGW(PROBE_TAG, "Incorrect packet count specified. \"%s\" could not be transformed into a number, using default.", argv[2]);
             }
         }
 
-        ESP_LOGI(PROBE_TAG, "Starting a probe flood of %d packets", probeCount);
+        char probeNote[100];
+        sprintf(probeNote, "Starting a probe flood of %d%s packets%s", probeCount, (probeType == ATTACK_PROBE_UNDIRECTED)?" broadcast":"", (probeType == ATTACK_PROBE_DIRECTED)?" directed to ":"");
+        if (probeType == ATTACK_PROBE_DIRECTED) {
+            char suffix[16];
+            sprintf(suffix, "%d SSIDs", countSsid());
+            strcat(probeNote, suffix);
+        }
+
+        ESP_LOGI(PROBE_TAG, "%s", probeNote);
         probe_start(probeType, probeCount);
     }
 
+    // Set attack_status[ATTACK_PROBE]
+    if (argc > 1) {
+        if (!strcasecmp(argv[1], "off")) {
+            attack_status[ATTACK_PROBE] = false;
+        } else {
+            attack_status[ATTACK_PROBE] = true;
+        }
+    }
     return ESP_OK;
 }
 
