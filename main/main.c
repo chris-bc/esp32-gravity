@@ -8,6 +8,8 @@
 */
 
 #include "main.h"
+#include "esp_err.h"
+#include "esp_log.h"
 
 static const char* TAG = "GRAVITY";
 #define PROMPT_STR CONFIG_IDF_TARGET
@@ -119,6 +121,40 @@ int cmd_target_ssids(int argc, char **argv) {
 }
 
 int cmd_probe(int argc, char **argv) {
+    // Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]
+    if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
+        ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ].  SSIDS uses the target-ssids specification.");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
+    int probeCount = DEFAULT_PROBE_COUNT;
+    if (!strcasecmp(argv[1], "OFF")) {
+        ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
+        probe_stop();
+    } else {
+        // Gather parameters for probe_start()
+        if (!strcasecmp(argv[1], "SSIDS")) {
+            probeType = ATTACK_PROBE_DIRECTED;
+        } else if (strcasecmp(argv[1], "ANY")) {
+            // Well this is unexpected. The first line of this
+            //   function validated the parameters, but here they're
+            //   invalid.
+            ESP_LOGE(PROBE_TAG, "Well this is embarrassing - I THOUGHT your parameters were just fine, but I was wrong.\nSyntax: probe [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]\nExaple: probe ANY 128");
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        // Get probe count
+        if (argc == 3) {
+            probeCount = atoi(argv[2]);
+            if (probeCount <= 0) {
+                probeCount = DEFAULT_PROBE_COUNT;
+            }
+        }
+
+        ESP_LOGI(PROBE_TAG, "Starting a probe flood of %d packets", probeCount);
+        probe_start(probeType, probeCount);
+    }
 
     return ESP_OK;
 }

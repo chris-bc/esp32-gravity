@@ -21,7 +21,7 @@ static int user_ssid_count = 0;
 static beacon_attack_t attackType = ATTACK_BEACON_NONE;
 static int SSID_COUNT = DEFAULT_SSID_COUNT;
 
-static TaskHandle_t task;
+static TaskHandle_t beaconTask = NULL;
 
 static uint8_t beacon_raw[] = {
 	0x80, 0x00,							    // 0-1: Frame Control
@@ -57,7 +57,7 @@ int addSsid(char *ssid) {
 	#endif
 	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
 	if (newSsids == NULL) {
-		ESP_LOGE("GRAVITY", "Insufficient memory to add new SSID");
+		ESP_LOGE(BEACON_TAG, "Insufficient memory to add new SSID");
 		return ESP_ERR_NO_MEM;
 	}
 	for (int i=0; i < user_ssid_count; ++i) {
@@ -73,7 +73,7 @@ int addSsid(char *ssid) {
 
 	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
 	if (newSsids[user_ssid_count] == NULL) {
-		ESP_LOGE("GRAVITY", "Insufficient memory to add SSID \"%s\"", ssid);
+		ESP_LOGE(BEACON_TAG, "Insufficient memory to add SSID \"%s\"", ssid);
 		return ESP_ERR_NO_MEM;
 	}
 	strcpy(newSsids[user_ssid_count], ssid);
@@ -98,13 +98,13 @@ int rmSsid(char *ssid) {
 	// Get index of ssid if it exists
 	for (idx = 0; (idx < user_ssid_count && strcasecmp(ssid, user_ssids[idx])); ++idx) {}
 	if (idx == user_ssid_count) {
-		ESP_LOGW("GRAVITY", "Asked to remove SSID \'%s\', but could not find it in user_ssids", ssid);
+		ESP_LOGW(BEACON_TAG, "Asked to remove SSID \'%s\', but could not find it in user_ssids", ssid);
 		return ESP_ERR_INVALID_ARG;
 	}
 
 	char **newSsids = malloc(sizeof(char*) * (user_ssid_count - 1));
 	if (newSsids == NULL) {
-		ESP_LOGE("GRAVITY", "Unable to allocate memory to remove SSID \'%s\'", ssid);
+		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to remove SSID \'%s\'", ssid);
 		return ESP_ERR_NO_MEM;
 	}
 
@@ -129,7 +129,7 @@ void beaconSpam(void *pvParameter) {
 	// Keep track of beacon sequence numbers on a per-songline-basis
 	uint16_t *seqnum = malloc(sizeof(uint16_t) * SSID_COUNT);
 	if (seqnum == NULL) {
-		ESP_LOGE("GRAVITY", "Failed to allocate space to monitor sequence numbers. PANIC!");
+		ESP_LOGE(BEACON_TAG, "Failed to allocate space to monitor sequence numbers. PANIC!");
 		return;
 	}
 	for (int i=0; i<SSID_COUNT; ++i) {
@@ -194,7 +194,7 @@ char *generate_random_ssid() {
 	len += SSID_LEN_MIN;
 	retVal = malloc(sizeof(char) * (len + 1));
 	if (retVal == NULL) {
-		ESP_LOGE("GRAVITY", "Failed to allocate %d bytes to generate a new SSID. PANIC!", len + 1);
+		ESP_LOGE(BEACON_TAG, "Failed to allocate %d bytes to generate a new SSID. PANIC!", len + 1);
 		return NULL;
 	}
 	// Generate len characters
@@ -209,7 +209,7 @@ char **generate_random_ssids() {
 	// Generate SSID_COUNT random strings between SSID_LEN_MIN and SSID_LEN_MAX
 	char **ret = malloc(sizeof(char*) * SSID_COUNT);
 	if (ret == NULL) {
-		ESP_LOGE("GRAVITY", "Failed to allocate %d strings for random SSIDs. PANIC!", SSID_COUNT);
+		ESP_LOGE(BEACON_TAG, "Failed to allocate %d strings for random SSIDs. PANIC!", SSID_COUNT);
 		return NULL;
 	}
 	for (int i=0; i < SSID_COUNT; ++i) {
@@ -218,7 +218,7 @@ char **generate_random_ssids() {
 		len += SSID_LEN_MIN;
 		ret[i] = generate_random_ssid();
 		if (ret[i] == NULL) {
-			ESP_LOGE("GRAVITY", "generate_random_ssid() returned NULL. Panicking.");
+			ESP_LOGE(BEACON_TAG, "generate_random_ssid() returned NULL. Panicking.");
 			return NULL;
 		}
 	}
@@ -226,7 +226,10 @@ char **generate_random_ssids() {
 }
 
 int beacon_stop() {
-	vTaskDelete(task);
+	if (beaconTask != NULL) {
+		vTaskDelete(beaconTask);
+		beaconTask = NULL;
+	}
 	attackType = ATTACK_BEACON_NONE;
     return ESP_OK;
 }
@@ -246,26 +249,26 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 	if (attackType == ATTACK_BEACON_RICKROLL) {
 		SSID_COUNT = RICK_SSID_COUNT;
 		attack_ssids = rick_ssids;
-		ESP_LOGI("GRAVITY", "Starting RickRoll: %d SSIDs", SSID_COUNT);
+		ESP_LOGI(BEACON_TAG, "Starting RickRoll: %d SSIDs", SSID_COUNT);
 	} else if (attackType == ATTACK_BEACON_RANDOM) {
 		SSID_COUNT = (ssidCount>0)?ssidCount:DEFAULT_SSID_COUNT;
 		attack_ssids = generate_random_ssids();
-		ESP_LOGI("GRAVITY", "Starting %d random SSIDs", SSID_COUNT);
+		ESP_LOGI(BEACON_TAG, "Starting %d random SSIDs", SSID_COUNT);
 	} else if (attackType == ATTACK_BEACON_USER) {
 		SSID_COUNT = user_ssid_count;
 		attack_ssids = user_ssids;
-		ESP_LOGI("GRAVITY", "Starting %d SSIDs", SSID_COUNT);
+		ESP_LOGI(BEACON_TAG, "Starting %d SSIDs", SSID_COUNT);
 	} else if (attackType == ATTACK_BEACON_INFINITE) {
 		SSID_COUNT = 1;
 		attack_ssids = malloc(sizeof(char *));
 		if (attack_ssids == NULL) {
-			ESP_LOGE("GRAVITY", "Failed to allocate memory to initialise infinite beacon spam attack. PANIC!");
+			ESP_LOGE(BEACON_TAG, "Failed to allocate memory to initialise infinite beacon spam attack. PANIC!");
 			return ESP_ERR_NO_MEM;
 		}
 
 	}
     
-    xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &task);
+    xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &beaconTask);
     
 
     return ESP_OK;

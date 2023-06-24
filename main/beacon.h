@@ -35,6 +35,7 @@ typedef enum {
 #define DEFAULT_SSID_COUNT 20
 static int SSID_LEN_MIN = 8;
 static int SSID_LEN_MAX = 32;
+static const char* BEACON_TAG = "BEACON@GRAVITY";
 
 int beacon_start(beacon_attack_t type, int ssidCount);
 int beacon_stop();

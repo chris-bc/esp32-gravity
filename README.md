@@ -13,8 +13,8 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
 * **DONE** Implement console component with commands:
-    * beacon: beacon [ ( ( RICKROLL | RANDOM | USER ) [ TARGET MAC ] ) | ON | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
-    * probe: probe [ ( ( ALL | MACS ) ( ANY | SSIDS ) ) | ON | OFF ] - Send probe requests to either broadcast or targetted MACs, requesting information either all or targetted SSIDs.
+    * **DONE** beacon: beacon [ RICKROLL | RANDOM | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
+    * probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
     * stalk
@@ -26,8 +26,9 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
     * handshake
 * **DONE** Beacon spam - Rickroll
-* Beacon spam - User-specified SSIDs
+* **DONE** Beacon spam - User-specified SSIDs
 * **DONE** Beacon spam - Fuzzing (Random strings)
+* **DONE** Beacon spam - Infinite (Random strings)
 * Receive and parse 802.11 frames
 * Commands to Get/Set channel, hopping mode, MAC, etc.
 * Scan APs - Fast (API)
