@@ -77,7 +77,7 @@ int cmd_target_ssids(int argc, char **argv) {
     // Must have no args (return current value) or two (add/remove SSID)
     if ((argc != 1 && argc != 3) || (argc == 1 && user_ssid_count == 0)) {
         if (user_ssid_count == 0) {
-            ESP_LOGI(TAG, "targt-ssids has no elements.");
+            ESP_LOGI(TAG, "targt-ssids has no elements. user_ssids is at %p", user_ssids);
         } else {
             ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
         }
@@ -90,10 +90,13 @@ int cmd_target_ssids(int argc, char **argv) {
             ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
             return ESP_ERR_NO_MEM;
         }
+        printf("Serialising target SSIDs");
         strcpy(strSsids, user_ssids[0]);
+        printf("Before serialisation loop returned value is \"%s\"\n", strSsids);
         for (int i = 1; i < user_ssid_count; ++i) {
             sprintf(temp, " , %s", user_ssids[i]);
             strcat(strSsids, temp);
+            printf("At the end of iteration %d retVal is \"%s\"\n",i, strSsids);
         }
         printf("Selected SSIDs: %s\n", strSsids);
     } else if (!strcasecmp(argv[1], "add")) {

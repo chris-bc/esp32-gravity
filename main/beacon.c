@@ -1,56 +1,22 @@
-#include <esp_wifi.h>
-#include "esp_wifi_default.h"
-#include "esp_wifi_types.h"
-#include "nvs.h"
-#include <esp_err.h>
-#include <stdbool.h>
-#include <nvs_flash.h>
-#include <string.h>
-#include <esp_log.h>
-#include <time.h>
-#include <stdlib.h>
-#include "gravity.h"
-
-// Allowable chars for randomly-generated SSIDs
-static char ssid_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
-static char *rick_ssids[] = {
-	"01 Never gonna give you up",
-	"02 Never gonna let you down",
-	"03 Never gonna run around",
-	"04 and desert you",
-	"05 Never gonna make you cry",
-	"06 Never gonna say goodbye",
-	"07 Never gonna tell a lie",
-	"08 and hurt you"
-};
+#include "beacon.h"
 
 static char **attack_ssids = NULL;
-static char **user_ssids = NULL;
 
 #define BEACON_SSID_OFFSET 38
 #define SRCADDR_OFFSET 10
 #define BSSID_OFFSET 16
 #define SEQNUM_OFFSET 22
-#define DEFAULT_SSID_COUNT 20
-#define RICK_SSID_COUNT 8
-
-typedef enum {
-    ATTACK_BEACON_NONE,
-    ATTACK_BEACON_RICKROLL,
-    ATTACK_BEACON_RANDOM,
-    ATTACK_BEACON_USER
-} beacon_attack_t;
 
 static beacon_attack_t attackType;
-static int SSID_LEN_MIN = 8;
-static int SSID_LEN_MAX = 32;
 static int SSID_COUNT = DEFAULT_SSID_COUNT;
-static int user_ssid_count = 0;
 
 static TaskHandle_t task;
 
 int addSsid(char *ssid) {
+	printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
+	for (int i=0; i < user_ssid_count; ++i) {
+		printf("    %d: \"%s\"\n", i, user_ssids[i]);
+	}
 	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
 	if (newSsids == NULL) {
 		ESP_LOGE("GRAVITY", "Insufficient memory to add new SSID");
@@ -60,6 +26,11 @@ int addSsid(char *ssid) {
 		newSsids[i] = user_ssids[i];
 	}
 
+	printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
+	for (int i=0; i < user_ssid_count; ++i) {
+		printf("    %d: \"%s\"\n", i, newSsids[i]);
+	}
+
 	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
 	if (newSsids[user_ssid_count] == NULL) {
 		ESP_LOGE("GRAVITY", "Insufficient memory to add SSID \"%s\"", ssid);
@@ -67,8 +38,12 @@ int addSsid(char *ssid) {
 	}
 	strcpy(newSsids[user_ssid_count], ssid);
 	++user_ssid_count;
+
+	printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
+	printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 	free(user_ssids);
 	user_ssids = newSsids;
+	printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 
 	return ESP_OK;
 }

@@ -8,12 +8,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Feature List
 
-* Soft AP
-    * Deferred - None of the sample APs work
-    * To implement later
+* **DONE** Soft AP
 * Web Server serving a page and various endpoints
-    * Given a soft AP isn't possible, a console API will be implemented first
-    * Once complete can make a decision between implementing an AP with web server, or STA with web server
+    * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
+    * Once complete can decide whether to go ahead with a web server
 * **DONE** Implement console component with commands:
     * beacon: beacon [ ( ( RICKROLL | RANDOM | USER ) [ TARGET MAC ] ) | ON | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
     * probe: probe [ ( ( ALL | MACS ) ( ANY | SSIDS ) ) | ON | OFF ] - Send probe requests to either broadcast or targetted MACs, requesting information either all or targetted SSIDs.
