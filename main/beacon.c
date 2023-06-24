@@ -1,4 +1,5 @@
 #include "beacon.h"
+#include "esp_err.h"
 
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
@@ -17,7 +18,7 @@ static int user_ssid_count = 0;
 #define BSSID_OFFSET 16
 #define SEQNUM_OFFSET 22
 
-static beacon_attack_t attackType;
+static beacon_attack_t attackType = ATTACK_BEACON_NONE;
 static int SSID_COUNT = DEFAULT_SSID_COUNT;
 
 static TaskHandle_t task;
@@ -135,38 +136,76 @@ void beaconSpam(void *pvParameter) {
 		seqnum[i] = 0;
 	}
 
+	char *currentSsid = NULL;
+	int currentSsidLen = 0;
+
 	for (;;) {
-		vTaskDelay(100 / SSID_COUNT / portTICK_PERIOD_MS);
+		if (attackType != ATTACK_BEACON_INFINITE) {
+			vTaskDelay(100 / SSID_COUNT / portTICK_PERIOD_MS);
+		}
 		vTaskDelay(1);
 
-		// Insert line of Rick Astley's "Never Gonna Give You Up" into beacon packet
-		uint8_t beacon_rick[200];
-		memcpy(beacon_rick, beacon_raw, BEACON_SSID_OFFSET - 1);
-		beacon_rick[BEACON_SSID_OFFSET - 1] = strlen(attack_ssids[line]);
-		memcpy(&beacon_rick[BEACON_SSID_OFFSET], attack_ssids[line], strlen(attack_ssids[line]));
-		memcpy(&beacon_rick[BEACON_SSID_OFFSET + strlen(attack_ssids[line])], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
+		// Pull the current SSID and SSID length into variables to more
+		//   easily implement infinite beacon spam
+		if (attackType == ATTACK_BEACON_INFINITE) {
+			currentSsid = generate_random_ssid();
+			currentSsidLen = strlen(currentSsid);
+		} else {
+			currentSsid = attack_ssids[line];
+			currentSsidLen = strlen(attack_ssids[line]);
+		}
 
-		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one song line each
-		beacon_rick[SRCADDR_OFFSET + 5] = line;
-		beacon_rick[BSSID_OFFSET + 5] = line;
+		// Insert the next SSID into beacon packet
+		uint8_t beacon_send[200];
+		memcpy(beacon_send, beacon_raw, BEACON_SSID_OFFSET - 1);
+		beacon_send[BEACON_SSID_OFFSET - 1] = currentSsidLen;
+		memcpy(&beacon_send[BEACON_SSID_OFFSET], currentSsid, currentSsidLen);
+		memcpy(&beacon_send[BEACON_SSID_OFFSET + currentSsidLen], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
+
+		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one SSID each
+		beacon_send[SRCADDR_OFFSET + 5] = line;
+		beacon_send[BSSID_OFFSET + 5] = line;
 
 		// Update sequence number
-		beacon_rick[SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
-		beacon_rick[SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
+		beacon_send[SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
+		beacon_send[SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
 		seqnum[line]++;
 		if (seqnum[line] > 0xfff)
 			seqnum[line] = 0;
 
-		esp_wifi_80211_tx(WIFI_IF_AP, beacon_rick, sizeof(beacon_raw) + strlen(attack_ssids[line]), false);
+		esp_wifi_80211_tx(WIFI_IF_AP, beacon_send, sizeof(beacon_raw) + strlen(attack_ssids[line]), false);
 
-		if (++line >= SSID_COUNT)
+		#ifdef DEBUG
+			printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
+		#endif
+
+		if (++line >= SSID_COUNT) {
 			line = 0;
+		}
 	}
 	free(seqnum);
 }
 
+char *generate_random_ssid() {
+	// Generate a random string between SSID_LEN_MIN and SSID_LEN_MAX
+	char *retVal;
+	// First, how long will it be?
+	int len = rand() % (SSID_LEN_MAX - SSID_LEN_MIN + 1);
+	len += SSID_LEN_MIN;
+	retVal = malloc(sizeof(char) * (len + 1));
+	if (retVal == NULL) {
+		ESP_LOGE("GRAVITY", "Failed to allocate %d bytes to generate a new SSID. PANIC!", len + 1);
+		return NULL;
+	}
+	// Generate len characters
+	for (int i=0; i < len; ++i) {
+		retVal[i] = ssid_chars[rand() % (strlen(ssid_chars) - 1)];
+	}
+	retVal[len] = '\0';
+	return retVal;
+}
+
 char **generate_random_ssids() {
-	srand(time(NULL));
 	// Generate SSID_COUNT random strings between SSID_LEN_MIN and SSID_LEN_MAX
 	char **ret = malloc(sizeof(char*) * SSID_COUNT);
 	if (ret == NULL) {
@@ -177,16 +216,11 @@ char **generate_random_ssids() {
 		// How long will this SSID be?
 		int len = rand() % (SSID_LEN_MAX - SSID_LEN_MIN + 1);
 		len += SSID_LEN_MIN;
-		ret[i] = malloc(sizeof(char) * (len + 1));
+		ret[i] = generate_random_ssid();
 		if (ret[i] == NULL) {
-			ESP_LOGE("GRAVITY", "Failed to allocate %d bytes for SSID %d. PANIC!", (len + 1), i);
+			ESP_LOGE("GRAVITY", "generate_random_ssid() returned NULL. Panicking.");
 			return NULL;
 		}
-		// Generate len characters
-		for (int j=0; j < len; ++j) {
-			ret[i][j] = ssid_chars[rand() % (strlen(ssid_chars) - 1)];
-		}
-		ret[i][len] = '\0';
 	}
 	return ret;
 }
@@ -201,7 +235,11 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
     /* Stop an existing beacon attack if one exists */
     if (attackType != ATTACK_BEACON_NONE) {
         beacon_stop();
-    }
+    } else {
+		// And initialise the random number generator
+		// It'll happen more than once here, but that's OK
+		srand(time(NULL));
+	}
     attackType = type;
 
 	// Prepare the appropriate beacon array
@@ -217,6 +255,14 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 		SSID_COUNT = user_ssid_count;
 		attack_ssids = user_ssids;
 		ESP_LOGI("GRAVITY", "Starting %d SSIDs", SSID_COUNT);
+	} else if (attackType == ATTACK_BEACON_INFINITE) {
+		SSID_COUNT = 1;
+		attack_ssids = malloc(sizeof(char *));
+		if (attack_ssids == NULL) {
+			ESP_LOGE("GRAVITY", "Failed to allocate memory to initialise infinite beacon spam attack. PANIC!");
+			return ESP_ERR_NO_MEM;
+		}
+
 	}
     
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &task);

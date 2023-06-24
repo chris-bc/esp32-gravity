@@ -35,8 +35,8 @@ int cmd_target_ssids(int argc, char **argv);
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
-        .hint = "Beacon spam attack. Usage: beacon [ ( ( RICKROLL | RANDOM [ COUNT ] | USER ) [ TARGET MAC ] ) | OFF ]",
-        .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. USER will generate SSIDs as specified in target-ssids.",
+        .hint = "Beacon spam attack. Usage: beacon [ ( ( RICKROLL | RANDOM [ COUNT ] | INFINITE | USER ) [ TARGET MAC ] ) | OFF ]",
+        .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. USER will generate SSIDs as specified in target-ssids. INIFINITE will continuously broadcast random APs until it is stopped. TARGET MAC has not been implemented.",
         .func = cmd_beacon
     }, {
         .command = "target-ssids",

@@ -28,7 +28,8 @@ typedef enum {
     ATTACK_BEACON_NONE,
     ATTACK_BEACON_RICKROLL,
     ATTACK_BEACON_RANDOM,
-    ATTACK_BEACON_USER
+    ATTACK_BEACON_USER,
+	ATTACK_BEACON_INFINITE
 } beacon_attack_t;
 
 #define DEFAULT_SSID_COUNT 20
@@ -41,3 +42,4 @@ int addSsid(char *ssid);
 int rmSsid(char *ssid);
 int countSsid();
 char **lsSsid();
+char *generate_random_ssid();

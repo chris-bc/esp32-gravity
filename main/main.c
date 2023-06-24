@@ -24,7 +24,7 @@ static const char* TAG = "GRAVITY";
 int cmd_beacon(int argc, char **argv) {
     /* rickroll | random | user | off | status */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
-    /* argc must be 1 or 2 - no arguments, or rickroll/random/user/off */
+    /* argc must be 1 or 2 - no arguments, or rickroll/random/user/infinite/off */
     if (argc < 1 || argc > 3) {
         ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
         return ESP_ERR_INVALID_ARG;
@@ -55,6 +55,8 @@ int cmd_beacon(int argc, char **argv) {
         ret = beacon_start(ATTACK_BEACON_RANDOM, ssidCount);
     } else if (!strcasecmp(argv[1], "user")) {
         ret = beacon_start(ATTACK_BEACON_USER, 0);
+    } else if (!strcasecmp(argv[1], "infinite")) {
+        ret = beacon_start(ATTACK_BEACON_INFINITE, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {
