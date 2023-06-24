@@ -62,6 +62,21 @@ Initial development will be focused on implementing a core set of 802.11 explora
 #define ATTACK_SCAN 6
 #define ATTACK_HANDSHAKE 7
 
+# Installation notes
+
+Debugging statements written during development have not been removed from the code; they've been put behind #ifdef directives and can be enabled by adding #define DEBUG to one of the header files to enable them.
+
+Gravity is written using Espressif's ESP-IDF development platform.
+Building & installation follows the same paradigm as other ESP-IDF projects, using idf.py build flash monitor to build the application, flash a ESP32-C6, and start a serial connection with the device.
+
+Gravity currently uses a serial console as its user interface, with text-based commands and feedback.
+Tools such as Putty, Screen, Minicom and the Arduino IDE can be used to establish a serial connection over USB to interact with the device. Since it will already be installed for building the application, I suggest using ESP-IDF as your serial monitor. To start the ESP-IDF serial monitor and have it connect to a device run idf.py monitor. This can be combined alongside building and flashing with the command "idf.py build flash monitor".
+
+Finding the serial port used by Gravity varies depending on operating system:
+* On MacOS I forget
+* On Windows I never knew
+* On Linux, run ls /dev/tty* before plugging the device in, and again with the device connected. The new file is the serial port in use, and will typically be named ttyUSB0 or ttyACM0.
+
 
 # Basic Console Example (`esp_console_repl`)
 

@@ -48,10 +48,12 @@ char **lsSsid() {
 }
 
 int addSsid(char *ssid) {
-	printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
-	for (int i=0; i < user_ssid_count; ++i) {
-		printf("    %d: \"%s\"\n", i, user_ssids[i]);
-	}
+	#ifdef DEBUG
+		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
+		for (int i=0; i < user_ssid_count; ++i) {
+			printf("    %d: \"%s\"\n", i, user_ssids[i]);
+		}
+	#endif
 	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
 	if (newSsids == NULL) {
 		ESP_LOGE("GRAVITY", "Insufficient memory to add new SSID");
@@ -61,10 +63,12 @@ int addSsid(char *ssid) {
 		newSsids[i] = user_ssids[i];
 	}
 
-	printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
-	for (int i=0; i < user_ssid_count; ++i) {
-		printf("    %d: \"%s\"\n", i, newSsids[i]);
-	}
+	#ifdef DEBUG
+		printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
+		for (int i=0; i < user_ssid_count; ++i) {
+			printf("    %d: \"%s\"\n", i, newSsids[i]);
+		}
+	#endif
 
 	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
 	if (newSsids[user_ssid_count] == NULL) {
@@ -74,11 +78,15 @@ int addSsid(char *ssid) {
 	strcpy(newSsids[user_ssid_count], ssid);
 	++user_ssid_count;
 
-	printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
-	printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#ifdef DEBUG
+		printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
+		printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#endif
 	free(user_ssids);
 	user_ssids = newSsids;
-	printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#ifdef DEBUG
+		printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#endif
 
 	return ESP_OK;
 }
