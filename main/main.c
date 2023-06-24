@@ -143,7 +143,13 @@ int cmd_probe(int argc, char **argv) {
         // Gather parameters for probe_start()
         if (!strcasecmp(argv[1], "SSIDS")) {
             probeType = ATTACK_PROBE_DIRECTED;
-        } else if (strcasecmp(argv[1], "ANY")) {
+            // TODO: Fix the poor design decision - Move target-ssids out
+            //       of the Beacon module and into a shared module (main?)
+            // For now tell the Probe module what our target-ssids are
+            probe_set_ssids(countSsid(), lsSsid());
+        } else if (!strcasecmp(argv[1], "ANY")) {
+            probe_set_ssids(0, NULL);
+        } else {
             // Well this is unexpected. The first line of this
             //   function validated the parameters, but here they're
             //   invalid.

@@ -3,6 +3,7 @@
 #include <esp_wifi.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 
 #define DEFAULT_PROBE_COUNT 128
 
@@ -24,3 +25,4 @@ esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, b
 
 int probe_stop();
 int probe_start(probe_attack_t type, int probeCount);
+int probe_set_ssids(int count, char **new);

@@ -42,10 +42,13 @@ uint8_t probe_raw[] = {
 	/*ACTUAL 0x88 0x7d 0x42 0xd4   0x83, 0x2d, 0xbe, 0xce*/ //Frame check sequence: 0x1b8026b0 [unverified] (wlan.fcs)
 };
 
-#define BEACON_SSID_OFFSET 25
+#define SSID_OFFSET 26
 #define SRCADDR_OFFSET 10
 #define BSSID_OFFSET 16
 #define SEQNUM_OFFSET 22
+
+static int ssid_len;
+static char **ssids;
 
 static probe_attack_t attackType = ATTACK_PROBE_NONE;
 TaskHandle_t probeTask = NULL;
@@ -53,9 +56,63 @@ TaskHandle_t probeTask = NULL;
 void probeCallback(void *pvParameter) {
     //
     ESP_LOGI(PROBE_TAG, "Starting probeCallback()");
-    for (;;) {
-        vTaskDelay(5);
-        //
+
+    // For directed probes we need to track which SSID we're up to
+    static int ssid_idx = 0;
+    int curr_ssid_len;
+
+    while (true) {
+        vTaskDelay(5); // TODO: At least understand how long this is!
+
+        // Create a buffer large enough to store packet + SSID etc.
+        uint8_t probeBuffer[200];
+
+        // Build beginning of packet
+        memcpy(probeBuffer, probe_raw, SSID_OFFSET - 1);
+
+        // Broadcast or directed packet?
+        if (attackType == ATTACK_PROBE_UNDIRECTED) {
+            // Append SSID length of 0
+            probeBuffer[SSID_OFFSET - 1] = 0;
+            curr_ssid_len = 0;
+        } else {
+            // Find the length of the SSID at ssid_idx
+            // The trailing \0 in the SSID string is being ignored because
+            //   the null is not included in the packet.
+            curr_ssid_len = strlen(ssids[ssid_idx]);
+            probeBuffer[SSID_OFFSET - 1] = curr_ssid_len;
+            memcpy(&probeBuffer[SSID_OFFSET], ssids[ssid_idx], curr_ssid_len);
+        }
+        // Append the rest, beginning from probe_raw[SSID_OFFSET] with
+        //   length sizeof(probe_raw)-SSID_OFFSET, to
+        //   probeBuffer[SSID_OFFSET + curr_ssid_len]
+        memcpy(&probeBuffer[SSID_OFFSET + curr_ssid_len], &probe_raw[SSID_OFFSET], sizeof(probe_raw) - SSID_OFFSET);
+
+        // probeBuffer is now the right size, but needs some attributes set
+        // Randomise the 3 least significant bytes of the source MAC
+        int addr;
+        for (int offset = SRCADDR_OFFSET + 3; offset < SRCADDR_OFFSET + 6; ++offset) {
+            addr = rand() % 256;
+            probeBuffer[offset] = addr;
+        }
+
+        // Use MAC/srcAddr for BSSID - For now at least?
+        for (addr = 0; addr < 6; ++addr) {
+            probeBuffer[BSSID_OFFSET + addr] = probeBuffer[SRCADDR_OFFSET + addr];
+        }
+
+        // Do I need to do anything with sequence numbers?
+        // TODO: Check in case of problem - last arg to 80211_tx is en_sys_seq
+        //       so I set it to true to see what happens
+
+        // transmit
+        esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, true);
+
+        // increment ssid
+        ++ssid_idx;
+        if (ssid_idx >= ssid_len) {
+            ssid_idx = 0;
+        }
     }
 }
 
@@ -74,6 +131,7 @@ int probe_stop() {
 
 int probe_start(probe_attack_t type, int probeCount) {
     char strType[25];
+    srand(time(NULL));
     switch (type) {
     case ATTACK_PROBE_UNDIRECTED:
         strcpy(strType, "ATTACK_PROBE_UNDIRECTED");
@@ -98,5 +156,37 @@ int probe_start(probe_attack_t type, int probeCount) {
     //   probes - have so much similarity that the differences will be
     //   dealt with in lower level functions
     xTaskCreate(&probeCallback, "probeCallback", 2048, NULL, 5, &probeTask);
+    return ESP_OK;
+}
+
+int probe_set_ssids(int count, char **new) {
+    // TODO: Move target-ssids out of the beacon module into main
+    //       For now, main will call this function prior to probe_start(),
+    //       allowing the probe module to get target-ssids just in time.
+    for (int i=0; i < ssid_len; ++i) {
+        free (ssids[i]);
+    }
+    if (ssid_len > 0) {
+        free(ssids);
+    }
+    if (count == 0) {
+        ssids = NULL;
+        return ESP_OK;
+    }
+    ssids = malloc(sizeof(char *) * count);
+    if (ssids == NULL) {
+        ESP_LOGE(PROBE_TAG, "Unable to allocate memory for %d target SSIDs, PANIC!", count);
+        return ESP_ERR_NO_MEM;
+    }
+
+    // Copy the SSID strings into new strings so they don't get free'd on us
+    for (int i=0; i < count; ++i) {
+        ssids[i] = malloc(sizeof(char) * (strlen(new[i]) + 1));
+        if (ssids[i] == NULL) {
+            ESP_LOGE(PROBE_TAG, "Unable to allocate memory for SSID %d :(", i);
+            return ESP_ERR_NO_MEM;
+        }
+        strcpy(ssids[i], new[i]);
+    }
     return ESP_OK;
 }
