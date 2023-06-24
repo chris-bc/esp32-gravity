@@ -14,14 +14,14 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * Once complete can decide whether to go ahead with a web server
 * **DONE** Implement console component with commands:
     * **DONE** beacon: beacon [ RICKROLL | RANDOM | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
-    * probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
+    * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
     * stalk
     * ap-dos
     * ap-clone
     * scan [ FASTAP | AP | STA | ANY | OFF ]
-    * set/get SSID_LEN_MIN SSID_LEN_MAX 
+    * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
     * view: view [ SSID | STA | MAC ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
     * select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
     * handshake
@@ -35,7 +35,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Scan APs - Continual (SSID + lastSeen when beacons seen)
 * Commands to select/view/remove APs/STAs in scope
 * Scan STAs - Only include clients of selected AP(s), or all
-* Probe Flood - broadcast/specific
+* **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * Mana attack - Respond to all probes
 * Homing attack (Focus on RSSI for selected STA(s) or AP)
