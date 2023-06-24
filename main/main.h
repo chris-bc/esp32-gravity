@@ -1,3 +1,4 @@
+#include <esp_wifi.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -12,7 +13,7 @@
 #include "cmd_system.h"
 #include "cmd_wifi.h"
 #include "cmd_nvs.h"
-#include "beacon.c"
+#include "beacon.h"
 
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);

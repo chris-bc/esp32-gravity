@@ -74,10 +74,11 @@ int cmd_beacon(int argc, char **argv) {
 }
 
 int cmd_target_ssids(int argc, char **argv) {
+    int ssidCount = countSsid();
     // Must have no args (return current value) or two (add/remove SSID)
-    if ((argc != 1 && argc != 3) || (argc == 1 && user_ssid_count == 0)) {
-        if (user_ssid_count == 0) {
-            ESP_LOGI(TAG, "targt-ssids has no elements.");
+    if ((argc != 1 && argc != 3) || (argc == 1 && ssidCount == 0)) {
+        if (ssidCount == 0) {
+            ESP_LOGI(TAG, "targt-ssids has no elements. user_ssids is at %p", lsSsid());
         } else {
             ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
         }
@@ -85,15 +86,18 @@ int cmd_target_ssids(int argc, char **argv) {
     }
     char temp[40];
     if (argc == 1) {
-        char *strSsids = malloc(sizeof(char) * user_ssid_count * 32);
+        char *strSsids = malloc(sizeof(char) * ssidCount * 32);
         if (strSsids == NULL) {
             ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
             return ESP_ERR_NO_MEM;
         }
-        strcpy(strSsids, user_ssids[0]);
-        for (int i = 1; i < user_ssid_count; ++i) {
-            sprintf(temp, " , %s", user_ssids[i]);
+        printf("Serialising target SSIDs");
+        strcpy(strSsids, (lsSsid())[0]);
+        printf("Before serialisation loop returned value is \"%s\"\n", strSsids);
+        for (int i = 1; i < ssidCount; ++i) {
+            sprintf(temp, " , %s", (lsSsid())[i]);
             strcat(strSsids, temp);
+            printf("At the end of iteration %d retVal is \"%s\"\n",i, strSsids);
         }
         printf("Selected SSIDs: %s\n", strSsids);
     } else if (!strcasecmp(argv[1], "add")) {
