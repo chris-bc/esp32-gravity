@@ -1,6 +1,10 @@
 #include "beacon.h"
 #include "esp_err.h"
 
+int DEFAULT_SSID_COUNT = 20;
+int SSID_LEN_MIN = 8;
+int SSID_LEN_MAX = 32;
+
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
  * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
@@ -8,10 +12,6 @@
  * This declaration is all you need for using esp_wifi_80211_tx in your own application.
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
-
-static char **attack_ssids = NULL;
-static char **user_ssids = NULL;
-static int user_ssid_count = 0;
 
 #define BEACON_SSID_OFFSET 38
 #define SRCADDR_OFFSET 10
@@ -39,89 +39,6 @@ static uint8_t beacon_raw[] = {
 	0x05, 0x04, 0x01, 0x02, 0x00, 0x00,		// 52-57: Traffic Indication Map
 	
 };
-
-int countSsid() {
-	return user_ssid_count;
-}
-
-char **lsSsid() {
-	return user_ssids;
-}
-
-int addSsid(char *ssid) {
-	#ifdef DEBUG
-		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
-		for (int i=0; i < user_ssid_count; ++i) {
-			printf("    %d: \"%s\"\n", i, user_ssids[i]);
-		}
-	#endif
-	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
-	if (newSsids == NULL) {
-		ESP_LOGE(BEACON_TAG, "Insufficient memory to add new SSID");
-		return ESP_ERR_NO_MEM;
-	}
-	for (int i=0; i < user_ssid_count; ++i) {
-		newSsids[i] = user_ssids[i];
-	}
-
-	#ifdef DEBUG
-		printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
-		for (int i=0; i < user_ssid_count; ++i) {
-			printf("    %d: \"%s\"\n", i, newSsids[i]);
-		}
-	#endif
-
-	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
-	if (newSsids[user_ssid_count] == NULL) {
-		ESP_LOGE(BEACON_TAG, "Insufficient memory to add SSID \"%s\"", ssid);
-		return ESP_ERR_NO_MEM;
-	}
-	strcpy(newSsids[user_ssid_count], ssid);
-	++user_ssid_count;
-
-	#ifdef DEBUG
-		printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
-		printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
-	#endif
-	free(user_ssids);
-	user_ssids = newSsids;
-	#ifdef DEBUG
-		printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
-	#endif
-
-	return ESP_OK;
-}
-
-int rmSsid(char *ssid) {
-	int idx;
-
-	// Get index of ssid if it exists
-	for (idx = 0; (idx < user_ssid_count && strcasecmp(ssid, user_ssids[idx])); ++idx) {}
-	if (idx == user_ssid_count) {
-		ESP_LOGW(BEACON_TAG, "Asked to remove SSID \'%s\', but could not find it in user_ssids", ssid);
-		return ESP_ERR_INVALID_ARG;
-	}
-
-	char **newSsids = malloc(sizeof(char*) * (user_ssid_count - 1));
-	if (newSsids == NULL) {
-		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to remove SSID \'%s\'", ssid);
-		return ESP_ERR_NO_MEM;
-	}
-
-	// Copy shrunk array to newSsids
-	for (int i = 0; i < user_ssid_count; ++i) {
-		if (i < idx) {
-			newSsids[i] = user_ssids[i];
-		} else if (i > idx) {
-			newSsids[i-1] = user_ssids[i];
-		}
-	}
-	free(user_ssids[idx]);
-	free(user_ssids);
-	user_ssids = newSsids;
-	--user_ssid_count;
-	return ESP_OK;
-}
 
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;

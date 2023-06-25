@@ -10,8 +10,15 @@
 #include "main.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "beacon.h"
+#include "probe.h"
 
 static const char* TAG = "GRAVITY";
+
+char **attack_ssids = NULL;
+char **user_ssids = NULL;
+int user_ssid_count = 0;
+
 #define PROMPT_STR CONFIG_IDF_TARGET
 
 /* Console command history can be stored to and loaded from a file.
@@ -22,6 +29,90 @@ static const char* TAG = "GRAVITY";
 
 #define MOUNT_PATH "/data"
 #define HISTORY_PATH MOUNT_PATH "/history.txt"
+
+/* Functions to manage target-ssids */
+int countSsid() {
+	return user_ssid_count;
+}
+
+char **lsSsid() {
+	return user_ssids;
+}
+
+int addSsid(char *ssid) {
+	#ifdef DEBUG
+		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
+		for (int i=0; i < user_ssid_count; ++i) {
+			printf("    %d: \"%s\"\n", i, user_ssids[i]);
+		}
+	#endif
+	char **newSsids = malloc(sizeof(char*) * (user_ssid_count + 1));
+	if (newSsids == NULL) {
+		ESP_LOGE(BEACON_TAG, "Insufficient memory to add new SSID");
+		return ESP_ERR_NO_MEM;
+	}
+	for (int i=0; i < user_ssid_count; ++i) {
+		newSsids[i] = user_ssids[i];
+	}
+
+	#ifdef DEBUG
+		printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
+		for (int i=0; i < user_ssid_count; ++i) {
+			printf("    %d: \"%s\"\n", i, newSsids[i]);
+		}
+	#endif
+
+	newSsids[user_ssid_count] = malloc(sizeof(char) * (strlen(ssid) + 1));
+	if (newSsids[user_ssid_count] == NULL) {
+		ESP_LOGE(BEACON_TAG, "Insufficient memory to add SSID \"%s\"", ssid);
+		return ESP_ERR_NO_MEM;
+	}
+	strcpy(newSsids[user_ssid_count], ssid);
+	++user_ssid_count;
+
+	#ifdef DEBUG
+		printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
+		printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#endif
+	free(user_ssids);
+	user_ssids = newSsids;
+	#ifdef DEBUG
+		printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
+	#endif
+
+	return ESP_OK;
+}
+
+int rmSsid(char *ssid) {
+	int idx;
+
+	// Get index of ssid if it exists
+	for (idx = 0; (idx < user_ssid_count && strcasecmp(ssid, user_ssids[idx])); ++idx) {}
+	if (idx == user_ssid_count) {
+		ESP_LOGW(BEACON_TAG, "Asked to remove SSID \'%s\', but could not find it in user_ssids", ssid);
+		return ESP_ERR_INVALID_ARG;
+	}
+
+	char **newSsids = malloc(sizeof(char*) * (user_ssid_count - 1));
+	if (newSsids == NULL) {
+		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to remove SSID \'%s\'", ssid);
+		return ESP_ERR_NO_MEM;
+	}
+
+	// Copy shrunk array to newSsids
+	for (int i = 0; i < user_ssid_count; ++i) {
+		if (i < idx) {
+			newSsids[i] = user_ssids[i];
+		} else if (i > idx) {
+			newSsids[i-1] = user_ssids[i];
+		}
+	}
+	free(user_ssids[idx]);
+	free(user_ssids);
+	user_ssids = newSsids;
+	--user_ssid_count;
+	return ESP_OK;
+}
 
 int cmd_beacon(int argc, char **argv) {
     /* rickroll | random | user | off | status */
@@ -143,18 +234,6 @@ int cmd_probe(int argc, char **argv) {
         // Gather parameters for probe_start()
         if (!strcasecmp(argv[1], "SSIDS")) {
             probeType = ATTACK_PROBE_DIRECTED;
-            // TODO: Fix the poor design decision - Move target-ssids out
-            //       of the Beacon module and into a shared module (main?)
-            // For now tell the Probe module what our target-ssids are
-            probe_set_ssids(countSsid(), lsSsid());
-        } else if (!strcasecmp(argv[1], "ANY")) {
-            probe_set_ssids(0, NULL);
-        } else {
-            // Well this is unexpected. The first line of this
-            //   function validated the parameters, but here they're
-            //   invalid.
-            ESP_LOGE(PROBE_TAG, "Well this is embarrassing - I THOUGHT your parameters were just fine, but I was wrong.\nSyntax: probe [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]\nExaple: probe ANY 128");
-            return ESP_ERR_INVALID_ARG;
         }
 
         // Get probe count
