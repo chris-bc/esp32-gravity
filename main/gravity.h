@@ -29,6 +29,8 @@ int cmd_view(int argc, char **argv);
 int cmd_select(int argc, char **argv);
 int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
+int mac_bytes_to_string(uint8_t *bMac, char *strMac);
+int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 
 #define CMD_COUNT 14
 esp_console_cmd_t commands[CMD_COUNT] = {

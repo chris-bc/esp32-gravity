@@ -63,6 +63,14 @@ Initial development will be focused on implementing a core set of 802.11 explora
 #define ATTACK_SCAN 6
 #define ATTACK_HANDSHAKE 7
 
+esp_err_to_name(err);
+esp_wifi_set_channel(uint8_t *primary, wifi_second_chan_t *second)
+esp_wifi_get_channel(uint8_t *primary, wifi_second_chan_t *second)
+esp_wifi_set_mac(wifi_interface_t ifx, const uint8_t mac[6]);
+get_mac - same params
+wifi_interface_t: enum WIFI_IF_STA | WIFI_IF_AP | WIFI_IF_NAN | WIFI_IF_MAX
+wifi_second_chan_t: enum WIFI_SECOND_CHAN_NONE | WIFI_SECOND_CHAN_ABOVE | WIFI_SECOND_CHAN_BELOW
+
 # Installation notes
 
 Debugging statements written during development have not been removed from the code; they've been put behind #ifdef directives and can be enabled by adding #define DEBUG to one of the header files to enable them.
