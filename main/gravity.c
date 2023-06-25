@@ -11,6 +11,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "beacon.h"
+#include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "probe.h"
 
@@ -342,6 +343,7 @@ int cmd_set(int argc, char **argv) {
         }
         DEFAULT_SSID_COUNT = iVal;
         ESP_LOGI(TAG, "DEFAULT_SSID_COUNT is now %d", DEFAULT_SSID_COUNT);
+        return ESP_OK;
     } else if (!strcasecmp(argv[1], "CHANNEL")) {
         //
         uint8_t channel = atoi(argv[2]);
@@ -355,12 +357,25 @@ int cmd_set(int argc, char **argv) {
         return err;
     } else if (!strcasecmp(argv[1], "MAC")) {
         //
+        uint8_t bMac[6];
+        esp_err_t err = mac_string_to_bytes(argv[2], bMac);
+        if ( err != ESP_OK) {
+            ESP_LOGE(TAG, "Unable to convert \"%s\" to a byte array: %s.", argv[2], esp_err_to_name(err));
+            return err;
+        }
+        err = esp_wifi_set_mac(WIFI_IF_MAX, bMac);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to set MAC :  %s", esp_err_to_name(err));
+            return err;
+        }
+        ESP_LOGI(TAG, "Set MAC to :  %s", argv[2]);
+        return ESP_OK;
     } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
-        //
+        ESP_LOGI(TAG, "This command has not been implemented.");
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
-        //
+        ESP_LOGI(TAG, "This command has not been implemented.");
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
-        //
+        ESP_LOGI(TAG, "This command has not been implemented.");
     } else {
         ESP_LOGE(TAG, "Invalid variable specified. Usage: set <variable> <value>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
@@ -371,7 +386,79 @@ int cmd_set(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Get application configuration items */
+/* Usage: set <variable> <value>
+   Allowed values for <variable> are:
+      SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
+      MAC, HOP_MILLIS, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_get(int argc, char **argv) {
+    if (argc != 2) {
+        ESP_LOGE(TAG, "Usage: get <variable>");
+        ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
+        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!strcasecmp(argv[2], "SSID_LEN_MIN")) {
+        ESP_LOGI(TAG, "SSID_LEN_MIN :  %d", SSID_LEN_MIN);
+    } else if (!strcasecmp(argv[2], "SSID_LEN_MAX")) {
+        ESP_LOGI(TAG, "SSID_LEN_MAX :  %d", SSID_LEN_MAX);
+    } else if (!strcasecmp(argv[2], "DEFAULT_SSID_COUNT")) {
+        ESP_LOGI(TAG, "DEFAULT_SSID_COUNT :  %d", DEFAULT_SSID_COUNT);
+    } else if (!strcasecmp(argv[2], "CHANNEL")) {
+        uint8_t channel;
+        wifi_second_chan_t second;
+        esp_err_t err = esp_wifi_get_channel(&channel, &second);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to get current channel: %s", esp_err_to_name(err));
+            return err;
+        }
+        char *secondary;
+        switch (second) {
+        case WIFI_SECOND_CHAN_NONE:
+            secondary = "WIFI_SECOND_CHAN_NONE";
+            break;
+        case WIFI_SECOND_CHAN_ABOVE:
+            secondary = "WIFI_SECOND_CHAN_ABOVE";
+            break;
+        case WIFI_SECOND_CHAN_BELOW:
+            secondary = "WIFI_SECOND_CHAN_BELOW";
+            break;
+        default:
+            ESP_LOGW(TAG, "esp_wifi_get_channel() returned a weird second channel - %d", second);
+            secondary = "";
+        }
+        ESP_LOGI(TAG, "Channel: %u   Secondary: %s", channel, secondary);
+        return ESP_OK;
+    } else if (!strcasecmp(argv[2], "MAC")) {
+        //
+        uint8_t bMac[6];
+        char strMac[18];
+        esp_err_t err = esp_wifi_get_mac(WIFI_IF_MAX, bMac);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to get MAC address from WiFi driver: %s", esp_err_to_name(err));
+            return err;
+        }
+        err = mac_bytes_to_string(bMac, strMac);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to convert MAC bytes to string: %s", esp_err_to_name(err));
+            return err;
+        }
+        ESP_LOGI(TAG, "Current MAC :  %s", strMac);
+        return ESP_OK;
+    } else if (!strcasecmp(argv[2], "HOP_MILLIS")) {
+        //
+        ESP_LOGI(TAG, "Not yet implemented");
+    } else if (!strcasecmp(argv[2], "ATTACK_PKTS")) {
+        //
+        ESP_LOGI(TAG, "Not yet implemented");
+    } else if (!strcasecmp(argv[2], "ATTACK_MILLIS")) {
+        //
+    } else {
+        ESP_LOGE(TAG, "Invalid variable specified. Usage: get <variable>");
+        ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
+        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     return ESP_OK;
 }
@@ -527,7 +614,7 @@ void app_main(void)
 
 /* Convert the specified string to a byte array
    bMac must be a pointer to 6 bytes of allocated memory */
-int mac_string_to_bytes(char *strMac, int8_t *bMac) {
+int mac_string_to_bytes(char *strMac, uint8_t *bMac) {
     int values[6];
 
     if (6 == sscanf(strMac, "%x:%x:%x:%x:%x:%x%*c", &values[0],
