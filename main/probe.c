@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "esp_err.h"
+#include "esp_wifi_types.h"
 #include "probe.h"
 
 uint8_t probe_raw[] = {
@@ -103,7 +104,8 @@ void probeCallback(void *pvParameter) {
         //       so I set it to true to see what happens
 
         // transmit
-        esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, true);
+        esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, false);
+        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
 
         // increment ssid
         ++ssid_idx;
