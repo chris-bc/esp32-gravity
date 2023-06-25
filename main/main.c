@@ -219,7 +219,20 @@ int cmd_scan(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Set application configuration variables */
+/* At the moment these config settings are not retained between
+   Gravity instances. Many of them are initialised in beacon.h.
+   Usage: set <variable> <value>
+   Allowed values for <variable> are:
+      SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
+      MAC, HOP_MILLIS, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_set(int argc, char **argv) {
+    if (argc != 3) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: set <variable> <value>");
+        ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
+        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        return ESP_ERR_INVALID_ARG;
+    }
 
     return ESP_OK;
 }

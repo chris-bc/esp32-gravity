@@ -19,7 +19,7 @@ static int user_ssid_count = 0;
 #define SEQNUM_OFFSET 22
 
 static beacon_attack_t attackType = ATTACK_BEACON_NONE;
-static int SSID_COUNT = DEFAULT_SSID_COUNT;
+static int SSID_COUNT;
 
 static TaskHandle_t beaconTask = NULL;
 
@@ -235,6 +235,9 @@ int beacon_stop() {
 }
 
 int beacon_start(beacon_attack_t type, int ssidCount) {
+	if (SSID_COUNT == 0) {
+		SSID_COUNT = DEFAULT_SSID_COUNT;
+	}
     /* Stop an existing beacon attack if one exists */
     if (attackType != ATTACK_BEACON_NONE) {
         beacon_stop();
