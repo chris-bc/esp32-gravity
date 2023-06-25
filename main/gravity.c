@@ -483,6 +483,18 @@ int cmd_handshake(int argc, char **argv) {
     return ESP_OK;
 }
 
+void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
+    wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
+
+    uint8_t *payload = data->payload;
+    char *temp = malloc(sizeof(char) * (data->rx_ctrl.sig_len + 1));
+    // TODO Check null
+    if (payload[0] == 0x40) {
+        printf("W00T! Got a probe request!\n");
+    } 
+    return NULL;
+}
+
 int initialise_wifi() {
     /* Initialise WiFi if needed */
     if (!WIFI_INITIALISED) {
@@ -521,6 +533,12 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
         ESP_ERROR_CHECK(esp_wifi_start());
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+
+        // Set up promiscuous mode and packet callback
+        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT };
+        esp_wifi_set_promiscuous_filter(&filter);
+        esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
+        esp_wifi_set_promiscuous(true);
         WIFI_INITIALISED = true;
     }
     return ESP_OK;
