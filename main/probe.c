@@ -47,9 +47,6 @@ uint8_t probe_raw[] = {
 #define BSSID_OFFSET 16
 #define SEQNUM_OFFSET 22
 
-static int ssid_len;
-static char **ssids;
-
 static probe_attack_t attackType = ATTACK_PROBE_NONE;
 TaskHandle_t probeTask = NULL;
 
@@ -79,9 +76,9 @@ void probeCallback(void *pvParameter) {
             // Find the length of the SSID at ssid_idx
             // The trailing \0 in the SSID string is being ignored because
             //   the null is not included in the packet.
-            curr_ssid_len = strlen(ssids[ssid_idx]);
+            curr_ssid_len = strlen(user_ssids[ssid_idx]);
             probeBuffer[SSID_OFFSET - 1] = curr_ssid_len;
-            memcpy(&probeBuffer[SSID_OFFSET], ssids[ssid_idx], curr_ssid_len);
+            memcpy(&probeBuffer[SSID_OFFSET], user_ssids[ssid_idx], curr_ssid_len);
         }
         // Append the rest, beginning from probe_raw[SSID_OFFSET] with
         //   length sizeof(probe_raw)-SSID_OFFSET, to
@@ -110,7 +107,7 @@ void probeCallback(void *pvParameter) {
 
         // increment ssid
         ++ssid_idx;
-        if (ssid_idx >= ssid_len) {
+        if (ssid_idx >= user_ssid_count) {
             ssid_idx = 0;
         }
     }
@@ -156,37 +153,5 @@ int probe_start(probe_attack_t type, int probeCount) {
     //   probes - have so much similarity that the differences will be
     //   dealt with in lower level functions
     xTaskCreate(&probeCallback, "probeCallback", 2048, NULL, 5, &probeTask);
-    return ESP_OK;
-}
-
-int probe_set_ssids(int count, char **new) {
-    // TODO: Move target-ssids out of the beacon module into main
-    //       For now, main will call this function prior to probe_start(),
-    //       allowing the probe module to get target-ssids just in time.
-    for (int i=0; i < ssid_len; ++i) {
-        free (ssids[i]);
-    }
-    if (ssid_len > 0) {
-        free(ssids);
-    }
-    if (count == 0) {
-        ssids = NULL;
-        return ESP_OK;
-    }
-    ssids = malloc(sizeof(char *) * count);
-    if (ssids == NULL) {
-        ESP_LOGE(PROBE_TAG, "Unable to allocate memory for %d target SSIDs, PANIC!", count);
-        return ESP_ERR_NO_MEM;
-    }
-
-    // Copy the SSID strings into new strings so they don't get free'd on us
-    for (int i=0; i < count; ++i) {
-        ssids[i] = malloc(sizeof(char) * (strlen(new[i]) + 1));
-        if (ssids[i] == NULL) {
-            ESP_LOGE(PROBE_TAG, "Unable to allocate memory for SSID %d :(", i);
-            return ESP_ERR_NO_MEM;
-        }
-        strcpy(ssids[i], new[i]);
-    }
     return ESP_OK;
 }

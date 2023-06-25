@@ -13,8 +13,6 @@
 #include "cmd_system.h"
 #include "cmd_wifi.h"
 #include "cmd_nvs.h"
-#include "beacon.h"
-#include "probe.h"
 
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);

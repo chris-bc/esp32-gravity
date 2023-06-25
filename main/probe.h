@@ -15,6 +15,10 @@ typedef enum {
 
 static const char* PROBE_TAG = "PROBE@GRAVITY";
 
+extern char **attack_ssids;
+extern char **user_ssids;
+extern int user_ssid_count;
+
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
  * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
@@ -25,4 +29,10 @@ esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, b
 
 int probe_stop();
 int probe_start(probe_attack_t type, int probeCount);
-int probe_set_ssids(int count, char **new);
+
+/* extern functions - defined in main.c */
+int addSsid(char *ssid);
+int rmSsid(char *ssid);
+int countSsid();
+char **lsSsid();
+char *generate_random_ssid();

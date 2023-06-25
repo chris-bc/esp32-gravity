@@ -32,13 +32,19 @@ typedef enum {
 	ATTACK_BEACON_INFINITE
 } beacon_attack_t;
 
-static int DEFAULT_SSID_COUNT = 20;
-static int SSID_LEN_MIN = 8;
-static int SSID_LEN_MAX = 32;
+extern int DEFAULT_SSID_COUNT;
+extern int SSID_LEN_MIN;
+extern int SSID_LEN_MAX;
 static const char* BEACON_TAG = "BEACON@GRAVITY";
+
+extern char **attack_ssids;
+extern char **user_ssids;
+extern int user_ssid_count;
 
 int beacon_start(beacon_attack_t type, int ssidCount);
 int beacon_stop();
+
+/* extern functions - defined in main.c */
 int addSsid(char *ssid);
 int rmSsid(char *ssid);
 int countSsid();
