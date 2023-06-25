@@ -105,7 +105,7 @@ void probeCallback(void *pvParameter) {
 
         // transmit
         esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, false);
-        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
+//        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
 
         // increment ssid
         ++ssid_idx;
