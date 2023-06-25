@@ -60,7 +60,7 @@ void probeCallback(void *pvParameter) {
     int curr_ssid_len;
 
     while (true) {
-        vTaskDelay(5); // TODO: At least understand how long this is!
+        vTaskDelay(50); // TODO: At least understand how long this is!
 
         // Create a buffer large enough to store packet + SSID etc.
         uint8_t probeBuffer[200];
