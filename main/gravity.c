@@ -363,7 +363,7 @@ int cmd_set(int argc, char **argv) {
             ESP_LOGE(TAG, "Unable to convert \"%s\" to a byte array: %s.", argv[2], esp_err_to_name(err));
             return err;
         }
-        err = esp_wifi_set_mac(WIFI_IF_MAX, bMac);
+        err = esp_wifi_set_mac(WIFI_IF_AP, bMac);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to set MAC :  %s", esp_err_to_name(err));
             return err;
@@ -398,21 +398,25 @@ int cmd_get(int argc, char **argv) {
         ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
         return ESP_ERR_INVALID_ARG;
     }
-    if (!strcasecmp(argv[2], "SSID_LEN_MIN")) {
+    if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         ESP_LOGI(TAG, "SSID_LEN_MIN :  %d", SSID_LEN_MIN);
-    } else if (!strcasecmp(argv[2], "SSID_LEN_MAX")) {
+    } else if (!strcasecmp(argv[1], "SSID_LEN_MAX")) {
         ESP_LOGI(TAG, "SSID_LEN_MAX :  %d", SSID_LEN_MAX);
-    } else if (!strcasecmp(argv[2], "DEFAULT_SSID_COUNT")) {
+    } else if (!strcasecmp(argv[1], "DEFAULT_SSID_COUNT")) {
         ESP_LOGI(TAG, "DEFAULT_SSID_COUNT :  %d", DEFAULT_SSID_COUNT);
-    } else if (!strcasecmp(argv[2], "CHANNEL")) {
+    } else if (!strcasecmp(argv[1], "CHANNEL")) {
         uint8_t channel;
         wifi_second_chan_t second;
+        printf("Get channel 1\n");
         esp_err_t err = esp_wifi_get_channel(&channel, &second);
+        printf("Get channel 2\n");
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to get current channel: %s", esp_err_to_name(err));
             return err;
         }
+        printf("checkpoint 1");
         char *secondary;
+        printf("Get channel 3\n");
         switch (second) {
         case WIFI_SECOND_CHAN_NONE:
             secondary = "WIFI_SECOND_CHAN_NONE";
@@ -427,13 +431,14 @@ int cmd_get(int argc, char **argv) {
             ESP_LOGW(TAG, "esp_wifi_get_channel() returned a weird second channel - %d", second);
             secondary = "";
         }
+        printf("Get channel 4\n");
         ESP_LOGI(TAG, "Channel: %u   Secondary: %s", channel, secondary);
         return ESP_OK;
-    } else if (!strcasecmp(argv[2], "MAC")) {
+    } else if (!strcasecmp(argv[1], "MAC")) {
         //
         uint8_t bMac[6];
         char strMac[18];
-        esp_err_t err = esp_wifi_get_mac(WIFI_IF_MAX, bMac);
+        esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bMac);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to get MAC address from WiFi driver: %s", esp_err_to_name(err));
             return err;
@@ -445,13 +450,13 @@ int cmd_get(int argc, char **argv) {
         }
         ESP_LOGI(TAG, "Current MAC :  %s", strMac);
         return ESP_OK;
-    } else if (!strcasecmp(argv[2], "HOP_MILLIS")) {
+    } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
         //
         ESP_LOGI(TAG, "Not yet implemented");
-    } else if (!strcasecmp(argv[2], "ATTACK_PKTS")) {
+    } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         //
         ESP_LOGI(TAG, "Not yet implemented");
-    } else if (!strcasecmp(argv[2], "ATTACK_MILLIS")) {
+    } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
         //
     } else {
         ESP_LOGE(TAG, "Invalid variable specified. Usage: get <variable>");
@@ -476,6 +481,18 @@ int cmd_select(int argc, char **argv) {
 int cmd_handshake(int argc, char **argv) {
 
     return ESP_OK;
+}
+
+void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
+    wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
+
+    uint8_t *payload = data->payload;
+    char *temp = malloc(sizeof(char) * (data->rx_ctrl.sig_len + 1));
+    // TODO Check null
+    if (payload[0] == 0x40) {
+        printf("W00T! Got a probe request!\n");
+    } 
+    return NULL;
 }
 
 int initialise_wifi() {
@@ -516,6 +533,12 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
         ESP_ERROR_CHECK(esp_wifi_start());
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+
+        // Set up promiscuous mode and packet callback
+        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT };
+        esp_wifi_set_promiscuous_filter(&filter);
+        esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
+        esp_wifi_set_promiscuous(true);
         WIFI_INITIALISED = true;
     }
     return ESP_OK;
@@ -634,7 +657,7 @@ int mac_string_to_bytes(char *strMac, uint8_t *bMac) {
    a MAC address. strMac must be a pointer initialised to
    contain at least 18 bytes (MAC + '\0') */
 int mac_bytes_to_string(uint8_t *bMac, char *strMac) {
-    sprintf(strMac, "%02u:%02u:%02u:%02u:%02u:%02u", bMac[0],
+    sprintf(strMac, "%02X:%02X:%02X:%02X:%02X:%02X", bMac[0],
             bMac[1], bMac[2], bMac[3], bMac[4], bMac[5]);
     return ESP_OK;
 }
