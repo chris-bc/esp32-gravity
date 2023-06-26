@@ -185,7 +185,7 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 			ESP_LOGE(BEACON_TAG, "Failed to allocate memory to initialise infinite beacon spam attack. PANIC!");
 			return ESP_ERR_NO_MEM;
 		}
-
+		ESP_LOGI(BEACON_TAG, "Starting infinite SSIDs. Good luck!");
 	}
     
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &beaconTask);

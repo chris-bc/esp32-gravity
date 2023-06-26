@@ -17,6 +17,7 @@
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);
+int cmd_sniff(int argc, char **argv);
 int cmd_deauth(int argc, char **argv);
 int cmd_mana(int argc, char **argv);
 int cmd_stalk(int argc, char **argv);
@@ -32,7 +33,7 @@ int cmd_target_ssids(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 
-#define CMD_COUNT 14
+#define CMD_COUNT 15
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -49,6 +50,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = "Probe flood attack. Usage: probe [ ANY | SSIDS | OFF ]",
         .help = "A probe flood attack continually transmits probe requests, imposing continual load on target APs.",
         .func = cmd_probe
+    }, {
+        .command = "sniff",
+        .hint = "Display interesting packets. Usage: sniff [ ON | OFF ]",
+        .help = "Gravity operates in promiscuous (monitor) mode at all times. This mode displays relevant information about interesting packets as they are received.",
+        .func = cmd_sniff
     }, {
         .command = "deauth",
         .hint = "Deauth attack. Usage: deauth [ STA | BROADCAST | OFF ]",
@@ -82,12 +88,12 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "set",
         .hint = "Set a variable. Usage: set <variable> <value>",
-        .help = "Set a variety of variables that affect various components of the application. Usage: set <variable> <value>   <variable>   SSID_LEN_MIN: Minimum length of a generated SSID   SSID_LEN_MAX: Maximum length of a generated SSID   DEFAULT_SSID_COUNT: Number of SSIDs to generate if not specified   CHANNEL: Wireless channel   MAC: ASP32C6's MAC address   HOP_MILLIS: Milliseconds to stay on a channel before hopping to the next (0: Hopping disabled)   ATTACK_PKTS: Number of times to repeat an attack packet when launching an attack (0: Don't stop attacks based on packet count)   ATTACK_MILLIS: Milliseconds to run an attack for when it is launched (0: Don't stop attacks based on duration)   NB: If ATTACK_PKTS and ATTACK_MILLIS are both 0 attacks will not end automatically but will continue until terminated.",
+        .help = "Set a variety of variables that affect various components of the application. Usage: set <variable> <value>   <variable>   SSID_LEN_MIN: Minimum length of a generated SSID   SSID_LEN_MAX: Maximum length of a generated SSID   MAC_RAND: Whether to change the device's MAC after each packet (default: ON)   DEFAULT_SSID_COUNT: Number of SSIDs to generate if not specified   CHANNEL: Wireless channel   MAC: ASP32C6's MAC address   HOP_MILLIS: Milliseconds to stay on a channel before hopping to the next (0: Hopping disabled)   ATTACK_PKTS: Number of times to repeat an attack packet when launching an attack (0: Don't stop attacks based on packet count)   ATTACK_MILLIS: Milliseconds to run an attack for when it is launched (0: Don't stop attacks based on duration)   NB: If ATTACK_PKTS and ATTACK_MILLIS are both 0 attacks will not end automatically but will continue until terminated.",
         .func = cmd_set
     }, {
         .command = "get",
         .hint = "Get a variable. Usage: get <variable>",
-        .help = "Get a variety of variables that affect various components of the application. Usage: get <variable>   <variable>   SSID_LEN_MIN: Minimum length of a generated SSID   SSID_LEN_MAX: Maximum length of a generated SSID   CHANNEL: Wireless channel   MAC: ASP32C6's MAC address   HOP_MILLIS: Milliseconds to stay on a channel before hopping to the next (0: Hopping disabled)   ATTACK_PKTS: Number of times to repeat an attack packet when launching an attack (0: Don't stop attacks based on packet count)   ATTACK_MILLIS: Milliseconds to run an attack for when it is launched (0: Don't stop attacks based on duration)   NB: If ATTACK_PKTS and ATTACK_MILLIS are both 0 attacks will not end automatically but will continue until terminated.",
+        .help = "Get a variety of variables that affect various components of the application. Usage: get <variable>   <variable>   SSID_LEN_MIN: Minimum length of a generated SSID   SSID_LEN_MAX: Maximum length of a generated SSID   MAC_RAND: Whether to change the device's MAC after each packet (default: ON)   CHANNEL: Wireless channel   MAC: ASP32C6's MAC address   HOP_MILLIS: Milliseconds to stay on a channel before hopping to the next (0: Hopping disabled)   ATTACK_PKTS: Number of times to repeat an attack packet when launching an attack (0: Don't stop attacks based on packet count)   ATTACK_MILLIS: Milliseconds to run an attack for when it is launched (0: Don't stop attacks based on duration)   NB: If ATTACK_PKTS and ATTACK_MILLIS are both 0 attacks will not end automatically but will continue until terminated.",
         .func = cmd_get
     }, {
         .command = "view",
@@ -111,14 +117,21 @@ esp_console_cmd_t commands[CMD_COUNT] = {
 enum {
     ATTACK_BEACON,
     ATTACK_PROBE,
+    ATTACK_SNIFF,
     ATTACK_DEAUTH,
     ATTACK_MANA,
     ATTACK_AP_DOS,
     ATTACK_AP_CLONE,
     ATTACK_SCAN,
     ATTACK_HANDSHAKE,
+    ATTACK_RANDOMISE_MAC, // True
     ATTACKS_COUNT
 };
-static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false};
+static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, true, false};
 
 static bool WIFI_INITIALISED = false;
+
+extern int PROBE_SSID_OFFSET;
+extern int PROBE_SRCADDR_OFFSET;
+extern int PROBE_BSSID_OFFSET;
+extern int PROBE_SEQNUM_OFFSET;

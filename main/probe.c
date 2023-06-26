@@ -1,7 +1,22 @@
 #include <stdlib.h>
 #include "esp_err.h"
+#include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "probe.h"
+
+enum {
+    ATTACK_BEACON,
+    ATTACK_PROBE,
+    ATTACK_SNIFF,
+    ATTACK_DEAUTH,
+    ATTACK_MANA,
+    ATTACK_AP_DOS,
+    ATTACK_AP_CLONE,
+    ATTACK_SCAN,
+    ATTACK_HANDSHAKE,
+    ATTACK_RANDOMISE_MAC, // True
+    ATTACKS_COUNT
+};
 
 uint8_t probe_raw[] = {
     /*IEEE 802.11 Probe Request*/
@@ -43,60 +58,75 @@ uint8_t probe_raw[] = {
 	/*ACTUAL 0x88 0x7d 0x42 0xd4   0x83, 0x2d, 0xbe, 0xce*/ //Frame check sequence: 0x1b8026b0 [unverified] (wlan.fcs)
 };
 
-#define SSID_OFFSET 26
-#define SRCADDR_OFFSET 10
-#define BSSID_OFFSET 16
-#define SEQNUM_OFFSET 22
+int PROBE_SSID_OFFSET = 26;
+int PROBE_SRCADDR_OFFSET = 10;
+int PROBE_BSSID_OFFSET = 16;
+int PROBE_SEQNUM_OFFSET = 22;
 
 static probe_attack_t attackType = ATTACK_PROBE_NONE;
 TaskHandle_t probeTask = NULL;
 
 void probeCallback(void *pvParameter) {
     //
-    ESP_LOGI(PROBE_TAG, "Starting probeCallback()");
-
     // For directed probes we need to track which SSID we're up to
     static int ssid_idx = 0;
     int curr_ssid_len;
 
     while (true) {
-        vTaskDelay(50); // TODO: At least understand how long this is!
+        vTaskDelay(10); // TODO: At least understand how long this is!
 
         // Create a buffer large enough to store packet + SSID etc.
         uint8_t probeBuffer[200];
 
         // Build beginning of packet
-        memcpy(probeBuffer, probe_raw, SSID_OFFSET - 1);
+        memcpy(probeBuffer, probe_raw, PROBE_SSID_OFFSET - 1);
 
         // Broadcast or directed packet?
         if (attackType == ATTACK_PROBE_UNDIRECTED) {
             // Append SSID length of 0
-            probeBuffer[SSID_OFFSET - 1] = 0;
+            probeBuffer[PROBE_SSID_OFFSET - 1] = 0;
             curr_ssid_len = 0;
         } else {
             // Find the length of the SSID at ssid_idx
             // The trailing \0 in the SSID string is being ignored because
             //   the null is not included in the packet.
             curr_ssid_len = strlen(user_ssids[ssid_idx]);
-            probeBuffer[SSID_OFFSET - 1] = curr_ssid_len;
-            memcpy(&probeBuffer[SSID_OFFSET], user_ssids[ssid_idx], curr_ssid_len);
+            probeBuffer[PROBE_SSID_OFFSET - 1] = curr_ssid_len;
+            memcpy(&probeBuffer[PROBE_SSID_OFFSET], user_ssids[ssid_idx], curr_ssid_len);
         }
-        // Append the rest, beginning from probe_raw[SSID_OFFSET] with
-        //   length sizeof(probe_raw)-SSID_OFFSET, to
-        //   probeBuffer[SSID_OFFSET + curr_ssid_len]
-        memcpy(&probeBuffer[SSID_OFFSET + curr_ssid_len], &probe_raw[SSID_OFFSET], sizeof(probe_raw) - SSID_OFFSET);
+        // Append the rest, beginning from probe_raw[PROBE_SSID_OFFSET] with
+        //   length sizeof(probe_raw)-PROBE_SSID_OFFSET, to
+        //   probeBuffer[PROBE_SSID_OFFSET + curr_ssid_len]
+        memcpy(&probeBuffer[PROBE_SSID_OFFSET + curr_ssid_len], &probe_raw[PROBE_SSID_OFFSET], sizeof(probe_raw) - PROBE_SSID_OFFSET);
 
         // probeBuffer is now the right size, but needs some attributes set
-        // Randomise the 3 least significant bytes of the source MAC
+        // TODO: Either use configured MAC or use random MAC
         int addr;
-        for (int offset = SRCADDR_OFFSET + 3; offset < SRCADDR_OFFSET + 6; ++offset) {
-            addr = rand() % 256;
-            probeBuffer[offset] = addr;
+        if (attack_status[ATTACK_RANDOMISE_MAC]) {
+            // Generate a new MAC
+            // Randomise the 3 least significant bytes of the source MAC
+            for (int offset = PROBE_SRCADDR_OFFSET + 3; offset < PROBE_SRCADDR_OFFSET + 6; ++offset) {
+                addr = rand() % 256;
+                probeBuffer[offset] = addr;
+            }
+            // Also set device MAC here to fool devices
+            esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
+            if (err != ESP_OK) {
+                ESP_LOGW(PROBE_TAG, "Failed to set MAC: %s. Using default MAC", esp_err_to_name(err));
+            }
+        } else {
+            // Get device MAC and use it
+            uint8_t bMac[6];
+            esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bMac);
+            if (err != ESP_OK) {
+                ESP_LOGW(PROBE_TAG, "Failed to get MAC: %s. Using default MAC", esp_err_to_name(err));
+            }
+            //TODO: memcpy(&probeBuffer[PROBE_SRCADDR_OFFSET], bMac, 6);
         }
 
         // Use MAC/srcAddr for BSSID - For now at least?
         for (addr = 0; addr < 6; ++addr) {
-            probeBuffer[BSSID_OFFSET + addr] = probeBuffer[SRCADDR_OFFSET + addr];
+            probeBuffer[PROBE_BSSID_OFFSET + addr] = probeBuffer[PROBE_SRCADDR_OFFSET + addr];
         }
 
         // Do I need to do anything with sequence numbers?
@@ -142,8 +172,6 @@ int probe_start(probe_attack_t type, int probeCount) {
         ESP_LOGW(PROBE_TAG, "GRAVITY: Starting an attack of type ATTACK_PROBE_NONE doesn't do very much...");
         return ESP_ERR_INVALID_ARG;
     }
-    ESP_LOGI(PROBE_TAG, "Entering probe_start(%s, %d)", strType, probeCount);
-
     // Stop the existing probe attack if there is one
     if (attackType != ATTACK_PROBE_NONE) {
         ESP_LOGI(PROBE_TAG, "Halting existing %sdirected probe...", (attackType==ATTACK_PROBE_UNDIRECTED)?"un-":"");

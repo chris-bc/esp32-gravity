@@ -220,7 +220,7 @@ int cmd_probe(int argc, char **argv) {
     #endif
 
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ].  SSIDS uses the target-ssids specification.");
+        ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY | SSIDS | OFF ].  SSIDS uses the target-ssids specification.");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -238,17 +238,8 @@ int cmd_probe(int argc, char **argv) {
             probeType = ATTACK_PROBE_DIRECTED;
         }
 
-        // Get probe count
-        if (argc == 3) {
-            probeCount = atoi(argv[2]);
-            if (probeCount <= 0) {
-                probeCount = DEFAULT_PROBE_COUNT;
-                ESP_LOGW(PROBE_TAG, "Incorrect packet count specified. \"%s\" could not be transformed into a number, using default.", argv[2]);
-            }
-        }
-
         char probeNote[100];
-        sprintf(probeNote, "Starting a probe flood of %d%s packets%s", probeCount, (probeType == ATTACK_PROBE_UNDIRECTED)?" broadcast":"", (probeType == ATTACK_PROBE_DIRECTED)?" directed to ":"");
+        sprintf(probeNote, "Starting a probe flood of %spackets%s", (probeType == ATTACK_PROBE_UNDIRECTED)?"broadcast ":"", (probeType == ATTACK_PROBE_DIRECTED)?" directed to ":"");
         if (probeType == ATTACK_PROBE_DIRECTED) {
             char suffix[16];
             sprintf(suffix, "%d SSIDs", countSsid());
@@ -267,6 +258,29 @@ int cmd_probe(int argc, char **argv) {
             attack_status[ATTACK_PROBE] = true;
         }
     }
+    return ESP_OK;
+}
+
+int cmd_sniff(int argc, char **argv) {
+    // Usage: sniff [ ON | OFF ]
+    if (argc > 2) {
+        ESP_LOGE(TAG, "Usage: sniff [ ON | OFF ]");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        ESP_LOGI(TAG, "Sniffing is %s", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
+        return ESP_OK;
+    }
+    // If we get here argc==2
+    if (!strcasecmp(argv[1], "on")) {
+        attack_status[ATTACK_SNIFF] = true;
+    } else if (!strcasecmp(argv[1], "off")) {
+        attack_status[ATTACK_SNIFF] = false;
+    } else {
+        ESP_LOGE(TAG, "Usage: sniff [ ON | OFF ]");
+        return ESP_ERR_INVALID_ARG;
+    }
+
     return ESP_OK;
 }
 
@@ -311,7 +325,7 @@ int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         ESP_LOGE(TAG, "Invalid arguments provided. Usage: set <variable> <value>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
     }
     if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
@@ -370,6 +384,17 @@ int cmd_set(int argc, char **argv) {
         }
         ESP_LOGI(TAG, "Set MAC to :  %s", argv[2]);
         return ESP_OK;
+    } else if (!strcasecmp(argv[1], "MAC_RAND")) {
+        if (!strcasecmp(argv[2], "ON")) {
+            attack_status[ATTACK_RANDOMISE_MAC] = true;
+        } else if (!strcasecmp(argv[2], "OFF")) {
+            attack_status[ATTACK_RANDOMISE_MAC] = false;
+        } else {
+            ESP_LOGE(TAG, "Usage: set MAC_RAND [ ON | OFF ]");
+            return ESP_ERR_INVALID_ARG;
+        }
+        ESP_LOGI(TAG, "MAC randomisation :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
+        return ESP_OK;
     } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
         ESP_LOGI(TAG, "This command has not been implemented.");
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
@@ -395,7 +420,7 @@ int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         ESP_LOGE(TAG, "Usage: get <variable>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
     }
     if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
@@ -450,6 +475,9 @@ int cmd_get(int argc, char **argv) {
         }
         ESP_LOGI(TAG, "Current MAC :  %s", strMac);
         return ESP_OK;
+    } else if (!strcasecmp(argv[1], "MAC_RAND")) {
+        ESP_LOGI(TAG, "MAC Randomisation is :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
+        return ESP_OK;
     } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
         //
         ESP_LOGI(TAG, "Not yet implemented");
@@ -486,11 +514,24 @@ int cmd_handshake(int argc, char **argv) {
 void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
+    if (!attack_status[ATTACK_SNIFF]) {
+        // Sniffing disabled
+        return NULL;
+    }
     uint8_t *payload = data->payload;
     char *temp = malloc(sizeof(char) * (data->rx_ctrl.sig_len + 1));
     // TODO Check null
     if (payload[0] == 0x40) {
-        printf("W00T! Got a probe request!\n");
+        //printf("W00T! Got a probe request!\n");
+        int ssid_len = payload[PROBE_SSID_OFFSET - 1];
+        char *ssid = malloc(sizeof(char) * (ssid_len + 1));
+        // TODO: Check result
+        strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
+        ssid[ssid_len] = '\0';
+        char *srcMac = malloc(sizeof(char) * 18);
+        // TODO: Check result
+        esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
+        ESP_LOGI(TAG, "Probe for \"%s\" from \"%s\"", ssid, srcMac);
     } 
     return NULL;
 }

@@ -18,6 +18,7 @@ static const char* PROBE_TAG = "PROBE@GRAVITY";
 extern char **attack_ssids;
 extern char **user_ssids;
 extern int user_ssid_count;
+static bool attack_status[];
 
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,

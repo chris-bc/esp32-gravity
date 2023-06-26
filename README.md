@@ -21,7 +21,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * ap-dos
     * ap-clone
     * scan [ FASTAP | AP | STA | ANY | OFF ]
-    * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
+    * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
     * view: view [ SSID | STA | MAC ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
     * select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
     * handshake
@@ -30,7 +30,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Beacon spam - Fuzzing (Random strings)
 * **DONE** Beacon spam - Infinite (Random strings)
 * Receive and parse 802.11 frames
-* Commands to Get/Set channel, hopping mode, MAC, etc.
+* **DONE** Commands to Get/Set channel, hopping mode, MAC, etc.
 * Scan APs - Fast (API)
 * Scan APs - Continual (SSID + lastSeen when beacons seen)
 * Commands to select/view/remove APs/STAs in scope
@@ -38,6 +38,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * Mana attack - Respond to all probes
+* **DONE** Options to get/set MAC hopping between frames
 * Homing attack (Focus on RSSI for selected STA(s) or AP)
 * Capture authentication frames for cracking
 * DOS AP
@@ -64,12 +65,12 @@ Initial development will be focused on implementing a core set of 802.11 explora
 #define ATTACK_HANDSHAKE 7
 
 esp_err_to_name(err);
-esp_wifi_set_channel(uint8_t *primary, wifi_second_chan_t *second)
-esp_wifi_get_channel(uint8_t *primary, wifi_second_chan_t *second)
-esp_wifi_set_mac(wifi_interface_t ifx, const uint8_t mac[6]);
-get_mac - same params
-wifi_interface_t: enum WIFI_IF_STA | WIFI_IF_AP | WIFI_IF_NAN | WIFI_IF_MAX
-wifi_second_chan_t: enum WIFI_SECOND_CHAN_NONE | WIFI_SECOND_CHAN_ABOVE | WIFI_SECOND_CHAN_BELOW
+Probe response:
+50 00 00
+3c 00 (60 us)
+dest addr (6) source addr (6) bsssid (6)
+seq num (2 eg 70 fb)
+
 
 # Installation notes
 
