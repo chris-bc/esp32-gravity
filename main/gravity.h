@@ -62,8 +62,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_deauth
     } , {
         .command = "mana",
-        .hint = "Mana attack. Usage: mana [ ON | OFF ]",
-        .help = "Call without arguments to obtain the current status of the module.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
+        .hint = "Mana attack. Usage: mana [ VERBOSE ] [ ON | OFF ]",
+        .help = "Call without arguments to obtain the current status of the module.  Including the verbose keyword will enable or disable verbose logging as the attack progresses.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
         .func = cmd_mana
     }, {
         .command = "stalk",
@@ -120,6 +120,7 @@ enum {
     ATTACK_SNIFF,
     ATTACK_DEAUTH,
     ATTACK_MANA,
+    ATTACK_MANA_VERBOSE,
     ATTACK_AP_DOS,
     ATTACK_AP_CLONE,
     ATTACK_SCAN,
@@ -127,9 +128,10 @@ enum {
     ATTACK_RANDOMISE_MAC, // True
     ATTACKS_COUNT
 };
-static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, true, false};
+static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true, false};
 
 static bool WIFI_INITIALISED = false;
+static bool MANA_VERBOSE = false;
 
 extern int PROBE_SSID_OFFSET;
 extern int PROBE_SRCADDR_OFFSET;

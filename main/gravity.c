@@ -21,6 +21,34 @@ char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
 
+uint8_t probe_response_raw[] = {
+0x50, 0x00, 0x3c, 0x00, 
+0x08, 0x5a, 0x11, 0xf9, 0x23, 0x3d, // destination address
+0x20, 0xe8, 0x82, 0xee, 0xd7, 0xd5, // source address
+0x20, 0xe8, 0x82, 0xee, 0xd7, 0xd5, // BSSID
+0xc0, 0x72,                         // Fragment number 0 seq number 1836
+0xa3, 0x52, 0x5b, 0x8d, 0xd2, 0x00, 0x00, 0x00, 0x64, 0x00,
+0x11, 0x11, // 802.11 Capabilities == WPA2, 0x1101 == open auth. 0x11 0x01 or 0x01 0x11?
+0x00, 0x08, // Parameter Set (0), SSID Length (8)
+            // To fill: SSID
+0x01, 0x08, 0x8c, 0x12, 0x98, 0x24, 0xb0, 0x48, 0x60, 0x6c,
+0x20, 0x01, 0x00, 0x23, 0x02, 0x14, 0x00, 0x30, 0x14, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x04, 0x01,
+0x00, 0x00, 0x0f, 0xac, 0x04, 0x01, 0x00, 0x00, 0x0f, 0xac, 0x02, 0x0c, 0x00, 0x46, 0x05, 0x32,
+0x08, 0x01, 0x00, 0x00, 0x2d, 0x1a, 0xef, 0x08, 0x17, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x3d, 0x16, 0x95, 0x0d, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7f, 0x08, 0x04, 0x00, 0x08, 0x00, 0x00, 0x00,
+0x00, 0x40, 0xbf, 0x0c, 0xb2, 0x58, 0x82, 0x0f, 0xea, 0xff, 0x00, 0x00, 0xea, 0xff, 0x00, 0x00,
+0xc0, 0x05, 0x01, 0x9b, 0x00, 0x00, 0x00, 0xc3, 0x04, 0x02, 0x02, 0x02, 0x02,
+0x71, 0xb5, 0x92, 0x42 // Frame check sequence
+};
+
+int PROBE_RESPONSE_DEST_ADDR_OFFSET = 4;
+int PROBE_RESPONSE_SRC_ADDR_OFFSET = 10;
+int PROBE_RESPONSE_BSSID_OFFSET = 16;
+int PROBE_RESPONSE_AUTH_OFFSET = 34;
+int PROBE_RESPONSE_SSID_OFFSET = 38;
+
 #define PROMPT_STR CONFIG_IDF_TARGET
 
 /* Console command history can be stored to and loaded from a file.
@@ -289,8 +317,53 @@ int cmd_deauth(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_mana(int argc, char **argv) {
+/* Control the Mana attack
+   The Mana attack is intended to 'trick' wireless devices into
+   connecting to an AP that you control by impersonating a known
+   trusted AP.
+   Mana listens for directed probe requests (those that specify
+   an SSID) and responds with the corresponding probe response,
+   claiming to have the SSID requested.
+   As long as the device's MAC does not change during the attack
+   (so don't run an attack with MAC hopping simultaneously), the
+   target station may then begin association with Gravity.
+   This attack is typically successful only for SSID's that use
+   open authentication (i.e. no password); if a STA is expecting
+   an SSID it trusts to offer the open authentication it expects,
+   the device will proceed to associate and allow Gravity to
+   control its network connectivity.
+   Usage: mana [ VERBOSE ] [ ON | OFF ]
+   VERBOSE :  Display messages as packets are sent and received,
+              providing attack status
+   ON | OFF:  Start or stop either the Mana attack or verbose logging
 
+   TODO :  Display status of attack - Number of responses sent,
+           number of association attempts, number of successful
+           associations.
+
+ */
+int cmd_mana(int argc, char **argv) {
+    if (argc > 3) {
+        ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        ESP_LOGI(TAG, "GRAVITY :  Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
+    } else if (!strcasecmp(argv[1], "VERBOSE")) {
+        if (argc == 2) {
+            ESP_LOGI(TAG, "GRAVITY : Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
+        } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
+            attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
+        } else {
+            ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+            return ESP_ERR_INVALID_ARG;
+        }
+    } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
+        attack_status[ATTACK_MANA] = strcasecmp(argv[1], "OFF");
+    } else {
+        ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+        return ESP_ERR_INVALID_ARG;
+    }
     return ESP_OK;
 }
 
@@ -514,13 +587,16 @@ int cmd_handshake(int argc, char **argv) {
 void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
-    if (!attack_status[ATTACK_SNIFF]) {
-        // Sniffing disabled
+    if (!(attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA])) {
+        // No reason to listen to the packets
         return NULL;
     }
     uint8_t *payload = data->payload;
-    char *temp = malloc(sizeof(char) * (data->rx_ctrl.sig_len + 1));
     // TODO Check null
+    if (payload == NULL) {
+        // Not necessarily an error, just a different payload
+        return NULL;
+    }
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
         int ssid_len = payload[PROBE_SSID_OFFSET - 1];
@@ -531,7 +607,14 @@ void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         char *srcMac = malloc(sizeof(char) * 18);
         // TODO: Check result
         esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
-        ESP_LOGI(TAG, "Probe for \"%s\" from \"%s\"", ssid, srcMac);
+        if (attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA_VERBOSE]) {
+            ESP_LOGI(TAG, "Probe for \"%s\" from \"%s\"", ssid, srcMac);
+        }
+        if (attack_status[ATTACK_MANA]) {
+            // Mana enabled - Send a probe response
+            // TODO : Config option to set auth type. For now just do open auth
+            // send_probe_response(destMac=srcMac, srcMac=esp_wifi_get_mac, ssid=ssid[, authType])
+        }
     } 
     return NULL;
 }
