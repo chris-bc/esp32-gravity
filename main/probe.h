@@ -18,7 +18,7 @@ static const char* PROBE_TAG = "PROBE@GRAVITY";
 extern char **attack_ssids;
 extern char **user_ssids;
 extern int user_ssid_count;
-static bool attack_status[];
+extern bool attack_status[];
 
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
@@ -29,11 +29,13 @@ static bool attack_status[];
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 int probe_stop();
-int probe_start(probe_attack_t type, int probeCount);
+int probe_start(probe_attack_t type);
 
-/* extern functions - defined in main.c */
+/* extern functions - defined in gravity.c */
 int addSsid(char *ssid);
 int rmSsid(char *ssid);
 int countSsid();
 char **lsSsid();
 char *generate_random_ssid();
+int mac_bytes_to_string(uint8_t *bMac, char *strMac);
+int mac_string_to_bytes(char *strMac, uint8_t *bMac);

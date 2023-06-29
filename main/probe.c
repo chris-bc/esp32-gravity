@@ -10,6 +10,7 @@ enum {
     ATTACK_SNIFF,
     ATTACK_DEAUTH,
     ATTACK_MANA,
+    ATTACK_MANA_VERBOSE,
     ATTACK_AP_DOS,
     ATTACK_AP_CLONE,
     ATTACK_SCAN,
@@ -109,6 +110,8 @@ void probeCallback(void *pvParameter) {
                 addr = rand() % 256;
                 probeBuffer[offset] = addr;
             }
+            char newMac[18];
+            mac_bytes_to_string(&probeBuffer[PROBE_SRCADDR_OFFSET], newMac);
             // Also set device MAC here to fool devices
             esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
             if (err != ESP_OK) {
@@ -121,7 +124,11 @@ void probeCallback(void *pvParameter) {
             if (err != ESP_OK) {
                 ESP_LOGW(PROBE_TAG, "Failed to get MAC: %s. Using default MAC", esp_err_to_name(err));
             }
-            //TODO: memcpy(&probeBuffer[PROBE_SRCADDR_OFFSET], bMac, 6);
+            char strMac[18];
+            mac_bytes_to_string(bMac, strMac);
+
+            // TODO: The following line was commented out during initial testing. Test!
+            memcpy(&probeBuffer[PROBE_SRCADDR_OFFSET], bMac, 6);
         }
 
         // Use MAC/srcAddr for BSSID - For now at least?
@@ -134,9 +141,8 @@ void probeCallback(void *pvParameter) {
         //       so I set it to true to see what happens
 
         // transmit
-        esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, false);
+        esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, true);
 //        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
-
         // increment ssid
         ++ssid_idx;
         if (ssid_idx >= user_ssid_count) {
@@ -158,7 +164,7 @@ int probe_stop() {
     return ESP_OK;
 }
 
-int probe_start(probe_attack_t type, int probeCount) {
+int probe_start(probe_attack_t type) {
     char strType[25];
     srand(time(NULL));
     switch (type) {

@@ -20,6 +20,7 @@ static const char* TAG = "GRAVITY";
 char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
+bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true};
 
 uint8_t probe_response_raw[] = {
 0x50, 0x00, 0x3c, 0x00, 
@@ -246,6 +247,8 @@ int cmd_probe(int argc, char **argv) {
     #ifdef DEBUG
         printf("cmd_probe start\n");
     #endif
+    printf("In gravity.c ATTACK_RANDOMISE_MAC is %d\n", ATTACK_RANDOMISE_MAC);
+    printf("Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
 
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY | SSIDS | OFF ].  SSIDS uses the target-ssids specification.");
@@ -253,7 +256,6 @@ int cmd_probe(int argc, char **argv) {
     }
 
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
-    int probeCount = DEFAULT_PROBE_COUNT;
 
     if (argc == 1) {
         ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
@@ -275,7 +277,7 @@ int cmd_probe(int argc, char **argv) {
         }
 
         ESP_LOGI(PROBE_TAG, "%s", probeNote);
-        probe_start(probeType, probeCount);
+        probe_start(probeType);
     }
 
     // Set attack_status[ATTACK_PROBE]
@@ -584,18 +586,30 @@ int cmd_handshake(int argc, char **argv) {
     return ESP_OK;
 }
 
-void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
+esp_err_t send_probe_response(char *srcAddr, char *destAddr, char *ssid) {
+    // TODO: Add auth_type as a parameter
+    uint8_t probeBuffer[208];
+    // Bytes to SSID (correct src/dest later)
+    memcpy(probeBuffer, probe_response_raw, PROBE_RESPONSE_SSID_OFFSET - 1);
+    probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1] = strlen(ssid);
+    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
+    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET + strlen(ssid)], &probe_response_raw[PROBE_RESPONSE_SSID_OFFSET], sizeof(probe_response_raw) - PROBE_RESPONSE_SSID_OFFSET);
+    // TODO set src & dest
+
+    return ESP_OK;
+}
+
+void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
     if (!(attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA])) {
         // No reason to listen to the packets
-        return NULL;
+        return;
     }
     uint8_t *payload = data->payload;
-    // TODO Check null
     if (payload == NULL) {
         // Not necessarily an error, just a different payload
-        return NULL;
+        return;
     }
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
@@ -613,10 +627,10 @@ void *wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         if (attack_status[ATTACK_MANA]) {
             // Mana enabled - Send a probe response
             // TODO : Config option to set auth type. For now just do open auth
-            // send_probe_response(destMac=srcMac, srcMac=esp_wifi_get_mac, ssid=ssid[, authType])
+            // send_probe_response(srcMac=esp_wifi_get_mac, destMac=srcMac, ssid=ssid[, authType])
         }
     } 
-    return NULL;
+    return;
 }
 
 int initialise_wifi() {

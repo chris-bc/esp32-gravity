@@ -128,7 +128,6 @@ enum {
     ATTACK_RANDOMISE_MAC, // True
     ATTACKS_COUNT
 };
-static bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true, false};
 
 static bool WIFI_INITIALISED = false;
 static bool MANA_VERBOSE = false;
