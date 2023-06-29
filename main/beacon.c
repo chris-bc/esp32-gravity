@@ -158,11 +158,11 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
     /* Stop an existing beacon attack if one exists */
     if (attackType != ATTACK_BEACON_NONE) {
         beacon_stop();
-    } else {
-		// And initialise the random number generator
-		// It'll happen more than once here, but that's OK
-		srand(time(NULL));
-	}
+    }
+	// And initialise the random number generator
+	// It'll happen more than once here, but that's OK
+	srand(time(NULL));
+
     attackType = type;
 
 	// Prepare the appropriate beacon array
