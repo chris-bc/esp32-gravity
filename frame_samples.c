@@ -34,6 +34,9 @@ int PROBE_RESPONSE_SRC_ADDR_OFFSET = 10;
 int PROBE_RESPONSE_BSSID_OFFSET = 16;
 int PROBE_RESPONSE_PRIVACY_OFFSET = 34;
 int PROBE_RESPONSE_SSID_OFFSET = 38;
+int PROBE_RESPONSE_GROUP_CIPHER_OFFSET = 62; /* + ssid_len */
+int PROBE_RESPONSE_PAIRWISE_CIPHER_OFFSET = 68; /* + ssid_len */
+int PROBE_RESPONSE_AUTH_TYPE_OFFSET = 74; /* + ssid_len */
 
 /* Probe response from gravity captured by Wireshark */
 uint8_t rcvd_probe_response[] = {
