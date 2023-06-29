@@ -14,6 +14,9 @@
 #include "cmd_wifi.h"
 #include "cmd_nvs.h"
 
+/* Enable verbose debug outputs */
+#define DEBUG
+
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);
@@ -32,6 +35,60 @@ int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+
+/*  Globals to track module status information */
+enum {
+    ATTACK_BEACON,
+    ATTACK_PROBE,
+    ATTACK_SNIFF,
+    ATTACK_DEAUTH,
+    ATTACK_MANA,
+    ATTACK_MANA_VERBOSE,
+    ATTACK_AP_DOS,
+    ATTACK_AP_CLONE,
+    ATTACK_SCAN,
+    ATTACK_HANDSHAKE,
+    ATTACK_RANDOMISE_MAC, // True
+    ATTACKS_COUNT
+};
+
+enum PROBE_RESPONSE_AUTH_TYPE {
+    AUTH_TYPE_NONE,
+    AUTH_TYPE_WEP,
+    AUTH_TYPE_WPA
+};
+uint8_t AUTH_TYPE_NONE_BYTES[] = {0x01, 0x11};
+uint8_t AUTH_TYPE_WEP_BYTES[] = {0x00, 0x00}; /* TODO */
+uint8_t AUTH_TYPE_WPA_BYTES[] = {0x11, 0x11};
+
+struct NetworkList {
+    uint8_t bMac[6];
+    char strMac[18];
+    char **ssids;
+    int ssidCount;
+};
+typedef struct NetworkList NetworkList;
+NetworkList *networkList = NULL;
+int networkCount = 0;
+
+static bool WIFI_INITIALISED = false;
+static bool MANA_VERBOSE = false;
+static const char* TAG = "GRAVITY";
+static const char* MANA_TAG = "MANA@GRAVITY";
+
+extern int PROBE_SSID_OFFSET;
+extern int PROBE_SRCADDR_OFFSET;
+extern int PROBE_DESTADDR_OFFSET;
+extern int PROBE_BSSID_OFFSET;
+extern int PROBE_SEQNUM_OFFSET;
+
+/*
+ * This is the (currently unofficial) 802.11 raw frame TX API,
+ * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
+ *
+ * This declaration is all you need for using esp_wifi_80211_tx in your own application.
+ */
+esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 #define CMD_COUNT 15
 esp_console_cmd_t commands[CMD_COUNT] = {
@@ -112,27 +169,3 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_handshake
     }
 };
-
-/*  Globals to track module status information */
-enum {
-    ATTACK_BEACON,
-    ATTACK_PROBE,
-    ATTACK_SNIFF,
-    ATTACK_DEAUTH,
-    ATTACK_MANA,
-    ATTACK_MANA_VERBOSE,
-    ATTACK_AP_DOS,
-    ATTACK_AP_CLONE,
-    ATTACK_SCAN,
-    ATTACK_HANDSHAKE,
-    ATTACK_RANDOMISE_MAC, // True
-    ATTACKS_COUNT
-};
-
-static bool WIFI_INITIALISED = false;
-static bool MANA_VERBOSE = false;
-
-extern int PROBE_SSID_OFFSET;
-extern int PROBE_SRCADDR_OFFSET;
-extern int PROBE_BSSID_OFFSET;
-extern int PROBE_SEQNUM_OFFSET;

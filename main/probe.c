@@ -19,6 +19,12 @@ enum {
     ATTACKS_COUNT
 };
 
+int PROBE_SSID_OFFSET = 26;
+int PROBE_SRCADDR_OFFSET = 10;
+int PROBE_DESTADDR_OFFSET = 4;
+int PROBE_BSSID_OFFSET = 16;
+int PROBE_SEQNUM_OFFSET = 22;
+
 uint8_t probe_raw[] = {
     /*IEEE 802.11 Probe Request*/
 	0x40, 0x00, //Frame Control version=0 type=0(management)  subtype=100 (probe request)
@@ -58,11 +64,6 @@ uint8_t probe_raw[] = {
 
 	/*ACTUAL 0x88 0x7d 0x42 0xd4   0x83, 0x2d, 0xbe, 0xce*/ //Frame check sequence: 0x1b8026b0 [unverified] (wlan.fcs)
 };
-
-int PROBE_SSID_OFFSET = 26;
-int PROBE_SRCADDR_OFFSET = 10;
-int PROBE_BSSID_OFFSET = 16;
-int PROBE_SEQNUM_OFFSET = 22;
 
 static probe_attack_t attackType = ATTACK_PROBE_NONE;
 TaskHandle_t probeTask = NULL;

