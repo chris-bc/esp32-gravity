@@ -247,8 +247,6 @@ int cmd_probe(int argc, char **argv) {
     #ifdef DEBUG
         printf("cmd_probe start\n");
     #endif
-    printf("In gravity.c ATTACK_RANDOMISE_MAC is %d\n", ATTACK_RANDOMISE_MAC);
-    printf("Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
 
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY | SSIDS | OFF ].  SSIDS uses the target-ssids specification.");
@@ -740,13 +738,15 @@ void app_main(void)
 
 #if CONFIG_CONSOLE_STORE_HISTORY
     initialize_filesystem();
-    initialise_wifi();
     repl_config.history_save_path = HISTORY_PATH;
     ESP_LOGI(TAG, "Command history enabled");
 #else
     ESP_LOGI(TAG, "Command history disabled");
 #endif
 
+    esp_log_level_set("wifi", ESP_LOG_WARN);
+    esp_log_level_set("esp_netif_lwip", ESP_LOG_WARN);
+    initialise_wifi();
     /* Register commands */
     esp_console_register_help_command();
     register_system();

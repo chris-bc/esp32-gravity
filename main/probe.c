@@ -73,6 +73,8 @@ void probeCallback(void *pvParameter) {
     static int ssid_idx = 0;
     int curr_ssid_len;
 
+    ESP_LOGI(PROBE_TAG, "Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
+
     while (true) {
         vTaskDelay(10); // TODO: At least understand how long this is!
 
