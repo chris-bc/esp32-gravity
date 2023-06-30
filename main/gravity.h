@@ -70,6 +70,7 @@ struct NetworkList {
 typedef struct NetworkList NetworkList;
 static NetworkList *networkList = NULL;
 static int networkCount = 0;
+static enum PROBE_RESPONSE_AUTH_TYPE mana_auth = AUTH_TYPE_NONE;
 
 static bool WIFI_INITIALISED = false;
 static bool MANA_VERBOSE = false;
@@ -119,7 +120,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_deauth
     } , {
         .command = "mana",
-        .hint = "Mana attack. Usage: mana [ VERBOSE ] [ ON | OFF ]",
+        .hint = "Mana attack. Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )",
         .help = "Call without arguments to obtain the current status of the module.  Including the verbose keyword will enable or disable verbose logging as the attack progresses.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
         .func = cmd_mana
     }, {

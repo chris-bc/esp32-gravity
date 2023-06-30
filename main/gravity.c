@@ -342,10 +342,11 @@ int cmd_deauth(int argc, char **argv) {
    an SSID it trusts to offer the open authentication it expects,
    the device will proceed to associate and allow Gravity to
    control its network connectivity.
-   Usage: mana [ VERBOSE ] [ ON | OFF ]
+   Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )
    VERBOSE :  Display messages as packets are sent and received,
               providing attack status
    ON | OFF:  Start or stop either the Mana attack or verbose logging
+   AUTH    :  Set or display auth method
 
    TODO :  Display status of attack - Number of responses sent,
            number of association attempts, number of successful
@@ -354,7 +355,7 @@ int cmd_deauth(int argc, char **argv) {
  */
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
@@ -365,13 +366,31 @@ int cmd_mana(int argc, char **argv) {
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
         attack_status[ATTACK_MANA] = strcasecmp(argv[1], "OFF");
+    } else if (!strcasecmp(argv[1], "AUTH")) {
+        if (argc == 2) {
+            // return mana_auth
+            ESP_LOGI(MANA_TAG, "Mana authentication method: %s", (mana_auth==AUTH_TYPE_NONE)?"Open Authentication":(mana_auth==AUTH_TYPE_WEP)?"Wireless Equivalent Privacy":"Wi-Fi Protected Access");
+            return ESP_OK;
+        } else if (argc == 3 && !(strcasecmp(argv[2], "NONE") && strcasecmp(argv[2], "WEP") && strcasecmp(argv[2], "WPA"))) {
+            // set mana_auth
+            if (!strcasecmp(argv[2], "NONE")) {
+                mana_auth = AUTH_TYPE_NONE;
+            } else if (!strcasecmp(argv[2], "WEP")) {
+                mana_auth = AUTH_TYPE_WEP;
+            } else if (!strcasecmp(argv[2], "WPA")) {
+                mana_auth = AUTH_TYPE_WPA;
+            }
+        } else {
+            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
+            return ESP_ERR_INVALID_ARG;
+        }
     } else {
-        ESP_LOGE(TAG, "Usage: mana [ VERBOSE ] [ ON | OFF ]");
+        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
         return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
@@ -752,7 +771,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                         #ifdef DEBUG
                             ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
                         #endif
-                        send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], AUTH_TYPE_NONE);
+                        send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
                     }
                 } else {
                     #ifdef DEBUG
@@ -846,7 +865,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 }
 
                 /* Send probe response */
-                send_probe_response(bCurrentMac, bDestMac, ssid, AUTH_TYPE_NONE);
+                send_probe_response(bCurrentMac, bDestMac, ssid, mana_auth);
             }
         }
         free(ssid);
