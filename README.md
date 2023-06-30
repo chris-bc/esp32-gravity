@@ -16,7 +16,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * **DONE** beacon: beacon [ RICKROLL | RANDOM | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
     * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
-    * mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
+    * **DONE** mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
     * stalk
     * ap-dos
     * ap-clone
@@ -29,7 +29,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Beacon spam - User-specified SSIDs
 * **DONE** Beacon spam - Fuzzing (Random strings)
 * **DONE** Beacon spam - Infinite (Random strings)
-* Receive and parse 802.11 frames
+* **ONGOING** Receive and parse 802.11 frames
 * **DONE** Commands to Get/Set channel, hopping mode, MAC, etc.
 * Scan APs - Fast (API)
 * Scan APs - Continual (SSID + lastSeen when beacons seen)
@@ -37,7 +37,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Scan STAs - Only include clients of selected AP(s), or all
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
-* Mana attack - Respond to all probes
+* **DONE** Mana attack - Respond to all probes
 * **DONE** Options to get/set MAC hopping between frames
 * Homing attack (Focus on RSSI for selected STA(s) or AP)
 * Capture authentication frames for cracking

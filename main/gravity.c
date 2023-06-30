@@ -597,7 +597,7 @@ int cmd_handshake(int argc, char **argv) {
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType) {
     uint8_t probeBuffer[208];
 
-    #ifdef DEBUG
+    #ifdef DEBUG_VERBOSE
         printf("send_probe_response(): ");
         char strSrcAddr[18];
         char strDestAddr[18];
@@ -649,7 +649,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     }
     memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
 
-    #ifdef DEBUG
+    #ifdef DEBUG_VERBOSE
         char debugOut[1024];
         int debugLen=0;
         strcpy(debugOut, "SSID: \"");
@@ -745,9 +745,6 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
                 if (i < networkCount) {
                     /* Found the station at networkList[i] - cycle through its SSIDs */
-                    #ifdef DEBUG
-                        ESP_LOGI(MANA_TAG, "Found station in networkList[], total %d SSIDs", networkList[i].ssidCount);
-                    #endif
                     for (int j=0; j < networkList[i].ssidCount; ++j) {
                         #ifdef DEBUG
                             ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
@@ -762,6 +759,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
 
             } else {
                 /* Directed probe request - Send a directed probe response in reply */
+                ESP_LOGI(MANA_TAG, "Received directed probe from %s for \"%s\"", strDestMac, ssid);
 
                 // TODO : Config option to set auth type. For now just do open auth
 
