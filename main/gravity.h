@@ -68,8 +68,8 @@ struct NetworkList {
     int ssidCount;
 };
 typedef struct NetworkList NetworkList;
-NetworkList *networkList = NULL;
-int networkCount = 0;
+static NetworkList *networkList = NULL;
+static int networkCount = 0;
 
 static bool WIFI_INITIALISED = false;
 static bool MANA_VERBOSE = false;
