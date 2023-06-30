@@ -48,7 +48,7 @@ uint8_t probe_response_raw[] = {
 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x40, 0xbf, 0x0c, 0xb2, 0x58, 0x82, 0x0f, 0xea, 0xff, 0x00,
 0x00, 0xea, 0xff, 0x00, 0x00, 0xc0, 0x05, 0x01, 0x9b, 0x00, 0x00, 0x00, 0xc3, 0x04, 0x02, 0x02,
 0x02, 0x02,
-0x71, 0xb5, 0x92, 0x42 // Frame check sequence
+/* 0x71, 0xb5, 0x92, 0x42 // Frame check sequence */
 };
 
 int PROBE_RESPONSE_DEST_ADDR_OFFSET = 4;
@@ -636,12 +636,15 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     switch (authType) {
     case AUTH_TYPE_NONE:
         bAuthType = AUTH_TYPE_NONE_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x00;
         break;
     case AUTH_TYPE_WEP:
         bAuthType = AUTH_TYPE_WEP_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x01;
         break;
     case AUTH_TYPE_WPA:
         bAuthType = AUTH_TYPE_WPA_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x02;
         break;
     default:
         ESP_LOGE(MANA_TAG, "Unrecognised authentication type: %d\n", authType);
@@ -835,12 +838,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                         }
                         /* Replace networkList[] with newList[] - Without leaking memory */
                         /* Loop through networkList[i].ssids and free each SSID before free'ing networkList itself*/
-                        for (int j=0; j < networkCount; ++j) {
-                            for (int k=0; k < networkList[j].ssidCount; ++k) {
-                                free(networkList[j].ssids[k]);
-                            }
-                            free(networkList[j].ssids);
-                        }
+                        /* Actually no, don't do that. ssids and its elements are copied into the new array */
                         free(networkList);
                         networkList = newList;
                         networkCount = newCount;
