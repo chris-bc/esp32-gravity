@@ -57,9 +57,8 @@ enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_WEP,
     AUTH_TYPE_WPA
 };
-uint8_t AUTH_TYPE_NONE_BYTES[] = {0x01, 0x11};
-uint8_t AUTH_TYPE_WEP_BYTES[] = {0x00, 0x00}; /* TODO */
-uint8_t AUTH_TYPE_WPA_BYTES[] = {0x11, 0x11};
+uint8_t PRIVACY_OFF_BYTES[] = {0x01, 0x11};
+uint8_t PRIVACY_ON_BYTES[] = {0x11, 0x11};
 
 struct NetworkList {
     uint8_t bMac[6];

