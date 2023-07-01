@@ -7,10 +7,16 @@
 #include <time.h>
 #include <string.h>
 
+#define CHANNEL_TAG 0x03
+
 static int gravity_ap_count = 0;
 static int gravity_sel_ap_count = 0;
+static int gravity_sta_count = 0;
+static int gravity_sel_sta_count = 0;
 static ScanResultAP *gravity_aps;
 static ScanResultAP **gravity_selected_aps;
+static ScanResultSTA *gravity_stas;
+static ScanResultSTA **gravity_selected_stas;
 enum ScanType activeScan;
 
 enum GravityScanType {
@@ -22,14 +28,20 @@ enum GravityScanType {
 
 bool gravity_ap_isSelected(int index) {
     int i;
-    for (i=0; i < gravity_sel_ap_count && !gravity_selected_aps[i]->selected; ++i) {}
+    for (i=0; i < gravity_sel_ap_count && gravity_selected_aps[i]->index != index; ++i) {}
     return i < gravity_sel_ap_count;
+}
+
+bool gravity_sta_isSelected(int index) {
+    int i;
+    for (i=0; i < gravity_sel_sta_count && gravity_selected_stas[i]->index != index; ++i) {}
+    return i < gravity_sel_sta_count;
 }
 
 /* Select / De-Select the AP with the specified index, managing both
    gravity_selected_aps and ScanResultAP.selected*/
 esp_err_t gravity_select_ap(int selIndex) {
-    /* Find the right GravityScanType */
+    /* Find the right GravityScanAP */
     int i;
     for (i=0; i < gravity_ap_count &&  gravity_aps[i].index != selIndex; ++i) { }
     if (i == gravity_ap_count) {
@@ -68,13 +80,66 @@ esp_err_t gravity_select_ap(int selIndex) {
         int sourceIndex = 0;
         for (sourceIndex = 0; sourceIndex < gravity_sel_ap_count; ++sourceIndex) {
             if (gravity_selected_aps[sourceIndex]->selected) {
-                newSel[targetIndex] = &gravity_selected_aps[sourceIndex];
+                newSel[targetIndex] = gravity_selected_aps[sourceIndex];
                 ++targetIndex;
             }
         }
 
         free(gravity_selected_aps);
         gravity_selected_aps = newSel;
+    }
+    return ESP_OK;
+}
+
+/* Select / De-Select the STA with the specified index, managing both
+   gravity_selected_stas and ScanResultSTA.selected*/
+esp_err_t gravity_select_sta(int selIndex) {
+    /* Find the right GravityScanSTA */
+    int i;
+    for (i=0; i < gravity_sta_count &&  gravity_stas[i].index != selIndex; ++i) { }
+    if (i == gravity_sta_count) {
+        ESP_LOGE(SCAN_TAG, "Specified index (%d) does not exist.", selIndex);
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Invert selection */
+    gravity_stas[i].selected = !gravity_stas[i].selected;
+    ScanResultSTA **newSel;
+    /* Are we adding to, or removing from, gravity_selected_stas? */
+    if (gravity_stas[i].selected) {
+        /* We're adding */
+        newSel = malloc(sizeof(ScanResultSTA *) * ++gravity_sel_sta_count); /* Increment then return */
+        if (newSel == NULL) {
+            ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected STAs array[%d]", gravity_sel_sta_count);
+            return ESP_ERR_NO_MEM;
+        }
+        /* Copy across existing selected STA pointers */
+        for (int j=0; j < (gravity_sel_sta_count - 1); ++j) {
+            newSel[j] = gravity_selected_stas[j];
+        }
+        newSel[gravity_sel_sta_count - 1] = &gravity_stas[i];
+
+        free(gravity_selected_stas);
+        gravity_selected_stas = newSel;
+    } else {
+        /* Removing */
+        newSel = malloc(sizeof(ScanResultSTA *) * --gravity_sel_sta_count); /* Decrement then return */
+        if (newSel == NULL) {
+            ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected STAs array[%d]", gravity_sel_sta_count);
+            return ESP_ERR_NO_MEM;
+        }
+        /* Copy our subset */
+        int targetIndex = 0;
+        int sourceIndex = 0;
+        for (sourceIndex = 0; sourceIndex < gravity_sel_sta_count; ++sourceIndex) {
+            if (gravity_selected_stas[sourceIndex]->selected) {
+                newSel[targetIndex] = gravity_selected_stas[sourceIndex];
+                ++targetIndex;
+            }
+        }
+
+        free(gravity_selected_stas);
+        gravity_selected_stas = newSel;
     }
     return ESP_OK;
 }
@@ -94,10 +159,24 @@ esp_err_t gravity_list_ap() {
     for (int i=0; i < gravity_ap_count; ++i) {
         ESP_ERROR_CHECK(mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strBssid));
         // TODO: Stringify timestamp
-        printf("%s%2d | %-32s | %-17s | %22lld | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                gravity_aps[i].espRecord.ssid, gravity_aps[i].espRecord.bssid, gravity_aps[i].lastSeen,
+        printf("%s%2d | %-32s | %-17s | %22lu | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
+                gravity_aps[i].espRecord.ssid, strBssid, gravity_aps[i].lastSeenClk,
                 gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
     }
+
+    return ESP_OK;
+}
+
+/* Available attributes are selected, index, MAC, channel, lastSeen, assocAP */
+esp_err_t gravity_list_sta() {
+    printf(" ID | MAC               | Ch | Last Seen             | Associated BSSID  \n");
+    printf("====|===================|====|=======================|===================\n");
+
+    for (int i=0; i < gravity_sta_count; ++i) {
+        // TODO: Stringify timestamp
+        printf("%s%2d | %-17s | %2d | %22lu | Not Implemented\n", (gravity_stas[i].selected)?"*":" ",
+                gravity_stas[i].index, gravity_stas[i].strMac, gravity_stas[i].channel, gravity_stas[i].lastSeenClk);
+    }    
 
     return ESP_OK;
 }
@@ -108,6 +187,14 @@ esp_err_t gravity_clear_ap() {
     gravity_ap_count = 0;
     free(gravity_selected_aps);
     gravity_sel_ap_count = 0;
+    return ESP_OK;
+}
+
+esp_err_t gravity_clear_sta() {
+    free(gravity_stas);
+    gravity_sta_count = 0;
+    free(gravity_selected_stas);
+    gravity_sel_sta_count = 0;
     return ESP_OK;
 }
 
@@ -182,16 +269,144 @@ printf("checking new AP \"%s\"\n", (char *)newAPs[i].espRecord.ssid);
     return ESP_OK;
 }
 
-esp_err_t gravity_add_ap(uint8_t *newAP, char *newSSID) {
-    //
+esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
+    /* First make sure the MAC doesn't exist (multiple APs can share a SSID) */
+    int i;
+    char strMac[18];
+    mac_bytes_to_string(newAP, strMac);
+
+    for (i=0; i < gravity_ap_count && memcmp(newAP, gravity_aps[i].espRecord.bssid, 6); ++i) {}
+    if (i < gravity_ap_count) {
+        /* Found the MAC. Update SSID if necessary and update lastSeen */
+        if (strcasecmp(newSSID, (char *)gravity_aps[i].espRecord.ssid)) {
+            /* This is probably unnecessary ... */
+            memset(gravity_aps[i].espRecord.ssid, '\0', 33);
+            strcpy((char *)gravity_aps[i].espRecord.ssid, (char *)newSSID);
+        }
+        gravity_aps[i].lastSeen = time(NULL);
+        gravity_aps[i].lastSeenClk = clock();
+        gravity_aps[i].espRecord.primary = channel;
+    } else {
+        #ifdef DEBUG
+            ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, newSSID);
+        #endif
+
+        /* AP is a new device */
+        char strNewAP[18];
+        ESP_ERROR_CHECK(mac_bytes_to_string(newAP, strNewAP));
+        ScanResultAP *newAPs = malloc(sizeof(ScanResultAP) * (gravity_ap_count + 1));
+        if (newAPs == NULL) {
+            ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new AP %s", strNewAP);
+            return ESP_ERR_NO_MEM;
+        }
+        
+        int maxIndex = 0;
+        /* Copy previous records across */
+        for (int j=0; j < gravity_ap_count; ++j) {
+            newAPs[j] = gravity_aps[j];
+            if (newAPs[j].index > maxIndex) {
+                maxIndex = newAPs[j].index;
+            }
+        }
+
+        newAPs[gravity_ap_count].selected = false;
+        newAPs[gravity_ap_count].lastSeen = time(NULL);
+        newAPs[gravity_ap_count].lastSeenClk = clock();
+        newAPs[gravity_ap_count].index = maxIndex + 1;
+        newAPs[gravity_ap_count].espRecord.primary = channel;
+        strcpy((char *)newAPs[gravity_ap_count].espRecord.ssid, newSSID);
+        memcpy(newAPs[gravity_ap_count].espRecord.bssid, newAP, 6);
+
+        ++gravity_ap_count;
+
+        free(gravity_aps);
+        gravity_aps = newAPs;
+    }
 
     return ESP_OK;
 }
 
-esp_err_t gravity_add_sta(uint8_t *newSTA) {
-    //
+esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
+    /* First make sure the MAC doesn't exist */
+    int i;
+    for (i=0; i < gravity_sta_count && memcmp(newSTA, gravity_stas[i].mac, 6); ++i) {}
+
+    if (i < gravity_sta_count) {
+        /* Found the MAC. Update lastSeen */
+        gravity_stas[i].lastSeen = time(NULL);
+        gravity_stas[i].lastSeenClk = clock();
+        gravity_stas[i].channel = channel;
+    } else {
+        /* STA is a new device */
+        char strNewSTA[18];
+        ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, strNewSTA));
+
+        #ifdef DEBUG
+            ESP_LOGI(SCAN_TAG, "Found new STA %s", strNewSTA);
+        #endif
+
+        ScanResultSTA *newSTAs = malloc(sizeof(ScanResultSTA) * (gravity_sta_count + 1));
+        if (newSTAs == NULL) {
+            ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new STA %s", strNewSTA);
+            return ESP_ERR_NO_MEM;
+        }
+        
+        int maxIndex = 0;
+        /* Copy previous records across */
+        for (int j=0; j < gravity_sta_count; ++j) {
+            newSTAs[j] = gravity_stas[j];
+            if (newSTAs[j].index > maxIndex) {
+                maxIndex = newSTAs[j].index;
+            }
+        }
+
+        newSTAs[gravity_sta_count].selected = false;
+        newSTAs[gravity_sta_count].lastSeen = time(NULL);
+        newSTAs[gravity_sta_count].lastSeenClk = clock();
+        newSTAs[gravity_sta_count].index = maxIndex + 1;
+        newSTAs[gravity_sta_count].channel = channel;
+        memcpy(newSTAs[gravity_sta_count].mac, newSTA, 6);
+        ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, newSTAs[gravity_sta_count].strMac));
+
+        ++gravity_sta_count;
+
+        free(gravity_stas);
+        gravity_stas = newSTAs;
+    }
 
     return ESP_OK;
+}
+
+/* Parse the channel parameter out of 802.11 tagged parameters */
+int parseChannel(uint8_t *payload) {
+    int startIndex = 0;
+    switch (payload[0]) {
+    case 0x40:
+        // Probe request
+        startIndex = 24;
+        break;
+    case 0x50:
+        // Probe response
+        startIndex = 36;
+        break;
+    case 0x80:
+        // Beacon
+        startIndex = 36;
+        break;
+    }
+    unsigned int ch=0;
+    int found = false;
+    int thisIndex = startIndex;
+    while (!found) {
+        if (payload[thisIndex] == 0x03) {
+            ch = payload[thisIndex + 2];
+            found = true;
+        } else {
+            thisIndex += 2 + payload[thisIndex + 1];
+        }
+    }
+
+    return ch;
 }
 
 esp_err_t parse_beacon(uint8_t *payload) {
@@ -211,7 +426,12 @@ esp_err_t parse_beacon(uint8_t *payload) {
     memcpy(ssid, &payload[ssid_offset], ssid_len);
     ssid[ssid_len] = '\0';
 
-    // gravity_add_ap(ap, ssid)
+    char strAp[18];
+    mac_bytes_to_string(ap, strAp);
+
+    int channel = parseChannel(payload);
+
+    gravity_add_ap(ap, ssid, channel);
 
     free(ssid);
     return ESP_OK;
@@ -222,7 +442,8 @@ esp_err_t parse_probe_request(uint8_t *payload) {
     uint8_t sta[6];
 
     memcpy(sta, &payload[sta_offset], 6);
-    // gravity_add_sta(sta)
+    int channel = parseChannel(payload);
+    gravity_add_sta(sta, channel);
 
     return ESP_OK;
 }
@@ -246,9 +467,10 @@ esp_err_t parse_probe_response(uint8_t *payload) {
     }
     memcpy(ssid, &payload[ssid_offset], ssid_len);
     ssid[ssid_len] = '\0';
+    int channel = parseChannel(payload);
 
-    // gravity_add_sta(sta)
-    // gravity_add_ap(ap, ssid)
+    gravity_add_sta(sta, channel);
+    gravity_add_ap(ap, ssid, channel);
 
     free(ssid);
     return ESP_OK;

@@ -85,6 +85,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Mana-Loud
 * basic scanning
 * figure out RSSI
+* get/set scan result expiry (lastSeen + x seconds)
 
 # Installation notes
 

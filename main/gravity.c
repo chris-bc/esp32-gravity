@@ -635,7 +635,7 @@ int cmd_view(int argc, char **argv) {
         if (!strcasecmp(argv[i], "AP")) {
             return gravity_list_ap();
         } else if (!strcasecmp(argv[i], "STA")) {
-            // TODO: Display STA
+            return gravity_list_sta();
         } else {
             ESP_LOGE(TAG, "Invalid argument %d. Usage: view ( AP | STA )*", i);
             return ESP_ERR_INVALID_ARG;
@@ -650,8 +650,15 @@ int cmd_select(int argc, char **argv) {
         ESP_LOGE(TAG, "Invalid arguments provided. Usage: select ( AP | STA ) <elementID>");
         return ESP_ERR_INVALID_ARG;
     }
-    esp_err_t err = gravity_select_ap(atoi(argv[2]));
-    ESP_LOGI(TAG, "Element %d is %sselected", atoi(argv[2]), (gravity_ap_isSelected(atoi(argv[2])))?"":"not ");
+
+    esp_err_t err = ESP_OK;;
+    if (!strcasecmp(argv[1], "AP")) {
+        err = gravity_select_ap(atoi(argv[2]));
+        ESP_LOGI(TAG, "AP element %d is %sselected", atoi(argv[2]), (gravity_ap_isSelected(atoi(argv[2])))?"":"not ");
+    } else if (!strcasecmp(argv[1], "STA")) {
+        err = gravity_select_sta(atoi(argv[2]));
+        ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[2]), (gravity_sta_isSelected(atoi(argv[2])))?"":"not ");
+    }
     return err;
 }
 
