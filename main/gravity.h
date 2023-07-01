@@ -31,6 +31,7 @@ int cmd_set(int argc, char **argv);
 int cmd_get(int argc, char **argv);
 int cmd_view(int argc, char **argv);
 int cmd_select(int argc, char **argv);
+int cmd_clear(int argc, char **argv);
 int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
@@ -72,9 +73,8 @@ static int networkCount = 0;
 static enum PROBE_RESPONSE_AUTH_TYPE mana_auth = AUTH_TYPE_NONE;
 
 static bool WIFI_INITIALISED = false;
-static bool MANA_VERBOSE = false;
 static const char* TAG = "GRAVITY";
-static const char* MANA_TAG = "MANA@GRAVITY";
+static const char* MANA_TAG = "mana@GRAVITY";
 
 extern int PROBE_SSID_OFFSET;
 extern int PROBE_SRCADDR_OFFSET;
@@ -90,7 +90,7 @@ extern int PROBE_SEQNUM_OFFSET;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 15
+#define CMD_COUNT 16
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -120,7 +120,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     } , {
         .command = "mana",
         .hint = "Mana attack. Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )",
-        .help = "Call without arguments to obtain the current status of the module.  Including the verbose keyword will enable or disable verbose logging as the attack progresses.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
+        .help = "Call without arguments to obtain the current status of the module.  Including the verbose keyword will enable or disable verbose logging as the attack progresses.  Default authentication type is NONE.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
         .func = cmd_mana
     }, {
         .command = "stalk",
@@ -139,8 +139,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_ap_clone
     }, {
         .command = "scan",
-        .hint = "Scan for wireless devices. Usage: scan [ FASTAP | AP | STA | ANY | OFF ]",
-        .help = "No argument returns scan status.   FastAP: Obtain immediate results from a broadcast probe request.   AP: Initiate a continuous scan for APs.   STA: Initiate a continuous scan for STAs.   ANY: Initiate a continuous scan capturing both AP and STA data.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. FASTAP performs a standard broadcast probe, identifying those APs that would be included in an operating system's wireless network scanner. The other scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
+        .hint = "Scan for wireless devices. Usage: scan [ AP | STA | ANY | OFF ]",
+        .help = "No argument returns scan status.   AP: Initiate a continuous scan for APs.   STA: Initiate a continuous scan for STAs.   ANY: Initiate a continuous scan capturing both AP and STA data.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
         .func = cmd_scan
     }, {
         .command = "set",
@@ -154,14 +154,19 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_get
     }, {
         .command = "view",
-        .hint = "List available targets. Usage: view ( SSID | STA | MAC )*",
-        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command using, for example, VIEW STA SSID.",
+        .hint = "List available targets. Usage: view ( AP | STA )*",
+        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command using, for example, VIEW STA AP.",
         .func = cmd_view
     }, {
         .command = "select",
-        .hint = "Select an element. Usage: select ( SSID | STA ) <elementId>",
-        .help = "Select the specified element from the specified scan results. Usage: select ( SSID | STA ) <elementId>.  Selects/deselects item <elementId> from the SSID or STA list.",
+        .hint = "Select an element. Usage: select ( AP | STA ) <elementId>",
+        .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list.",
         .func = cmd_select
+    }, {
+        .command = "clear",
+        .hint = "Clear stored APs or STAs. Usage: clear ( AP | STA | ALL )",
+        .help = "Clear the specified list.",
+        .func = cmd_clear
     }, {
         .command = "handshake",
         .hint = "Toggle monitoring for encryption material",

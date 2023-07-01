@@ -13,10 +13,11 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
 * **DONE** Implement console component with commands:
-    * **DONE** beacon: beacon [ RICKROLL | RANDOM | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
+    * **DONE** beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
     * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
-    * **DONE** mana: mana [ ON | OFF ] - Enable or disable Mana. If not specified returns the current status
+    * **DONE** mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
+      verbose output, and set the authentication type it indicates. If not specified returns the current status. 
     * stalk
     * ap-dos
     * ap-clone
@@ -64,13 +65,26 @@ Initial development will be focused on implementing a core set of 802.11 explora
 #define ATTACK_SCAN 6
 #define ATTACK_HANDSHAKE 7
 
-esp_err_to_name(err);
-Probe response:
-50 00 00
-3c 00 (60 us)
-dest addr (6) source addr (6) bsssid (6)
-seq num (2 eg 70 fb)
+## Scanning implementation
 
+802.11 type/subtypes
+0x40 Probe request
+0x50 Probe response
+0x80 Beacon
+0xB4 RTS
+0xC4 CTS
+0xD4 ACK
+0x1A PS-Poll
+0x1E CF-End
+0x1F CF-End+CF-Ack
+0x08 Data
+0x88 QoS Data
+
+# TODO
+
+* Mana-Loud
+* basic scanning
+* figure out RSSI
 
 # Installation notes
 

@@ -13,7 +13,7 @@ typedef enum {
 	ATTACK_PROBE_DIRECTED
 } probe_attack_t;
 
-static const char* PROBE_TAG = "PROBE@GRAVITY";
+static const char* PROBE_TAG = "probe@GRAVITY";
 
 extern char **attack_ssids;
 extern char **user_ssids;

@@ -14,6 +14,7 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "probe.h"
+#include "scan.h"
 
 char **attack_ssids = NULL;
 char **user_ssids = NULL;
@@ -412,6 +413,33 @@ int cmd_ap_clone(int argc, char **argv) {
 }
 
 int cmd_scan(int argc, char **argv) {
+    if (argc > 2 || (argc == 2 && (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA") &&
+             strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "OFF")))) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan ( AP | STA | ANY | OFF )");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (argc == 1) {
+        ESP_LOGI(TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
+        return ESP_OK;
+    }
+    if (!strcasecmp(argv[1], "AP")) {
+        //
+        activeScan = SCAN_TYPE_AP;
+        attack_status[ATTACK_SCAN] = true;
+    } else if (!strcasecmp(argv[1], "STA")) {
+        //
+        activeScan = SCAN_TYPE_STA;
+        attack_status[ATTACK_SCAN] = true;
+    } else if (!strcasecmp(argv[1], "ANY")) {
+        //
+        activeScan = SCAN_TYPE_BOTH;
+        attack_status[ATTACK_SCAN] = true;
+    } else if (!strcasecmp(argv[1], "OFF")) {
+        //
+        activeScan = SCAN_TYPE_NONE;
+        attack_status[ATTACK_SCAN] = false;
+    }
 
     return ESP_OK;
 }
@@ -599,12 +627,51 @@ int cmd_get(int argc, char **argv) {
 }
 
 int cmd_view(int argc, char **argv) {
+    if (argc != 2 && argc != 3) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: view ( AP | STA )*");
+        return ESP_ERR_INVALID_ARG;
+    }
+    for (int i=1; i < argc; ++i) {
+        if (!strcasecmp(argv[i], "AP")) {
+            return gravity_list_ap();
+        } else if (!strcasecmp(argv[i], "STA")) {
+            // TODO: Display STA
+        } else {
+            ESP_LOGE(TAG, "Invalid argument %d. Usage: view ( AP | STA )*", i);
+            return ESP_ERR_INVALID_ARG;
+        }
+    }
 
     return ESP_OK;
 }
 
 int cmd_select(int argc, char **argv) {
+    if (argc != 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: select ( AP | STA ) <elementID>");
+        return ESP_ERR_INVALID_ARG;
+    }
+    esp_err_t err = gravity_select_ap(atoi(argv[2]));
+    ESP_LOGI(TAG, "Element %d is %sselected", atoi(argv[2]), (gravity_ap_isSelected(atoi(argv[2])))?"":"not ");
+    return err;
+}
 
+int cmd_clear(int argc, char **argv) {
+    if (argc != 2 && argc != 3) {
+        ESP_LOGE(TAG, "Invalid arguments. Usage: clear ( AP | STA | ALL )");
+        return ESP_ERR_INVALID_ARG;
+    }
+    for (int i=1; i < argc; ++i) {
+        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL")) {
+            ESP_LOGE(TAG, "Invalid arguments. Usage: clear ( AP | STA | ALL )");
+            return ESP_ERR_INVALID_ARG;
+        }
+        if (!(strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "ALL"))) {
+            ESP_ERROR_CHECK(gravity_clear_ap());
+        }
+        if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
+            // TODO: clear STAs
+        }
+    }
     return ESP_OK;
 }
 
@@ -704,10 +771,18 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     return esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_response_raw) + strlen(ssid), true);
 }
 
+/* Monitor mode callback
+   This is the callback function invoked when the wireless interface receives any selected packet.
+   Currently it only responds to management packets.
+   This function:
+    - Displays packet info when sniffing is enabled
+    - Coordinates Mana probe responses when Mana is enabled
+    - Invokes relevant functions to manage scan results, if scanning is enabled
+*/
 void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
-    if (!(attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA])) {
+    if (!(attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN])) {
         // No reason to listen to the packets
         return;
     }
@@ -716,6 +791,11 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (payload == NULL) {
         // Not necessarily an error, just a different payload
         return;
+    }
+
+    /* Just send the whole packet to the scanner */
+    if (attack_status[ATTACK_SCAN]) {
+        scan_wifi_parse_frame(payload);
     }
     // TODO: new file - parse_80211.c - Here call parse_80211_frame(payload)
     if (payload[0] == 0x40) {
@@ -901,7 +981,7 @@ int initialise_wifi() {
                 .ssid_len = 12,
                 .password = "management",
                 .channel = 1,
-                .authmode = WIFI_AUTH_WPA2_PSK,
+                .authmode = WIFI_AUTH_OPEN,
                 .ssid_hidden = 0,
                 .max_connection = 128,
                 .beacon_interval = 5000
@@ -913,7 +993,7 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
         // Set up promiscuous mode and packet callback
-        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT };
+        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_CTRL };
         esp_wifi_set_promiscuous_filter(&filter);
         esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
         esp_wifi_set_promiscuous(true);
