@@ -13,13 +13,18 @@
 #include "beacon.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
+#include "freertos/portmacro.h"
 #include "probe.h"
 #include "scan.h"
+
+#define MAX_CHANNEL 9
 
 char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
+long hop_millis = 0;
 bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true};
+TaskHandle_t channelHopTask = NULL;
 
 uint8_t probe_response_raw[] = {
 0x50, 0x00, 0x3c, 0x00, 
@@ -71,6 +76,24 @@ int PROBE_RESPONSE_AUTH_TYPE_OFFSET = 74; /* + ssid_len */
 
 #define MOUNT_PATH "/data"
 #define HISTORY_PATH MOUNT_PATH "/history.txt"
+
+/* Channel hopping task - Called every hop_millis milliseconds (maybe) */
+void channelHopCallback(void *pvParameter) {
+    uint8_t ch;
+    wifi_second_chan_t sec;
+
+    while (true) {
+        // Delay hop_millis ms
+        vTaskDelay(hop_millis / portTICK_PERIOD_MS);
+
+        ESP_ERROR_CHECK(esp_wifi_get_channel(&ch, &sec));
+        ch++;
+        if (ch >= MAX_CHANNEL) {
+            ch -= (MAX_CHANNEL - 1);
+        }
+        ESP_ERROR_CHECK(esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_ABOVE));
+    }
+}
 
 /* Functions to manage target-ssids */
 int countSsid() {
@@ -516,6 +539,15 @@ int cmd_set(int argc, char **argv) {
         return ESP_OK;
     } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
         ESP_LOGI(TAG, "This command has not been implemented.");
+        if (channelHopTask != NULL) {
+            // Cancel the current task
+            vTaskDelete(channelHopTask);
+        }
+        hop_millis = atol(argv[2]);
+        if (hop_millis > 0) {
+            // Start a hop task
+            xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
+        }
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         ESP_LOGI(TAG, "This command has not been implemented.");
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
@@ -593,7 +625,14 @@ int cmd_get(int argc, char **argv) {
         ESP_LOGI(TAG, "MAC Randomisation is :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         return ESP_OK;
     } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
-        //
+        if (hop_millis == 0) {
+            ESP_LOGI(TAG, "Channel hopping is disabled");
+        } else {
+            uint8_t c;
+            wifi_second_chan_t c2;
+            ESP_ERROR_CHECK(esp_wifi_get_channel(&c, &c2));
+            ESP_LOGI(TAG, "Current channel %u, hopping every %ldms", c, hop_millis);
+        }
         ESP_LOGI(TAG, "Not yet implemented");
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         //

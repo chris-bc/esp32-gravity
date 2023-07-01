@@ -86,6 +86,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * basic scanning
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
+* STA channel issues - type/base conversion??
 
 # Installation notes
 
