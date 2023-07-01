@@ -21,10 +21,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * stalk
     * ap-dos
     * ap-clone
-    * scan [ FASTAP | AP | STA | ANY | OFF ]
+    * **DONE** scan [ ON | OFF ]
     * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
-    * view: view [ SSID | STA | MAC ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
-    * select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
+    * **DONE**view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
+    * **DONE**select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
     * handshake
 * **DONE** Beacon spam - Rickroll
 * **DONE** Beacon spam - User-specified SSIDs
@@ -32,10 +32,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Beacon spam - Infinite (Random strings)
 * **ONGOING** Receive and parse 802.11 frames
 * **DONE** Commands to Get/Set channel, hopping mode, MAC, etc.
-* Scan APs - Fast (API)
-* Scan APs - Continual (SSID + lastSeen when beacons seen)
-* Commands to select/view/remove APs/STAs in scope
-* Scan STAs - Only include clients of selected AP(s), or all
+* **NOT DOING**Scan APs - Fast (API)
+* **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
+* **DONE**Commands to select/view/remove APs/STAs in scope
+* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes

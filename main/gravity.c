@@ -413,9 +413,8 @@ int cmd_ap_clone(int argc, char **argv) {
 }
 
 int cmd_scan(int argc, char **argv) {
-    if (argc > 2 || (argc == 2 && (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA") &&
-             strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "OFF")))) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan ( AP | STA | ANY | OFF )");
+    if (argc > 2 || (argc == 2 && (strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")))) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan ( ON | OFF )");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -423,21 +422,11 @@ int cmd_scan(int argc, char **argv) {
         ESP_LOGI(TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
         return ESP_OK;
     }
-    if (!strcasecmp(argv[1], "AP")) {
+    if (!strcasecmp(argv[1], "ON")) {
         //
-        activeScan = SCAN_TYPE_AP;
-        attack_status[ATTACK_SCAN] = true;
-    } else if (!strcasecmp(argv[1], "STA")) {
-        //
-        activeScan = SCAN_TYPE_STA;
-        attack_status[ATTACK_SCAN] = true;
-    } else if (!strcasecmp(argv[1], "ANY")) {
-        //
-        activeScan = SCAN_TYPE_BOTH;
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
         //
-        activeScan = SCAN_TYPE_NONE;
         attack_status[ATTACK_SCAN] = false;
     }
 
@@ -562,16 +551,12 @@ int cmd_get(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "CHANNEL")) {
         uint8_t channel;
         wifi_second_chan_t second;
-        printf("Get channel 1\n");
         esp_err_t err = esp_wifi_get_channel(&channel, &second);
-        printf("Get channel 2\n");
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to get current channel: %s", esp_err_to_name(err));
             return err;
         }
-        printf("checkpoint 1");
         char *secondary;
-        printf("Get channel 3\n");
         switch (second) {
         case WIFI_SECOND_CHAN_NONE:
             secondary = "WIFI_SECOND_CHAN_NONE";
@@ -586,7 +571,6 @@ int cmd_get(int argc, char **argv) {
             ESP_LOGW(TAG, "esp_wifi_get_channel() returned a weird second channel - %d", second);
             secondary = "";
         }
-        printf("Get channel 4\n");
         ESP_LOGI(TAG, "Channel: %u   Secondary: %s", channel, secondary);
         return ESP_OK;
     } else if (!strcasecmp(argv[1], "MAC")) {
@@ -631,18 +615,21 @@ int cmd_view(int argc, char **argv) {
         ESP_LOGE(TAG, "Invalid arguments provided. Usage: view ( AP | STA )*");
         return ESP_ERR_INVALID_ARG;
     }
+    bool success = true;
     for (int i=1; i < argc; ++i) {
         if (!strcasecmp(argv[i], "AP")) {
-            return gravity_list_ap();
+            success = (success && gravity_list_ap() == ESP_OK);
         } else if (!strcasecmp(argv[i], "STA")) {
-            return gravity_list_sta();
+            success = (success && gravity_list_sta() == ESP_OK);
         } else {
             ESP_LOGE(TAG, "Invalid argument %d. Usage: view ( AP | STA )*", i);
             return ESP_ERR_INVALID_ARG;
         }
     }
-
-    return ESP_OK;
+    if (success) {
+        return ESP_OK;
+    }
+    return ESP_ERR_NO_MEM;
 }
 
 int cmd_select(int argc, char **argv) {

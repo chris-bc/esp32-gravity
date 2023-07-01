@@ -26,14 +26,6 @@ struct ScanResultSTA {
 };
 typedef struct ScanResultSTA ScanResultSTA;
 
-enum ScanType {
-    SCAN_TYPE_NONE,
-    SCAN_TYPE_AP,
-    SCAN_TYPE_STA,
-    SCAN_TYPE_BOTH
-};
-extern enum ScanType activeScan;
-
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);
 esp_err_t gravity_clear_ap();
 esp_err_t gravity_list_ap();

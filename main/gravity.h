@@ -139,8 +139,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_ap_clone
     }, {
         .command = "scan",
-        .hint = "Scan for wireless devices. Usage: scan [ AP | STA | ANY | OFF ]",
-        .help = "No argument returns scan status.   AP: Initiate a continuous scan for APs.   STA: Initiate a continuous scan for STAs.   ANY: Initiate a continuous scan capturing both AP and STA data.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
+        .hint = "Scan for wireless devices. Usage: scan [ ON | OFF ]",
+        .help = "No argument returns scan status.   ON: Initiate a continuous scan for 802.11 APs and STAs.   Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
         .func = cmd_scan
     }, {
         .command = "set",

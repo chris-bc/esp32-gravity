@@ -17,7 +17,6 @@ static ScanResultAP *gravity_aps;
 static ScanResultAP **gravity_selected_aps;
 static ScanResultSTA *gravity_stas;
 static ScanResultSTA **gravity_selected_stas;
-enum ScanType activeScan;
 
 enum GravityScanType {
     GRAVITY_SCAN_AP,
@@ -513,12 +512,12 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         return parse_beacon(payload);
         break;
     case 0xB4:
-        return parse_rts(payload);
         ESP_LOGI(SCAN_TAG, "Received RTS frame");
+        return parse_rts(payload);
         break;
     case 0xC4:
-        return parse_cts(payload);
         ESP_LOGI(SCAN_TAG, "Received CTS frame");
+        return parse_cts(payload);
         break;
     }
 
