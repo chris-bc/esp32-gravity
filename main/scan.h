@@ -3,6 +3,15 @@
 
 #define DEBUG
 
+// TODO: If there are problems with SSID filtering, scan_filter_ssid had to be changed from static to get extern working...
+extern char scan_filter_ssid[33];
+extern uint8_t scan_filter_ssid_bssid[6];
+
+extern int gravity_ap_count;
+extern int gravity_sel_ap_count;
+extern int gravity_sta_count;
+extern int gravity_sel_sta_count;
+
 static const char* SCAN_TAG = "scan@GRAVITY";
 static const uint8_t bBroadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
@@ -29,6 +38,11 @@ struct ScanResultSTA {
     int channel;
 };
 typedef struct ScanResultSTA ScanResultSTA;
+
+static ScanResultAP *gravity_aps;
+static ScanResultAP **gravity_selected_aps;
+static ScanResultSTA *gravity_stas;
+static ScanResultSTA **gravity_selected_stas;
 
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);
 esp_err_t gravity_clear_ap();

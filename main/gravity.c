@@ -251,7 +251,7 @@ int cmd_hop(int argc, char **argv) {
 int cmd_commands(int argc, char **argv) {
     ESP_LOGI(TAG, "Generating command summary...");
     for (int i=0; i < CMD_COUNT; ++i) {
-        printf("%13s: %s\n", commands[i].command, commands[i].hint);
+        printf("%-13s: %s\n", commands[i].command, commands[i].hint);
     }
     return ESP_OK;
 }
@@ -515,22 +515,58 @@ int cmd_ap_clone(int argc, char **argv) {
 }
 
 int cmd_scan(int argc, char **argv) {
-    if (argc > 2 || (argc == 2 && (strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")))) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan ( ON | OFF )");
+    if (argc > 3 || (argc == 3 && strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF")) ||
+            (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
+            (argc == 3 && strlen(argv[1]) > 32)) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan [ <ssid> ] [ ON | OFF ]");
         return ESP_ERR_INVALID_ARG;
     }
 
     if (argc == 1) {
-        ESP_LOGI(TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
+        char strMsg[128];
+        char working[64];
+        sprintf(strMsg, "Scanning is %s. Network selection is configured to sniff ", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
+        if (strlen(scan_filter_ssid) == 0) {
+            strcat(strMsg, "packets from all networks.");
+        } else {
+            sprintf(working, "packets from the SSID \"%s\"", scan_filter_ssid);
+            strcat(strMsg, working);
+        }
+        ESP_LOGI(TAG, "%s", strMsg);
         return ESP_OK;
     }
-    if (!strcasecmp(argv[1], "ON")) {
-        //
+
+    if (argc == 3) {
+        /* Copying NULLs might be a *bit* excessive ... */
+        memset(scan_filter_ssid, '\0', 33);
+        memset(scan_filter_ssid_bssid, 0x00, 6);
+        strcpy(scan_filter_ssid, argv[1]);
+
+        /* See if we've already seen the AP */
+        int i;
+        for (i = 0; i < gravity_ap_count && strcmp(scan_filter_ssid,
+                                (char *)gravity_aps[i].espRecord.ssid); ++i) { }
+        if (i < gravity_ap_count) {
+            #ifdef DEBUG
+                char strMac[18] = "\0";
+                ESP_ERROR_CHECK(mac_bytes_to_string(scan_filter_ssid_bssid, strMac));
+                printf("Had already seen BSSID %s for AP \"%s\"\n", strMac, scan_filter_ssid);
+            #endif
+            memcpy(scan_filter_ssid_bssid, gravity_aps[i].espRecord.bssid, 6);
+        }
+    }
+
+    if (argc == 2) {
+        memset(scan_filter_ssid, '\0', 33);
+        memset(scan_filter_ssid_bssid, 0x00, 6);
+    }
+
+    if ((argc == 2 && !strcasecmp(argv[1], "ON")) || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
         attack_status[ATTACK_SCAN] = true;
-    } else if (!strcasecmp(argv[1], "OFF")) {
-        //
+    } else {
         attack_status[ATTACK_SCAN] = false;
     }
+    ESP_LOGI(SCAN_TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"ON":"OFF");
 
     return ESP_OK;
 }

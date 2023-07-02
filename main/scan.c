@@ -9,10 +9,10 @@
 
 #define CHANNEL_TAG 0x03
 
-static int gravity_ap_count = 0;
-static int gravity_sel_ap_count = 0;
-static int gravity_sta_count = 0;
-static int gravity_sel_sta_count = 0;
+int gravity_ap_count = 0;
+int gravity_sel_ap_count = 0;
+int gravity_sta_count = 0;
+int gravity_sel_sta_count = 0;
 static ScanResultAP *gravity_aps;
 static ScanResultAP **gravity_selected_aps;
 static ScanResultSTA *gravity_stas;
@@ -24,6 +24,34 @@ enum GravityScanType {
     GRAVITY_SCAN_WIFI,
     GRAVITY_SCAN_BLE
 };
+
+void print_stas() {
+    char strMac[18];
+    char strSsid[33];
+    memset(strSsid, '\0', 33);
+    for (int i=0; i < gravity_sta_count; ++i) {
+        mac_bytes_to_string(gravity_stas[i].mac, strMac);
+        printf("STA %s", strMac);
+        if (gravity_stas[i].ap != NULL) {
+            char mac2[18];
+            mac_bytes_to_string(gravity_stas[i].apMac, mac2);
+            strcpy(strSsid, (char *)gravity_stas[i].ap->espRecord.ssid);
+            printf(", Associated with %s (%s)", mac2, strSsid);
+        }
+        printf("\n");
+    }
+}
+
+void print_aps() {
+    char strMac[18];
+    char strSsid[33];
+    memset(strSsid, '\0', 33);
+    for (int i=0; i < gravity_ap_count; ++i) {
+        mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strMac);
+        strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
+        printf("AP %s (%s)\t%d stations\n", strMac, strSsid, gravity_aps[i].stationCount);
+    }
+}
 
 /* Update pointers in the object model when the underlying ScanResultSTA* and
    ScanResultAP* objects are modified. The following objects are updated:
@@ -356,6 +384,10 @@ printf("checking new AP \"%s\"\n", (char *)newAPs[i].espRecord.ssid);
             /* newAPs[i] isn't in gravity_aps[] - Add it */
             resultAP[resultIndex].espRecord = newAPs[resultIndex].espRecord;
             resultAP[resultIndex].lastSeen = newAPs[resultIndex].lastSeen;
+            resultAP[resultIndex].stationCount = 0;
+            resultAP[resultIndex].stations = NULL;
+            resultAP[resultIndex].lastSeenClk = clock();
+            resultAP[resultIndex].selected = false;
             ++resultIndex;
         }
     }
@@ -742,6 +774,84 @@ esp_err_t parse_cts(uint8_t *payload) {
 */
 esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
     //
+    /* TODO: Scan a specified SSID
+    Given SSID, check data model for a match. If so great.
+    Otherwise enable hopping and monitor just beacon and probe responses
+        until the SSID is seen - Get BSSID
+    Try to get channel from that frame - fix channel if so, otherwise keep hopping
+    Begin collecting most frames again, but discard any that don't meet the
+        following criteria:
+    - Source or Destination Address is AP's BSSID
+    - Source or Destination Address is in the list of STAs associated with the specified AP
+    */
+
+    /* If scan_filter_ssid is set then limit the
+          observed packets to the specified SSID */
+          // 20:E8:82:EE:D7:D4 - Whymper2.4
+    if (strlen(scan_filter_ssid) > 0) {
+        /* Do we know the MAC associated with the SSID? */
+        // TODO Do I need to check all bytes or can I just do the first?
+        if (scan_filter_ssid_bssid[0] == 0x00 && scan_filter_ssid_bssid[1] == 0x00 &&
+                scan_filter_ssid_bssid[2] == 0x00 && scan_filter_ssid_bssid[3] == 0x00 &&
+                scan_filter_ssid_bssid[4] == 0x00 && scan_filter_ssid_bssid[5] == 0x00) {
+            /* No MAC yet. Is there one in the current packet? */
+            if (payload[0] == 0x50 || payload[0] == 0x80) {
+                /* Probe response or beacon - Is it directed? Check SSID length field */
+                if (payload[37] == 0x00) {
+                    /* No SSID. Skip this frame - we'll get one soon */
+                    return ESP_OK;
+                }
+                char pktSsid[33];
+                for (int i=0; i < 33; ++i) {
+                    pktSsid[i] = '\0';
+                }
+                memcpy(pktSsid, &payload[38], payload[37]);
+                pktSsid[payload[37]] = '\0';
+
+                /* Is this the SSID we're looking for? */
+                if (!strcasecmp(pktSsid, scan_filter_ssid)) {
+                    /* It is! Record the MAC and proceed to parse the packet */
+                    memcpy(scan_filter_ssid_bssid, &payload[10], 6);
+                    // TODO : I THINK that's all I need to do?
+                } else {
+                    return ESP_OK;
+                }
+            } else {
+                return ESP_OK;
+            }
+        } else {
+            /* AP's MAC is in scan_filter_ssid_bssid - see if this frame involves it */
+            uint8_t destAddr[6];
+            uint8_t srcAddr[6];
+            memcpy(destAddr, &payload[4], 6);
+            memcpy(srcAddr, &payload[10], 6);
+            if (memcmp(scan_filter_ssid_bssid, destAddr, 6) && memcmp(scan_filter_ssid_bssid, srcAddr, 6)) {
+                /* AP isn't a direct sender or receiver. Check whether any known stations are */
+                /* First find the struct instance representing the AP */
+                int apIdx;
+                for (apIdx = 0; apIdx < gravity_ap_count && 
+                            memcmp(gravity_aps[apIdx].espRecord.bssid, scan_filter_ssid_bssid, 6); ++apIdx) { }
+                if (apIdx == gravity_ap_count) {
+                    char strAP[18];
+                    mac_bytes_to_string(scan_filter_ssid_bssid, strAP);
+                    ESP_LOGE(SCAN_TAG, "Unable to find object representing selected AP %s", strAP);
+                    return ESP_OK;
+                }
+                ScanResultAP *selectedAP = &gravity_aps[apIdx];
+                /* Go through selectedAP->stations and see if any are the source or destination */
+                ScanResultSTA **stations = (ScanResultSTA **)selectedAP->stations;
+                int idxStations;
+                for (idxStations = 0; idxStations < selectedAP->stationCount &&
+                                memcmp(stations[idxStations]->mac, destAddr, 6) &&
+                                memcmp(stations[idxStations]->mac, srcAddr, 6); ++idxStations) { }
+                if (idxStations == selectedAP->stationCount) {
+                    /* No AP clients have been observed */
+                    return ESP_OK; // TODO? Braindead...
+                }
+            }
+        }
+    }
+
     switch (payload[0]) {
     case 0x40:
         return parse_probe_request(payload);

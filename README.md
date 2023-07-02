@@ -35,7 +35,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **NOT DOING**Scan APs - Fast (API)
 * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
 * **DONE**Commands to select/view/remove APs/STAs in scope
-* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all
+* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all - additional option to show hidden SSIDs
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes
@@ -94,9 +94,10 @@ STA 4
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
 * STA channel issues - type/base conversion??
-* Add commands command presenting hint for all commands
 * Display STA's AP
 * Display STA vs. AP
+
+TelstraB20819 BC:30:D9:B2:08:1B
 
 # Installation notes
 

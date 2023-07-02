@@ -78,6 +78,8 @@ static bool WIFI_INITIALISED = false;
 static const char* TAG = "GRAVITY";
 static const char* MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
+char scan_filter_ssid[33] = "\0";
+uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 extern int PROBE_SSID_OFFSET;
 extern int PROBE_SRCADDR_OFFSET;
@@ -142,12 +144,12 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_ap_clone
     }, {
         .command = "scan",
-        .hint = "Scan for wireless devices. Usage: scan [ ON | OFF ]",
-        .help = "No argument returns scan status.   ON: Initiate a continuous scan for 802.11 APs and STAs.   Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
+        .hint = "Scan for wireless devices. Usage: scan [ <ssid> ] [ ON | OFF ]",
+        .help = "No argument returns scan status.   ON: Initiate a continuous scan for 802.11 APs and STAs.   Specifying a value for <ssid> will capture only frames from that SSID.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
         .func = cmd_scan
     }, {
         .command = "hop",
-        .hint = "Configure channel hopping. Usage: hop [ MILLIS ] [ ON | OFF | KILL ]",
+        .hint = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | KILL ]",
         .help = "Enable or disable channel hopping, and set the frequency of hops. The KILL option terminates the event loop.",
         .func = cmd_hop
     }, {
