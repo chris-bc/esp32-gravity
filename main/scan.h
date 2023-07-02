@@ -36,6 +36,7 @@ esp_err_t gravity_select_ap(int selIndex);
 bool gravity_ap_isSelected(int index);
 esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel);
 esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel);
+esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap);
 esp_err_t gravity_clear_sta();
 esp_err_t gravity_list_sta();
 esp_err_t gravity_select_sta(int selIndex);

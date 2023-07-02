@@ -25,6 +25,44 @@ enum GravityScanType {
     GRAVITY_SCAN_BLE
 };
 
+/* Update pointers in the object model when the underlying ScanResultSTA* and
+   ScanResultAP* objects are modified. The following objects are updated:
+   gravity_selected_aps , gravity_selected_stas , gravity_aps[i].stations ,
+   gravity_stas[i].ap , gravity_stas[i].apMac
+*/
+esp_err_t update_links() {
+    /* Rebuild the selected arrays from scratch from the underlying data model */
+    free(gravity_selected_aps);
+    gravity_selected_aps = malloc(sizeof(ScanResultAP *) * gravity_sel_ap_count);
+    if (gravity_selected_aps == NULL) {
+        ESP_LOGE(SCAN_TAG, "Failed to allocate memory to rebuild gravity_selected_aps[]");
+        return ESP_ERR_NO_MEM;
+    }
+
+    int index = 0;
+    for (int i = 0; i < gravity_sel_ap_count; ++i) {
+        if (gravity_aps[i].selected) {
+            gravity_selected_aps[index++] = &gravity_aps[i];
+        }
+    }
+
+    free(gravity_selected_stas);
+    gravity_selected_stas = malloc(sizeof(ScanResultSTA *) * gravity_sel_sta_count);
+    if (gravity_selected_stas == NULL) {
+        ESP_LOGE(SCAN_TAG, "Failed to allocate memory to rebuild gravity_selected_stas[]");
+        return ESP_ERR_NO_MEM;
+    }
+    index = 0;
+    for (int i = 0; i < gravity_sel_sta_count; ++i) {
+        if (gravity_stas[i].selected) {
+            gravity_selected_stas[index++] = &gravity_stas[i];
+        }
+    }
+
+
+    return ESP_OK;
+}
+
 bool gravity_ap_isSelected(int index) {
     int i;
     for (i=0; i < gravity_sel_ap_count && gravity_selected_aps[i]->index != index; ++i) {}
@@ -152,14 +190,14 @@ esp_err_t gravity_select_sta(int selIndex) {
 esp_err_t gravity_list_ap() {
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
-    printf(" ID | SSID                             | BSSID             | Last Seen              | Ch | WPS\n");
-    printf("====|==================================|===================|========================|====|=====\n");
+    printf(" ID | SSID                             | BSSID             | St. | Last Seen              | Ch | WPS\n");
+    printf("====|==================================|===================|=====|========================|====|=====\n");
     char strBssid[18];
     for (int i=0; i < gravity_ap_count; ++i) {
         ESP_ERROR_CHECK(mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strBssid));
         // TODO: Stringify timestamp
-        printf("%s%2d | %-32s | %-17s | %22lu | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                gravity_aps[i].espRecord.ssid, strBssid, gravity_aps[i].lastSeenClk,
+        printf("%s%2d | %-32s | %-17s | %3d | %22lu | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
+                gravity_aps[i].espRecord.ssid, strBssid, gravity_aps[i].stationCount, gravity_aps[i].lastSeenClk,
                 gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
     }
 
@@ -168,13 +206,19 @@ esp_err_t gravity_list_ap() {
 
 /* Available attributes are selected, index, MAC, channel, lastSeen, assocAP */
 esp_err_t gravity_list_sta() {
-    printf(" ID | MAC               | Ch | Last Seen             | Associated BSSID  \n");
-    printf("====|===================|====|=======================|===================\n");
+    printf(" ID | MAC               | Access Point      | Ch | Last Seen             | Associated BSSID  \n");
+    printf("====|===================|===================|====|=======================|===================\n");
 
     for (int i=0; i < gravity_sta_count; ++i) {
         // TODO: Stringify timestamp
-        printf("%s%2d | %-17s | %2d | %22lu | Not Implemented\n", (gravity_stas[i].selected)?"*":" ",
-                gravity_stas[i].index, gravity_stas[i].strMac, gravity_stas[i].channel, gravity_stas[i].lastSeenClk);
+        char strAp[18] = "";
+        if (gravity_stas[i].ap == NULL) {
+            strcpy(strAp, "Unknown");
+        } else {
+            ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[i].apMac, strAp));
+        }
+        printf("%s%2d | %-17s | %-17s | %2d | %22lu | Not Implemented\n", (gravity_stas[i].selected)?"*":" ",
+                gravity_stas[i].index, gravity_stas[i].strMac, strAp, gravity_stas[i].channel, gravity_stas[i].lastSeenClk);
     }    
 
     return ESP_OK;
@@ -186,7 +230,7 @@ esp_err_t gravity_clear_ap() {
     gravity_ap_count = 0;
     free(gravity_selected_aps);
     gravity_sel_ap_count = 0;
-    return ESP_OK;
+    return update_links();
 }
 
 esp_err_t gravity_clear_sta() {
@@ -194,7 +238,7 @@ esp_err_t gravity_clear_sta() {
     gravity_sta_count = 0;
     free(gravity_selected_stas);
     gravity_sel_sta_count = 0;
-    return ESP_OK;
+    return update_links();
 }
 
 /* Merge the provided results into gravity_aps
@@ -264,8 +308,7 @@ printf("checking new AP \"%s\"\n", (char *)newAPs[i].espRecord.ssid);
     for (int i=0; i < gravity_ap_count; ++i) {
         gravity_aps[i].index = i + 1;
     }
-
-    return ESP_OK;
+    return update_links();
 }
 
 esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
@@ -326,7 +369,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         gravity_aps = newAPs;
     }
 
-    return ESP_OK;
+    return update_links();
 }
 
 esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
@@ -381,7 +424,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         gravity_stas = newSTAs;
     }
 
-    return ESP_OK;
+    return update_links();
 }
 
 /* Found a station association. Typically this is a data packet to/from the router.
@@ -420,8 +463,11 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
         } else {
             /* STA has moved from one AP to another */
             /* First shrink specSTA->ap->stations */
-/* ******************* TODO - NULL CHECKS *********************/
             ScanResultSTA **oldSTA = (ScanResultSTA **)specSTA->ap->stations;
+            if (specSTA->ap->stationCount <= 1) {
+                return ESP_OK;
+            }
+            printf("stationCount is %d\n", specSTA->ap->stationCount);
             ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specSTA->ap->stationCount - 1));
             if (newSTA == NULL) {
                 ESP_LOGE(SCAN_TAG, "Failed to allocate memory to shrink stations");
@@ -436,7 +482,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
                 }
             }
             free(oldSTA);
-            specSTA->ap->stations = (void **)oldSTA;
+            specSTA->ap->stations = (void **)newSTA;
             --specSTA->ap->stationCount;
 
             /* Now extend specAP.stations */
@@ -458,15 +504,11 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
             free(specAP->stations);
             specAP->stations = (void **)newSTA;
         }
-        int i=0;
-        ScanResultSTA *sSta = (ScanResultSTA *)specSTA->ap->stations;
-        for (i=0; i < specSTA->ap->stationCount && memcmp(sta, sSta[i].mac, 6); ++i) { }
     } else {
         /* specSTA is not associated with an AP. Just need to extend specAP.stations */
         ScanResultSTA **oldSTA = (ScanResultSTA **)specAP->stations;
         int size = sizeof(ScanResultSTA *) * (specAP->stationCount + 1);
-        printf("\ntrying to allocate %d bytes for newSTA with stationCount %d\n",size,specAP->stationCount);
-        ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specAP->stationCount + 1));
+        ScanResultSTA **newSTA = malloc(size);
         if (newSTA == NULL) {
             ESP_LOGE(SCAN_TAG, "Unable to allocate memory to extend stations array");
             return ESP_ERR_NO_MEM;
@@ -646,7 +688,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         break;
     case 0x88:
     case 0x08:
-        ESP_LOGI(SCAN_TAG, "Data frame");
+        //ESP_LOGI(SCAN_TAG, "Data frame");
         return parse_data(payload);
         break;
     }

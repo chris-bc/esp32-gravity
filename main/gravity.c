@@ -702,7 +702,7 @@ int cmd_clear(int argc, char **argv) {
             ESP_ERROR_CHECK(gravity_clear_ap());
         }
         if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
-            // TODO: clear STAs
+            ESP_ERROR_CHECK(gravity_clear_sta());
         }
     }
     return ESP_OK;
@@ -830,12 +830,14 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (attack_status[ATTACK_SCAN]) {
         scan_wifi_parse_frame(payload);
     }
-    // TODO: new file - parse_80211.c - Here call parse_80211_frame(payload)
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
         int ssid_len = payload[PROBE_SSID_OFFSET - 1];
         char *ssid = malloc(sizeof(char) * (ssid_len + 1));
-        // TODO: Check result
+        if (ssid == NULL) {
+            ESP_LOGE(TAG, "Failed to allocate memory to hold probe request's SSID");
+            return;
+        }
         strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
         ssid[ssid_len] = '\0';
         
@@ -895,8 +897,6 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
             } else {
                 /* Directed probe request - Send a directed probe response in reply */
                 ESP_LOGI(MANA_TAG, "Received directed probe from %s for \"%s\"", strDestMac, ssid);
-
-                // TODO : Config option to set auth type. For now just do open auth
 
                 /* Mana attack - Add the current SSID to the station's preferred network
                    list if it's not already there 
@@ -1099,7 +1099,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Command history disabled");
 #endif
 
-    esp_log_level_set("wifi", ESP_LOG_ERROR); /* TODO: Consider reducing these to ESP_LOG_WARN */
+    esp_log_level_set("wifi", ESP_LOG_ERROR); /* YAGNI: Consider reducing these to ESP_LOG_WARN */
     esp_log_level_set("esp_netif_lwip", ESP_LOG_ERROR);
     initialise_wifi();
     /* Register commands */
