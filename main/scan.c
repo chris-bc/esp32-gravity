@@ -277,25 +277,25 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
     for (i=0; i < gravity_ap_count && memcmp(newAP, gravity_aps[i].espRecord.bssid, 6); ++i) {}
     if (i < gravity_ap_count) {
         /* Found the MAC. Update SSID if necessary and update lastSeen */
-        if (strcasecmp(newSSID, (char *)gravity_aps[i].espRecord.ssid)) {
+        if (newSSID != NULL && strcasecmp(newSSID, (char *)gravity_aps[i].espRecord.ssid)) {
             /* This is probably unnecessary ... */
             memset(gravity_aps[i].espRecord.ssid, '\0', 33);
             strcpy((char *)gravity_aps[i].espRecord.ssid, (char *)newSSID);
         }
+
         gravity_aps[i].lastSeen = time(NULL);
         gravity_aps[i].lastSeenClk = clock();
-        gravity_aps[i].espRecord.primary = channel;
+        if (channel > 0) {
+            gravity_aps[i].espRecord.primary = channel;
+        }
     } else {
         #ifdef DEBUG
-            ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, newSSID);
+            ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
         #endif
-
         /* AP is a new device */
-        char strNewAP[18];
-        ESP_ERROR_CHECK(mac_bytes_to_string(newAP, strNewAP));
         ScanResultAP *newAPs = malloc(sizeof(ScanResultAP) * (gravity_ap_count + 1));
         if (newAPs == NULL) {
-            ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new AP %s", strNewAP);
+            ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new AP %s", strMac);
             return ESP_ERR_NO_MEM;
         }
         
@@ -313,7 +313,11 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         newAPs[gravity_ap_count].lastSeenClk = clock();
         newAPs[gravity_ap_count].index = maxIndex + 1;
         newAPs[gravity_ap_count].espRecord.primary = channel;
-        strcpy((char *)newAPs[gravity_ap_count].espRecord.ssid, newSSID);
+        newAPs[gravity_ap_count].stationCount = 0;
+        newAPs[gravity_ap_count].stations = NULL;
+        if (newSSID != NULL) {
+            strcpy((char *)newAPs[gravity_ap_count].espRecord.ssid, newSSID);
+        }
         memcpy(newAPs[gravity_ap_count].espRecord.bssid, newAP, 6);
 
         ++gravity_ap_count;
@@ -334,7 +338,9 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         /* Found the MAC. Update lastSeen */
         gravity_stas[i].lastSeen = time(NULL);
         gravity_stas[i].lastSeenClk = clock();
-        gravity_stas[i].channel = channel;
+        if (channel != 0) {
+            gravity_stas[i].channel = channel;
+        }
     } else {
         /* STA is a new device */
         char strNewSTA[18];
@@ -364,6 +370,8 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         newSTAs[gravity_sta_count].lastSeenClk = clock();
         newSTAs[gravity_sta_count].index = maxIndex + 1;
         newSTAs[gravity_sta_count].channel = channel;
+        newSTAs[gravity_sta_count].ap = NULL;
+        newSTAs[gravity_sta_count].apMac[0] = 0;
         memcpy(newSTAs[gravity_sta_count].mac, newSTA, 6);
         ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, newSTAs[gravity_sta_count].strMac));
 
@@ -371,6 +379,108 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
 
         free(gravity_stas);
         gravity_stas = newSTAs;
+    }
+
+    return ESP_OK;
+}
+
+/* Found a station association. Typically this is a data packet to/from the router.
+   Record this association in: ap.stations, sta.apMac, sta.ap */
+esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
+    /* Find the ScanResultAP and ScanResultSTA representing the specified elements */
+    int idxSta = 0;
+    int idxAp = 0;
+    ScanResultSTA *specSTA;
+    ScanResultAP *specAP;
+    for (idxSta = 0; idxSta < gravity_sta_count && memcmp(gravity_stas[idxSta].mac, sta, 6); ++idxSta) { }
+    if (idxSta == gravity_sta_count) {
+        char strSTA[18];
+        ESP_ERROR_CHECK(mac_bytes_to_string(sta, strSTA));
+        ESP_LOGE(SCAN_TAG, "Unable to find specified STA %s", strSTA);
+        return ESP_ERR_INVALID_ARG;
+    }
+    specSTA = &gravity_stas[idxSta];
+
+    for (idxAp = 0; idxAp < gravity_ap_count && memcmp(gravity_aps[idxAp].espRecord.bssid, ap, 6); ++idxAp) { }
+    if (idxAp == gravity_ap_count) {
+        char strAP[18];
+        ESP_ERROR_CHECK(mac_bytes_to_string(ap, strAP));
+        ESP_LOGE(SCAN_TAG, "Unable to find specified AP %s", strAP);
+        return ESP_ERR_INVALID_ARG;
+    }
+    specAP = &gravity_aps[idxAp];
+
+    /* Is the STA already associated with an AP? */
+    if (specSTA->ap != NULL) {
+        /* Maintain specAP.stations array before anything else */
+        /* Check whether the STA is already present in the AP */
+        if (!memcmp(ap, specSTA->apMac, 6)) {
+            /* The STA is already associated with the AP */
+            return ESP_OK;
+        } else {
+            /* STA has moved from one AP to another */
+            /* First shrink specSTA->ap->stations */
+/* ******************* TODO - NULL CHECKS *********************/
+            ScanResultSTA **oldSTA = (ScanResultSTA **)specSTA->ap->stations;
+            ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specSTA->ap->stationCount - 1));
+            if (newSTA == NULL) {
+                ESP_LOGE(SCAN_TAG, "Failed to allocate memory to shrink stations");
+                return ESP_ERR_NO_MEM;
+            }
+            int idxOld = 0;
+            int idxNew = 0;
+            for (; idxOld < specSTA->ap->stationCount; ++idxOld) {
+                /* Copy across everything except sta */
+                if (memcmp(sta, oldSTA[idxOld]->mac, 6)) {
+                    newSTA[idxNew++] = oldSTA[idxOld];
+                }
+            }
+            free(oldSTA);
+            specSTA->ap->stations = (void **)oldSTA;
+            --specSTA->ap->stationCount;
+
+            /* Now extend specAP.stations */
+            oldSTA = (ScanResultSTA **)specAP->stations;
+            newSTA = malloc(sizeof(ScanResultSTA *) * (specAP->stationCount + 1));
+            if (newSTA == NULL) {
+                ESP_LOGE(SCAN_TAG, "Failed to allocate memory to extend stations");
+                return ESP_ERR_NO_MEM;
+            }
+            for (int i=0; i < specAP->stationCount; ++i) {
+                newSTA[i] = oldSTA[i];
+            }
+            newSTA[specAP->stationCount] = specSTA;
+            ++specAP->stationCount;
+            specSTA->ap = specAP;
+            memcpy(specSTA->apMac, ap, 6);
+
+            /* Finally move newSTA into place */
+            free(specAP->stations);
+            specAP->stations = (void **)newSTA;
+        }
+        int i=0;
+        ScanResultSTA *sSta = (ScanResultSTA *)specSTA->ap->stations;
+        for (i=0; i < specSTA->ap->stationCount && memcmp(sta, sSta[i].mac, 6); ++i) { }
+    } else {
+        /* specSTA is not associated with an AP. Just need to extend specAP.stations */
+        ScanResultSTA **oldSTA = (ScanResultSTA **)specAP->stations;
+        int size = sizeof(ScanResultSTA *) * (specAP->stationCount + 1);
+        printf("\ntrying to allocate %d bytes for newSTA with stationCount %d\n",size,specAP->stationCount);
+        ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specAP->stationCount + 1));
+        if (newSTA == NULL) {
+            ESP_LOGE(SCAN_TAG, "Unable to allocate memory to extend stations array");
+            return ESP_ERR_NO_MEM;
+        }
+        for (int i=0; i < specAP->stationCount; ++i) {
+            newSTA[i] = oldSTA[i];
+        }
+        newSTA[specAP->stationCount] = specSTA;
+        ++specAP->stationCount;
+        free(specAP->stations);
+        specAP->stations = (void **)newSTA;
+
+        specSTA->ap = specAP;
+        memcpy(specSTA->apMac, ap, 6);
     }
 
     return ESP_OK;
@@ -475,6 +585,21 @@ esp_err_t parse_probe_response(uint8_t *payload) {
     return ESP_OK;
 }
 
+esp_err_t parse_data(uint8_t *payload) {
+    // Get AP, STA, and associated AP
+    int sta_offset = 4;
+    int ap_offset = 10;
+    uint8_t sta[6];
+    uint8_t ap[6];
+    memcpy(sta, &payload[sta_offset], 6);
+    memcpy(ap, &payload[ap_offset], 6);
+    ESP_ERROR_CHECK(gravity_add_ap(ap, NULL, 0));
+    ESP_ERROR_CHECK(gravity_add_sta(sta, 0));
+    /* Add STA association */
+    ESP_ERROR_CHECK(gravity_add_sta_ap(sta, ap));
+    return ESP_OK;
+}
+
 esp_err_t parse_rts(uint8_t *payload) {
     /* RTS is sent from STA to AP */
     int sta_offset = 0;
@@ -518,6 +643,11 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
     case 0xC4:
         ESP_LOGI(SCAN_TAG, "Received CTS frame");
         return parse_cts(payload);
+        break;
+    case 0x88:
+    case 0x08:
+        ESP_LOGI(SCAN_TAG, "Data frame");
+        return parse_data(payload);
         break;
     }
 

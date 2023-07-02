@@ -11,6 +11,8 @@ struct ScanResultAP {
     clock_t lastSeenClk;
     int index;
     bool selected;
+    void **stations; /* Argh. I'm pretty sure there's no way I can have ScanResultAP */ 
+    int stationCount;                        /* contain ScanResultSTA and vice versa */
 };
 typedef struct ScanResultAP ScanResultAP;
 
@@ -21,7 +23,8 @@ struct ScanResultSTA {
     bool selected;
     uint8_t mac[6];
     char strMac[18];
-    uint8_t assocAP[6];
+    uint8_t apMac[6];
+    ScanResultAP *ap;
     int channel;
 };
 typedef struct ScanResultSTA ScanResultSTA;

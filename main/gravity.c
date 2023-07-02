@@ -1026,7 +1026,7 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
         // Set up promiscuous mode and packet callback
-        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_CTRL };
+        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_CTRL | WIFI_PROMIS_FILTER_MASK_DATA };
         esp_wifi_set_promiscuous_filter(&filter);
         esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
         esp_wifi_set_promiscuous(true);

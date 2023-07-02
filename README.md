@@ -80,6 +80,18 @@ Initial development will be focused on implementing a core set of 802.11 explora
 0x08 Data
 0x88 QoS Data
 
+QoS data & data both have STA and BSSID
+DATA:
+BSSID 10
+STA 4
+QoS DATA:
+BSSID 10
+STA 4
+
+Add commands command presenting hint for all commands
+Display STA's AP
+Display STA vs. AP
+
 # TODO
 
 * Mana-Loud
