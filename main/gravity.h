@@ -34,6 +34,8 @@ int cmd_select(int argc, char **argv);
 int cmd_clear(int argc, char **argv);
 int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
+int cmd_commands(int argc, char **argv);
+int cmd_hop(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 
@@ -75,6 +77,7 @@ static enum PROBE_RESPONSE_AUTH_TYPE mana_auth = AUTH_TYPE_NONE;
 static bool WIFI_INITIALISED = false;
 static const char* TAG = "GRAVITY";
 static const char* MANA_TAG = "mana@GRAVITY";
+static const char *HOP_TAG = "hop@GRAVITY";
 
 extern int PROBE_SSID_OFFSET;
 extern int PROBE_SRCADDR_OFFSET;
@@ -90,7 +93,7 @@ extern int PROBE_SEQNUM_OFFSET;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 16
+#define CMD_COUNT 18
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -143,6 +146,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .help = "No argument returns scan status.   ON: Initiate a continuous scan for 802.11 APs and STAs.   Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
         .func = cmd_scan
     }, {
+        .command = "hop",
+        .hint = "Configure channel hopping. Usage: hop [ MILLIS ] [ ON | OFF | KILL ]",
+        .help = "Enable or disable channel hopping, and set the frequency of hops. The KILL option terminates the event loop.",
+        .func = cmd_hop
+    }, {
         .command = "set",
         .hint = "Set a variable. Usage: set <variable> <value>",
         .help = "Set a variety of variables that affect various components of the application. Usage: set <variable> <value>   <variable>   SSID_LEN_MIN: Minimum length of a generated SSID   SSID_LEN_MAX: Maximum length of a generated SSID   MAC_RAND: Whether to change the device's MAC after each packet (default: ON)   DEFAULT_SSID_COUNT: Number of SSIDs to generate if not specified   CHANNEL: Wireless channel   MAC: ASP32C6's MAC address   HOP_MILLIS: Milliseconds to stay on a channel before hopping to the next (0: Hopping disabled)   ATTACK_PKTS: Number of times to repeat an attack packet when launching an attack (0: Don't stop attacks based on packet count)   ATTACK_MILLIS: Milliseconds to run an attack for when it is launched (0: Don't stop attacks based on duration)   NB: If ATTACK_PKTS and ATTACK_MILLIS are both 0 attacks will not end automatically but will continue until terminated.",
@@ -172,5 +180,10 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = "Toggle monitoring for encryption material",
         .help = "Toggle monitoring of 802.11 traffic for a 4-way handshake to obtain key material from. Usage: handshake",
         .func = cmd_handshake
+    }, {
+        .command = "commands",
+        .hint = "Display a *brief* summary of Gravity commands",
+        .help = "Espresso having a help menu built right into their development framework is a great idea...in theory. The help pace is HUGE though, so as part of rectifying this the 'commands' command will give you a brief overview of all commands.",
+        .func = cmd_commands
     }
 };

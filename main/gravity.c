@@ -23,12 +23,12 @@
 char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
-long hop_millis = DEFAULT_HOP_MILLIS;
-bool hop_enabled = false;
+static long hop_millis = DEFAULT_HOP_MILLIS;
+static bool hop_enabled = false;
+static TaskHandle_t channelHopTask = NULL;
                                     /* BEACON, PROBE, SNIFF, DEAUTH, MANA, MANA_VERBOSE, AP_DOS, AP_CLONE, SCAN, HANDSHAKE, RAND_MAC */
 bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true};
 bool  hop_defaults[ATTACKS_COUNT] = {true, true, true, true, false, false, false, false, true, false, false };
-TaskHandle_t channelHopTask = NULL;
 
 uint8_t probe_response_raw[] = {
 0x50, 0x00, 0x3c, 0x00, 
@@ -85,6 +85,9 @@ int PROBE_RESPONSE_AUTH_TYPE_OFFSET = 74; /* + ssid_len */
 void channelHopCallback(void *pvParameter) {
     uint8_t ch;
     wifi_second_chan_t sec;
+    if (hop_millis == 0) {
+        hop_millis = DEFAULT_HOP_MILLIS;
+    }
 
     while (true) {
         // Delay hop_millis ms
@@ -184,6 +187,73 @@ int rmSsid(char *ssid) {
 	user_ssids = newSsids;
 	--user_ssid_count;
 	return ESP_OK;
+}
+
+/* Control channel hopping
+   Usage: hop [ MILLIS ] [ ON | OFF | KILL ]
+   Not specifying ON or OFF will report the status. KILL terminates the event loop.
+*/
+int cmd_hop(int argc, char **argv) {
+    if (argc > 3) {
+        ESP_LOGE(HOP_TAG, "Incorrect arguments specified. Usage: hop [ MILLIS ] [ ON | OFF | KILL ]");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        ESP_LOGI(HOP_TAG, "Channel hopping is %s; Gravity will dwell on each channel for approximately %ldms", (hop_enabled)?"enabled":"disabled", hop_millis);
+        return ESP_OK;
+    }
+
+    /* argv[1] could be a duration, "on" or "off" */
+    if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
+        char strOutput[220] = "Channel hopping enabled. ";
+        char working[128];
+        if (hop_millis == 0) {
+            hop_millis = DEFAULT_HOP_MILLIS;
+            sprintf(working, "HOP_MILLIS is unconfigured. Using default value of ");
+        } else {
+            sprintf(working, "HOP_MILLIS set to ");
+        }
+        strcat(strOutput, working);
+        sprintf(working, "%ld milliseconds.", hop_millis);
+        strcat(strOutput, working);
+        ESP_LOGI(HOP_TAG, "%s", strOutput);
+        hop_enabled = true;
+        if (channelHopTask == NULL) {
+            ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
+            xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
+        }
+    } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
+        hop_enabled = false;
+        ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
+    } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
+        hop_enabled = false;
+        if (channelHopTask == NULL) {
+            ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
+            return ESP_ERR_INVALID_ARG;
+        } else {
+            ESP_LOGI(HOP_TAG, "Killing WiFi channel hopping event task %p...", &channelHopTask);
+            vTaskDelete(channelHopTask);
+            channelHopTask = NULL;
+        }
+    } else {
+        /* We got either a duration or an invalid argument */
+        long duration = atol(argv[1]);
+        if (duration <= 0) {
+            ESP_LOGE(HOP_TAG, "Invalid dwell duration \"%s\" specified. This positive integer represents the number of milliseconds Gravity will dwell on each channel before moving on.", argv[1]);
+            return ESP_ERR_INVALID_ARG;
+        }
+        hop_millis = duration;
+        ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
+    }
+    return ESP_OK;
+}
+
+int cmd_commands(int argc, char **argv) {
+    ESP_LOGI(TAG, "Generating command summary...");
+    for (int i=0; i < CMD_COUNT; ++i) {
+        printf("%13s: %s\n", commands[i].command, commands[i].hint);
+    }
+    return ESP_OK;
 }
 
 int cmd_beacon(int argc, char **argv) {
@@ -471,12 +541,12 @@ int cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, HOP_MILLIS, ATTACK_PKTS, ATTACK_MILLIS */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         ESP_LOGE(TAG, "Invalid arguments provided. Usage: set <variable> <value>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+        ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
     }
     if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
@@ -546,17 +616,6 @@ int cmd_set(int argc, char **argv) {
         }
         ESP_LOGI(TAG, "MAC randomisation :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         return ESP_OK;
-    } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
-        if (channelHopTask != NULL) {
-            // Cancel the current task
-            vTaskDelete(channelHopTask);
-        }
-        hop_millis = atol(argv[2]);
-        hop_enabled = (hop_millis > 0);
-        if (hop_enabled) {
-            // Start a hop task
-            xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
-        }
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         ESP_LOGI(TAG, "This command has not been implemented.");
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
@@ -564,7 +623,7 @@ int cmd_set(int argc, char **argv) {
     } else {
         ESP_LOGE(TAG, "Invalid variable specified. Usage: set <variable> <value>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -575,12 +634,12 @@ int cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, HOP_MILLIS, ATTACK_PKTS, ATTACK_MILLIS */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         ESP_LOGE(TAG, "Usage: get <variable>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+        ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
     }
     if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
@@ -633,15 +692,6 @@ int cmd_get(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "MAC_RAND")) {
         ESP_LOGI(TAG, "MAC Randomisation is :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         return ESP_OK;
-    } else if (!strcasecmp(argv[1], "HOP_MILLIS")) {
-        if (!hop_enabled) {
-            ESP_LOGI(TAG, "Channel hopping is disabled");
-        } else {
-            uint8_t c;
-            wifi_second_chan_t c2;
-            ESP_ERROR_CHECK(esp_wifi_get_channel(&c, &c2));
-            ESP_LOGI(TAG, "Current channel %u, hopping %s every %ldms", c, (hop_enabled)?"enabled":"disabled", hop_millis);
-        }
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         //
         ESP_LOGI(TAG, "Not yet implemented");
@@ -650,7 +700,7 @@ int cmd_get(int argc, char **argv) {
     } else {
         ESP_LOGE(TAG, "Invalid variable specified. Usage: get <variable>");
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-        ESP_LOGE(TAG, "             MAC | HOP_MILLIS | ATTACK_PKTS | ATTACK_MILLIS");
+        ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
         return ESP_ERR_INVALID_ARG;
     }
 
