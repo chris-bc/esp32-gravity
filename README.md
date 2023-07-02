@@ -88,17 +88,15 @@ QoS DATA:
 BSSID 10
 STA 4
 
-Add commands command presenting hint for all commands
-Display STA's AP
-Display STA vs. AP
-
 # TODO
 
 * Mana-Loud
-* basic scanning
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
 * STA channel issues - type/base conversion??
+* Add commands command presenting hint for all commands
+* Display STA's AP
+* Display STA vs. AP
 
 # Installation notes
 

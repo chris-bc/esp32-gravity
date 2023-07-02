@@ -80,7 +80,7 @@ void probeCallback(void *pvParameter) {
         vTaskDelay(10); // TODO: At least understand how long this is!
 
         // Create a buffer large enough to store packet + SSID etc.
-        uint8_t probeBuffer[200];
+        uint8_t probeBuffer[1024];
 
         // Build beginning of packet
         memcpy(probeBuffer, probe_raw, PROBE_SSID_OFFSET - 1);

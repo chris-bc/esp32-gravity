@@ -4,6 +4,7 @@
 #define DEBUG
 
 static const char* SCAN_TAG = "scan@GRAVITY";
+static const uint8_t bBroadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
