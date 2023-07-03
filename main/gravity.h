@@ -79,9 +79,10 @@ static int networkCount = 0;
 static enum PROBE_RESPONSE_AUTH_TYPE mana_auth = AUTH_TYPE_NONE;
 
 static bool WIFI_INITIALISED = false;
-static const char* TAG = "GRAVITY";
-static const char* MANA_TAG = "mana@GRAVITY";
+static const char *TAG = "GRAVITY";
+static const char *MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
+static const char *DEAUTH_TAG = "deauth@GRAVITY";
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
@@ -123,8 +124,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_sniff
     }, {
         .command = "deauth",
-        .hint = "Deauth attack. Usage: deauth [ STA | BROADCAST | OFF ]",
-        .help = "Arguments:   STA: Send deauthentication packets to selected stations.   BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
+        .hint = "Deauth attack. Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ]",
+        .help = "Arguments:   <millis>: Time to wait between packets.  <useMAC>: Change device's MAC to match the packet sender.  STA: Send deauthentication packets to selected stations.   BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
         .func = cmd_deauth
     } , {
         .command = "mana",

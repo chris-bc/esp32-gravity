@@ -16,6 +16,7 @@
 #include "freertos/portmacro.h"
 #include "probe.h"
 #include "scan.h"
+#include "deauth.h"
 
 #define MAX_CHANNEL 9
 #define DEFAULT_HOP_MILLIS 500
@@ -443,6 +444,21 @@ int cmd_sniff(int argc, char **argv) {
 }
 
 int cmd_deauth(int argc, char **argv) {
+    /* Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ] */
+    if (argc > 4 || (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "BROADCAST") &&
+            strcasecmp(argv[3], "OFF")) || (argc == 4 && atol(argv[1]) == 0 && atol(argv[2]) == 0) ||
+            (argc == 4 && strcasecmp(argv[1], "setMAC") && strcasecmp(argv[2], "setMAC")) ||
+            (argc == 3 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "BROADCAST") &&
+            strcasecmp(argv[2], "OFF")) || (argc == 3 && atol(argv[1]) == 0 &&
+            strcasecmp(argv[1], "setMAC")) || (argc == 2 && strcasecmp(argv[1], "STA") &&
+            strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF"))) {
+        ESP_LOGE(TAG, "Invalid arguments. Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ]");
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning.", (attack_status[ATTACK_DEAUTH])?"":"not ");
+        return ESP_OK;
+    }
     /* Start hopping task loop if hopping is on by default */
     char *args[] = {"hop","on"};
     if (hop_defaults[ATTACK_DEAUTH]) {
@@ -452,7 +468,53 @@ int cmd_deauth(int argc, char **argv) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
-    return ESP_OK;
+    /* Extract parameters */
+    long delay = DEAUTH_MILLIS_DEFAULT;
+    bool setMAC = DEAUTH_MAC_DEFAULT;
+    DeauthMode dMode = DEAUTH_MODE_OFF;
+    switch (argc) {
+    case 4:
+        /* command must be in [3]*/
+        if (!strcasecmp(argv[3], "STA")) {
+            dMode = DEAUTH_MODE_STA;
+        } else if (!strcasecmp(argv[3], "BROADCAST")) {
+            dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[3], "OFF")) {
+            dMode = DEAUTH_MODE_OFF;
+        }
+        delay = atol(argv[1]);
+        if (delay == 0) {
+            delay = atol(argv[2]);
+        }
+        /* If 4 params are provided, setMAC has to be there*/
+        setMAC = true;
+        break;
+    case 3:
+        if (!strcasecmp(argv[2], "STA")) {
+            dMode = DEAUTH_MODE_STA;
+        } else if (!strcasecmp(argv[2], "BROADCAST")) {
+            dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[2], "OFF")) {
+            dMode = DEAUTH_MODE_OFF;
+        }
+        setMAC = !strcasecmp(argv[1], "setMAC");
+        delay = atol(argv[1]); /* If argv[1] contains setMAC then delay will be set to 0 - perfect! */
+        break;
+    case 2:
+        setMAC = DEAUTH_MAC_DEFAULT;
+        delay = DEAUTH_MILLIS_DEFAULT;
+        if (!strcasecmp(argv[1], "STA")) {
+            dMode = DEAUTH_MODE_STA;
+        } else if (!strcasecmp(argv[1], "BROADCAST")) {
+            dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[1], "OFF")) {
+            dMode = DEAUTH_MODE_OFF;
+        }
+        break;
+    default:
+        /* Unreachable */
+    }
+    return deauth_start(dMode, setMAC, delay);
 }
 
 /* Control the Mana attack
@@ -496,14 +558,14 @@ int cmd_mana(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        ESP_LOGI(TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
+        ESP_LOGI(MANA_TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
     } else if (!strcasecmp(argv[1], "VERBOSE")) {
         if (argc == 2) {
-            ESP_LOGI(TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
+            ESP_LOGI(MANA_TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
@@ -523,12 +585,12 @@ int cmd_mana(int argc, char **argv) {
                 mana_auth = AUTH_TYPE_WPA;
             }
         } else {
-            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "LOUD")) {
         if (argc == 2) {
-            ESP_LOGI(TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
+            ESP_LOGI(MANA_TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
             return ESP_OK;
         }
         if (!(strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF"))) {
@@ -536,17 +598,17 @@ int cmd_mana(int argc, char **argv) {
 
             if (!attack_status[ATTACK_MANA]) {
                 /* Mana isn't running - Start it */
-                ESP_LOGI(TAG, "Mana is not running. Starting ...");
+                ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
                 char *manaArgs[2] = { "mana", "ON" };
                 attack_status[ATTACK_MANA] = true;
                 cmd_mana(2, manaArgs);
             }
         } else {
-            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else {
-        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+        ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
         return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
