@@ -687,7 +687,6 @@ esp_err_t parse_beacon(uint8_t *payload) {
     mac_bytes_to_string(ap, strAp);
 
     int channel = parseChannel(payload);
-
     gravity_add_ap(ap, ssid, channel);
 
     free(ssid);
@@ -735,16 +734,59 @@ esp_err_t parse_probe_response(uint8_t *payload) {
 
 esp_err_t parse_data(uint8_t *payload) {
     // Get AP, STA, and associated AP
-    int sta_offset = 4;
-    int ap_offset = 10;
+    int sta_offset = 4; // Rx
+    int ap_offset = 10; // Tx
     uint8_t sta[6];
     uint8_t ap[6];
     memcpy(sta, &payload[sta_offset], 6);
     memcpy(ap, &payload[ap_offset], 6);
-    ESP_ERROR_CHECK(gravity_add_ap(ap, NULL, 0));
-    ESP_ERROR_CHECK(gravity_add_sta(sta, 0));
-    /* Add STA association */
-    ESP_ERROR_CHECK(gravity_add_sta_ap(sta, ap));
+
+    bool adding = false;
+    uint8_t *adding_sta = NULL;
+    uint8_t *adding_ap = NULL;
+
+    /* If we know Rx or Tx is a STA we might have a new AP */
+    int idxSearch = 0;
+    for (idxSearch = 0; idxSearch < gravity_sta_count && memcmp(sta, gravity_stas[idxSearch].mac, 6) &&
+            memcmp(ap, gravity_stas[idxSearch].mac, 6); ++idxSearch) { }
+    if (idxSearch < gravity_sta_count) {
+        /* We found a known station */
+        if (!memcmp(sta, gravity_stas[idxSearch].mac, 6)) {
+            adding = true;
+            adding_sta = sta;
+            adding_ap = ap;
+        } else if (!memcmp(ap, gravity_stas[idxSearch].mac, 6)) {
+            adding = true;
+            adding_ap = sta;
+            adding_sta = ap;
+        }
+    }
+    if (adding) {
+        ESP_ERROR_CHECK(gravity_add_ap(adding_ap, NULL, 0));
+        ESP_ERROR_CHECK(gravity_add_sta(adding_sta, 0));
+        ESP_ERROR_CHECK(gravity_add_sta_ap(adding_sta, adding_ap));
+    }
+    adding = false;
+
+    /* If we know Rx or Tx is an AP we might have a new STA */
+    for (idxSearch = 0; idxSearch < gravity_ap_count && memcmp(sta, gravity_aps[idxSearch].espRecord.bssid, 6) &&
+            memcmp(ap, gravity_aps[idxSearch].espRecord.bssid, 6); ++idxSearch) { }
+    if (idxSearch < gravity_ap_count) {
+        /* We found a known AP */
+        if (!memcmp(sta, gravity_aps[idxSearch].espRecord.bssid, 6)) {
+            adding = true;
+            adding_ap = sta;
+            adding_sta = ap;
+        } else if (!memcmp(ap, gravity_aps[idxSearch].espRecord.bssid, 6)) {
+            adding = true;
+            adding_ap = ap;
+            adding_sta = sta;
+        }
+        ESP_ERROR_CHECK(gravity_add_ap(adding_ap, NULL, 0));
+        ESP_ERROR_CHECK(gravity_add_sta(adding_sta, 0));
+        ESP_ERROR_CHECK(gravity_add_sta_ap(adding_sta, adding_ap));
+
+    }
     return ESP_OK;
 }
 

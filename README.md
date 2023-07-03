@@ -35,7 +35,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **NOT DOING**Scan APs - Fast (API)
 * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
 * **DONE**Commands to select/view/remove APs/STAs in scope
-* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all - additional option to show hidden SSIDs
+* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all 
+  * TODO: additional option to show hidden SSIDs
+  * Fix bug with hidden SSIDs being included in network scan and getting garbled names
+  * Update client count when new STAs are found
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes
@@ -96,6 +99,7 @@ STA 4
 * STA channel issues - type/base conversion??
 * Display STA's AP
 * Display STA vs. AP
+* view sta/ap glitches - maybe due to hidden SSIDs?
 
 TelstraB20819 BC:30:D9:B2:08:1B
 
