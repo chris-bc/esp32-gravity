@@ -104,6 +104,7 @@ esp_err_t update_links() {
             free(gravity_aps[idxAPSearch].stations);
         }
         gravity_aps[idxAPSearch].stationCount = 0;
+        gravity_aps[idxAPSearch].stations = NULL;
     }
 
     for ( ; idxSTA < gravity_sta_count; ++idxSTA) {
@@ -131,18 +132,14 @@ esp_err_t update_links() {
                     ESP_LOGE(SCAN_TAG, "Failed to allocate memory to extend stations array of %d elements (%dB)", gravity_aps[idxAPSearch].stationCount + 1, sizeof(ScanResultSTA *) * (gravity_aps[idxAPSearch].stationCount + 1));
                     return ESP_ERR_NO_MEM;
                 }
-                if (oldStations == NULL || gravity_aps[idxAPSearch].stationCount == 0) {
-                    #ifdef DEBUG_VERBOSE
-                        ESP_LOGI(SCAN_TAG, "oldStations is %sNULL and stationCount is %d - Skipping this loop iteration", (oldStations==NULL)?"":"not ", gravity_aps[idxAPSearch].stationCount);
-                    #endif
-                    continue;
-                }
                 for (int i=0; i < gravity_aps[idxAPSearch].stationCount; ++i) {
                     newStations[i] = oldStations[i];
                 }
                 newStations[gravity_aps[idxAPSearch].stationCount] = pSTA;
                 ++gravity_aps[idxAPSearch].stationCount;
-                free(gravity_aps[idxAPSearch].stations);
+                if (gravity_aps[idxAPSearch].stations != NULL) {
+                    free(gravity_aps[idxAPSearch].stations);
+                }
                 gravity_aps[idxAPSearch].stations = (void **)newStations;
             }
         }
@@ -441,7 +438,14 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         int maxIndex = 0;
         /* Copy previous records across */
         for (int j=0; j < gravity_ap_count; ++j) {
-            newAPs[j] = gravity_aps[j];
+            /* newAPs[j] = gravity_aps[j]; ID10T */
+            newAPs[j].stationCount = gravity_aps[j].stationCount;
+            newAPs[j].stations = gravity_aps[j].stations;
+            newAPs[j].espRecord = gravity_aps[j].espRecord;
+            newAPs[j].index = gravity_aps[j].index;
+            newAPs[j].lastSeen = gravity_aps[j].lastSeen;
+            newAPs[j].lastSeenClk = gravity_aps[j].lastSeenClk;
+            newAPs[j].selected = gravity_aps[j].selected;
             if (newAPs[j].index > maxIndex) {
                 maxIndex = newAPs[j].index;
             }
@@ -502,7 +506,16 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         int maxIndex = 0;
         /* Copy previous records across */
         for (int j=0; j < gravity_sta_count; ++j) {
-            newSTAs[j] = gravity_stas[j];
+            /* newSTAs[j] = gravity_stas[j]; ID10T */
+            newSTAs[j].ap = gravity_stas[j].ap;
+            memcpy(newSTAs[j].apMac, gravity_stas[j].apMac, 6);
+            newSTAs[j].channel = gravity_stas[j].channel;
+            newSTAs[j].index = gravity_stas[j].index;
+            newSTAs[j].lastSeen = gravity_stas[j].lastSeen;
+            newSTAs[j].lastSeenClk = gravity_stas[j].lastSeenClk;
+            newSTAs[j].selected = gravity_stas[j].selected;
+            memcpy(newSTAs[j].mac, gravity_stas[j].mac, 6);
+            strcpy(newSTAs[j].strMac, gravity_stas[j].strMac);
             if (newSTAs[j].index > maxIndex) {
                 maxIndex = newSTAs[j].index;
             }
@@ -534,6 +547,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
     if (!memcmp(bBroadcast, sta, 6) || !memcmp(bBroadcast, ap, 6)) {
         return ESP_OK;
     }
+
     /* Find the ScanResultAP and ScanResultSTA representing the specified elements */
     int idxSta = 0;
     int idxAp = 0;
@@ -556,6 +570,8 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
         return ESP_ERR_INVALID_ARG;
     }
     specAP = &gravity_aps[idxAp];
+char strMacAP[18];
+mac_bytes_to_string(specAP->espRecord.bssid, strMacAP);
 
     /* Is the STA already associated with an AP? */
     if (specSTA->ap != NULL) {
@@ -565,13 +581,15 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
             /* The STA is already associated with the AP */
             return ESP_OK;
         } else {
+char strOldAp[18];
+mac_bytes_to_string(specSTA->apMac, strOldAp);
             /* STA has moved from one AP to another */
             /* First shrink specSTA->ap->stations */
             ScanResultSTA **oldSTA = (ScanResultSTA **)specSTA->ap->stations;
             if (specSTA->ap->stationCount <= 1) {
-                return ESP_OK;
+                return ESP_OK; // TODO : Is this right? Shouldn't I free stations?
             }
-            printf("stationCount is %d\n", specSTA->ap->stationCount);
+            
             ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specSTA->ap->stationCount - 1));
             if (newSTA == NULL) {
                 ESP_LOGE(SCAN_TAG, "Failed to allocate memory to shrink stations");
@@ -622,7 +640,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
         }
         newSTA[specAP->stationCount] = specSTA;
         ++specAP->stationCount;
-        if (specAP->stations == NULL) {
+        if (specAP->stations != NULL) {
             free(specAP->stations);
         }
         specAP->stations = (void **)newSTA;
@@ -630,7 +648,6 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
         specSTA->ap = specAP;
         memcpy(specSTA->apMac, ap, 6);
     }
-
     return ESP_OK;
 }
 
@@ -659,6 +676,7 @@ int parseChannel(uint8_t *payload) {
             ch = payload[thisIndex + 2];
             found = true;
         } else {
+            // TODO: Will crash here sometimes. Need a way to identify the frame check sequence at end of packet
             thisIndex += 2 + payload[thisIndex + 1];
         }
     }

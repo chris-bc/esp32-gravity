@@ -35,10 +35,11 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **NOT DOING**Scan APs - Fast (API)
 * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
 * **DONE**Commands to select/view/remove APs/STAs in scope
-* *PARTIAL* Scan STAs - Only include clients of selected AP(s), or all 
+* **DONE** Scan STAs - Only include clients of selected AP(s), or all 
   * TODO: additional option to show hidden SSIDs
-  * Fix bug with hidden SSIDs being included in network scan and getting garbled names
-  * Update client count when new STAs are found
+  * **DONE** Fix bug with hidden SSIDs being included in network scan and getting garbled names
+  * **DONE** Update client count when new STAs are found
+* Fix buffer overflow bug in parseChannel()
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes
