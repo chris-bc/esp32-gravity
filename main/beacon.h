@@ -37,7 +37,6 @@ extern int SSID_LEN_MIN;
 extern int SSID_LEN_MAX;
 static const char* BEACON_TAG = "beacon@GRAVITY";
 
-extern char **attack_ssids;
 extern char **user_ssids;
 extern int user_ssid_count;
 

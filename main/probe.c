@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "esp_err.h"
 #include "esp_wifi.h"
@@ -73,6 +74,8 @@ void probeCallback(void *pvParameter) {
     // For directed probes we need to track which SSID we're up to
     static int ssid_idx = 0;
     int curr_ssid_len;
+    /* Move the packet off the heap */
+    uint8_t *probeBuffer;
 
     ESP_LOGI(PROBE_TAG, "Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
 
@@ -80,11 +83,14 @@ void probeCallback(void *pvParameter) {
         vTaskDelay(10); // TODO: At least understand how long this is!
 
         // Create a buffer large enough to store packet + SSID etc.
-        uint8_t probeBuffer[1024];
+        probeBuffer = malloc(sizeof(uint8_t) * 1024);
+        if (probeBuffer == NULL) {
+            ESP_LOGE(PROBE_TAG, "Failed to allocate memory to construct a probe request");
+            return;
+        }
 
         // Build beginning of packet
         memcpy(probeBuffer, probe_raw, PROBE_SSID_OFFSET - 1);
-
         // Broadcast or directed packet?
         if (attackType == ATTACK_PROBE_UNDIRECTED) {
             // Append SSID length of 0
@@ -102,7 +108,6 @@ void probeCallback(void *pvParameter) {
         //   length sizeof(probe_raw)-PROBE_SSID_OFFSET, to
         //   probeBuffer[PROBE_SSID_OFFSET + curr_ssid_len]
         memcpy(&probeBuffer[PROBE_SSID_OFFSET + curr_ssid_len], &probe_raw[PROBE_SSID_OFFSET], sizeof(probe_raw) - PROBE_SSID_OFFSET);
-
         // probeBuffer is now the right size, but needs some attributes set
         // TODO: Either use configured MAC or use random MAC
         int addr;
@@ -128,7 +133,7 @@ void probeCallback(void *pvParameter) {
                 ESP_LOGW(PROBE_TAG, "Failed to get MAC: %s. Using default MAC", esp_err_to_name(err));
             }
             char strMac[18];
-            mac_bytes_to_string(bMac, strMac);
+            ESP_ERROR_CHECK(mac_bytes_to_string(bMac, strMac));
 
             // TODO: The following line was commented out during initial testing. Test!
             memcpy(&probeBuffer[PROBE_SRCADDR_OFFSET], bMac, 6);
@@ -167,9 +172,10 @@ int probe_stop() {
     return ESP_OK;
 }
 
-int probe_start(probe_attack_t type) {
+int probe_start(probe_attack_t type, bool *stats) {
     char strType[25];
     srand(time(NULL));
+
     switch (type) {
     case ATTACK_PROBE_UNDIRECTED:
         strcpy(strType, "ATTACK_PROBE_UNDIRECTED");

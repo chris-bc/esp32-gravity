@@ -5,6 +5,8 @@ int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
 int SSID_LEN_MAX = 32;
 
+char **attack_ssids = NULL;
+
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
  * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o

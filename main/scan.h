@@ -17,7 +17,7 @@ static const uint8_t bBroadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
-    long long lastSeen;
+    time_t lastSeen;
     clock_t lastSeenClk;
     int index;
     bool selected;

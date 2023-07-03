@@ -47,6 +47,7 @@ enum {
     ATTACK_DEAUTH,
     ATTACK_MANA,
     ATTACK_MANA_VERBOSE,
+    ATTACK_MANA_LOUD,
     ATTACK_AP_DOS,
     ATTACK_AP_CLONE,
     ATTACK_SCAN,
@@ -54,6 +55,9 @@ enum {
     ATTACK_RANDOMISE_MAC, // True
     ATTACKS_COUNT
 };
+/* Moving attack_status and hop_defaults off the heap */
+bool *attack_status;
+bool *hop_defaults;
 
 enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_NONE,

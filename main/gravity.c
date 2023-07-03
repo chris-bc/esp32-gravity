@@ -20,15 +20,11 @@
 #define MAX_CHANNEL 9
 #define DEFAULT_HOP_MILLIS 500
 
-char **attack_ssids = NULL;
 char **user_ssids = NULL;
 int user_ssid_count = 0;
 static long hop_millis = DEFAULT_HOP_MILLIS;
 static bool hop_enabled = false;
 static TaskHandle_t channelHopTask = NULL;
-                                    /* BEACON, PROBE, SNIFF, DEAUTH, MANA, MANA_VERBOSE, AP_DOS, AP_CLONE, SCAN, HANDSHAKE, RAND_MAC */
-bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, true};
-bool  hop_defaults[ATTACKS_COUNT] = {true, true, true, true, false, false, false, false, true, false, false };
 
 uint8_t probe_response_raw[] = {
 0x50, 0x00, 0x3c, 0x00, 
@@ -115,7 +111,7 @@ char **lsSsid() {
 }
 
 int addSsid(char *ssid) {
-	#ifdef DEBUG
+	#ifdef DEBUG_VERBOSE
 		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
 		for (int i=0; i < user_ssid_count; ++i) {
 			printf("    %d: \"%s\"\n", i, user_ssids[i]);
@@ -130,7 +126,7 @@ int addSsid(char *ssid) {
 		newSsids[i] = user_ssids[i];
 	}
 
-	#ifdef DEBUG
+	#ifdef DEBUG_VERBOSE
 		printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
 		for (int i=0; i < user_ssid_count; ++i) {
 			printf("    %d: \"%s\"\n", i, newSsids[i]);
@@ -145,13 +141,13 @@ int addSsid(char *ssid) {
 	strcpy(newSsids[user_ssid_count], ssid);
 	++user_ssid_count;
 
-	#ifdef DEBUG
+	#ifdef DEBUG_VERBOSE
 		printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
 		printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 	#endif
 	free(user_ssids);
 	user_ssids = newSsids;
-	#ifdef DEBUG
+	#ifdef DEBUG_VERBOSE
 		printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 	#endif
 
@@ -268,6 +264,14 @@ int cmd_beacon(int argc, char **argv) {
         ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
         return ESP_OK;
     }
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_BEACON]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
 
     /* Handle arguments to beacon */
     int ret = ESP_OK;
@@ -331,17 +335,17 @@ int cmd_target_ssids(int argc, char **argv) {
             ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
             return ESP_ERR_NO_MEM;
         }
-        #ifdef DEBUG
+        #ifdef DEBUG_VERBOSE
             printf("Serialising target SSIDs");
         #endif
         strcpy(strSsids, (lsSsid())[0]);
-        #ifdef DEBUG
+        #ifdef DEBUG_VERBOSE
             printf("Before serialisation loop returned value is \"%s\"\n", strSsids);
         #endif
         for (int i = 1; i < ssidCount; ++i) {
             sprintf(temp, " , %s", (lsSsid())[i]);
             strcat(strSsids, temp);
-            #ifdef DEBUG
+            #ifdef DEBUG_VERBOSE
                 printf("At the end of iteration %d retVal is \"%s\"\n",i, strSsids);
             #endif
         }
@@ -357,13 +361,17 @@ int cmd_target_ssids(int argc, char **argv) {
 
 int cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]
-    #ifdef DEBUG
-        printf("cmd_probe start\n");
-    #endif
-
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY | SSIDS | OFF ].  SSIDS uses the target-ssids specification.");
         return ESP_ERR_INVALID_ARG;
+    }
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_PROBE]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
@@ -388,7 +396,7 @@ int cmd_probe(int argc, char **argv) {
         }
 
         ESP_LOGI(PROBE_TAG, "%s", probeNote);
-        probe_start(probeType);
+        probe_start(probeType, attack_status);
     }
 
     // Set attack_status[ATTACK_PROBE]
@@ -408,6 +416,15 @@ int cmd_sniff(int argc, char **argv) {
         ESP_LOGE(TAG, "Usage: sniff [ ON | OFF ]");
         return ESP_ERR_INVALID_ARG;
     }
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_SNIFF]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
+
     if (argc == 1) {
         ESP_LOGI(TAG, "Sniffing is %s", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
         return ESP_OK;
@@ -426,6 +443,14 @@ int cmd_sniff(int argc, char **argv) {
 }
 
 int cmd_deauth(int argc, char **argv) {
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_DEAUTH]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
 
     return ESP_OK;
 }
@@ -458,18 +483,27 @@ int cmd_deauth(int argc, char **argv) {
  */
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
+        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
         return ESP_ERR_INVALID_ARG;
     }
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_MANA]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
+
     if (argc == 1) {
-        ESP_LOGI(TAG, "GRAVITY :  Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
+        ESP_LOGI(TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
     } else if (!strcasecmp(argv[1], "VERBOSE")) {
         if (argc == 2) {
-            ESP_LOGI(TAG, "GRAVITY : Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
+            ESP_LOGI(TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
+            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
@@ -489,11 +523,30 @@ int cmd_mana(int argc, char **argv) {
                 mana_auth = AUTH_TYPE_WPA;
             }
         } else {
-            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
+            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            return ESP_ERR_INVALID_ARG;
+        }
+    } else if (!strcasecmp(argv[1], "LOUD")) {
+        if (argc == 2) {
+            ESP_LOGI(TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
+            return ESP_OK;
+        }
+        if (!(strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF"))) {
+            attack_status[ATTACK_MANA_LOUD] = strcasecmp(argv[2], "OFF");
+
+            if (!attack_status[ATTACK_MANA]) {
+                /* Mana isn't running - Start it */
+                ESP_LOGI(TAG, "Mana is not running. Starting ...");
+                char *manaArgs[2] = { "mana", "ON" };
+                attack_status[ATTACK_MANA] = true;
+                cmd_mana(2, manaArgs);
+            }
+        } else {
+            ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else {
-        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )");
+        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
         return ESP_ERR_INVALID_ARG;
     }
     return ESP_OK;
@@ -505,11 +558,27 @@ int cmd_stalk(int argc, char **argv) {
 }
 
 int cmd_ap_dos(int argc, char **argv) {
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_AP_DOS]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
 
     return ESP_OK;
 }
 
 int cmd_ap_clone(int argc, char **argv) {
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_AP_CLONE]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
 
     return ESP_OK;
 }
@@ -520,6 +589,14 @@ int cmd_scan(int argc, char **argv) {
             (argc == 3 && strlen(argv[1]) > 32)) {
         ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan [ <ssid> ] [ ON | OFF ]");
         return ESP_ERR_INVALID_ARG;
+    }
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_SCAN]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
     if (argc == 1) {
@@ -803,6 +880,14 @@ int cmd_clear(int argc, char **argv) {
 }
 
 int cmd_handshake(int argc, char **argv) {
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_defaults[ATTACK_HANDSHAKE]) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
 
     return ESP_OK;
 }
@@ -972,22 +1057,26 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                     ESP_LOGI(MANA_TAG, "Received broadcast probe from %s", strDestMac);
                 #endif
 
+                /* Mana Loud implementation - Respond to a broadcast probe by sending a probe response
+                   for every SSID in all STAs.
+                   I was undecided between getting a unique set of SSIDs to send a single response per SSID,
+                   and just sending responses for every SSID in every station - doubtless with many
+                   duplicates.
+                   I settled on the latter, but with flawed reasoning.
+                   TODO: Refactor the below to send a maximum of one probe response for each AP
+                */
                 int i;
-                for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
-                if (i < networkCount) {
-                    /* Found the station at networkList[i] - cycle through its SSIDs */
-                    for (int j=0; j < networkList[i].ssidCount; ++j) {
-                        #ifdef DEBUG
-                            ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
-                        #endif
-                        send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
+                for (i = 0; i < networkCount; ++i) {
+                    if (!strcasecmp(strDestMac, networkList[i].strMac) || attack_status[ATTACK_MANA_LOUD]) {
+                    /* Cycle through networkList[i]'s SSIDs */
+                        for (int j=0; j < networkList[i].ssidCount; ++j) {
+                            #ifdef DEBUG
+                                ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
+                            #endif
+                            send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
+                        }
                     }
-                } else {
-                    #ifdef DEBUG
-                        ESP_LOGI(MANA_TAG, "Did not find station in networkList[]");
-                    #endif
                 }
-
             } else {
                 /* Directed probe request - Send a directed probe response in reply */
                 ESP_LOGI(MANA_TAG, "Received directed probe from %s for \"%s\"", strDestMac, ssid);
@@ -1175,6 +1264,73 @@ static int register_gravity_commands() {
 
 void app_main(void)
 {
+    /* Initialise attack_status and hop_defaults */
+    attack_status = malloc(sizeof(bool) * ATTACKS_COUNT);
+    if (attack_status == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory to manage attack status");
+        return;
+    }
+    hop_defaults = malloc(sizeof(bool) * ATTACKS_COUNT);
+    if (hop_defaults == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory to manage channel hopping defaults");
+        free(attack_status);
+        return;
+    }
+    for (int i = 0; i < ATTACKS_COUNT; ++i) {
+        switch (i) {
+            case ATTACK_BEACON:
+            case ATTACK_PROBE:
+            case ATTACK_SNIFF:
+            case ATTACK_DEAUTH:
+            case ATTACK_SCAN:
+            case ATTACK_MANA:
+            case ATTACK_MANA_VERBOSE:
+            case ATTACK_MANA_LOUD:
+            case ATTACK_AP_DOS:
+            case ATTACK_AP_CLONE:
+            case ATTACK_HANDSHAKE:
+                attack_status[i] = false;
+                break;
+            case ATTACK_RANDOMISE_MAC:
+                attack_status[i] = true;
+                break;
+            default:
+                ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
+                free(attack_status);
+                free(hop_defaults);
+                return;
+        }
+    }
+    for (int i = 0; i < ATTACKS_COUNT; ++i) {
+        switch (i) {
+            case ATTACK_BEACON:
+            case ATTACK_PROBE:
+            case ATTACK_SNIFF:
+            case ATTACK_DEAUTH:
+            case ATTACK_SCAN:
+                hop_defaults[i] = true;
+                break;
+            case ATTACK_MANA:
+            case ATTACK_MANA_VERBOSE:
+            case ATTACK_MANA_LOUD:
+            case ATTACK_AP_DOS:
+            case ATTACK_AP_CLONE:
+            case ATTACK_HANDSHAKE:
+            case ATTACK_RANDOMISE_MAC:
+                hop_defaults[i] = false;
+                break;
+            default:
+                ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
+                free(attack_status);
+                free(hop_defaults);
+                return;
+        }
+    }
+    /* BEACON, PROBE, SNIFF, DEAUTH, MANA, MANA_VERBOSE, AP_DOS, AP_CLONE, SCAN, HANDSHAKE, RAND_MAC */
+/*    bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, false, true};
+    bool  hop_defaults[ATTACKS_COUNT] = {true, true, true, true, false, false, false, false, false, true, false, false };
+*/
+
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     /* Prompt to be printed before each line.

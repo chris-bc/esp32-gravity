@@ -275,14 +275,36 @@ esp_err_t gravity_select_sta(int selIndex) {
 esp_err_t gravity_list_ap() {
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
-    printf(" ID | SSID                             | BSSID             | Cli | Last Seen              | Ch | WPS\n");
-    printf("====|==================================|===================|=====|========================|====|=====\n");
+    printf(" ID | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS\n");
+    printf("====|==================================|===================|=====|==========================|====|=====\n");
     char strBssid[18];
+    char strTime[26];
+    char strSsid[36];
+    unsigned long nowTime;
+    unsigned long elapsed;
     for (int i=0; i < gravity_ap_count; ++i) {
         ESP_ERROR_CHECK(mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strBssid));
-        // TODO: Stringify timestamp
-        printf("%s%2d | %-32s | %-17s | %3d | %22lu | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                gravity_aps[i].espRecord.ssid, strBssid, gravity_aps[i].stationCount, gravity_aps[i].lastSeenClk,
+
+        /* Stringify timestamp */
+        nowTime = clock();
+        elapsed = (nowTime - gravity_aps[i].lastSeenClk) / CLOCKS_PER_SEC;
+        if (elapsed < 60.0) {
+            strcpy(strTime, "Under a minute ago");
+        } else if (elapsed < 3600.0) {
+            sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
+        } else {
+            sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
+        }
+
+        /* Format SSID for output */
+        if (gravity_aps[i].espRecord.ssid[0] == '\0') {
+            strcpy(strSsid, "<hidden>");
+        } else {
+            strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
+        }
+
+        printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
+                strSsid, strBssid, gravity_aps[i].stationCount, strTime,
                 gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
     }
 
@@ -291,19 +313,31 @@ esp_err_t gravity_list_ap() {
 
 /* Available attributes are selected, index, MAC, channel, lastSeen, assocAP */
 esp_err_t gravity_list_sta() {
-    printf(" ID | MAC               | Access Point      | Ch | Last Seen             | Associated BSSID  \n");
-    printf("====|===================|===================|====|=======================|===================\n");
+    char strTime[26];
+    unsigned long nowTime;
+    unsigned long elapsed;
+    printf(" ID | MAC               | Access Point      | Ch | Last Seen               \n");
+    printf("====|===================|===================|====|=========================\n");
 
     for (int i=0; i < gravity_sta_count; ++i) {
-        // TODO: Stringify timestamp
+        /* Stringify timestamp */
+        nowTime = clock();
+        elapsed = (nowTime - gravity_stas[i].lastSeenClk) / CLOCKS_PER_SEC;
+        if (elapsed < 60.0) {
+            strcpy(strTime, "Under a minute ago");
+        } else if (elapsed < 3600.0) {
+            sprintf(strTime, "%d %s ago", (int)elapsed / 60, (elapsed > 120)?"minutes":"minute");
+        } else {
+            sprintf(strTime, "%d %s ago", (int)elapsed / 3600, (elapsed > 7200)?"hours":"hour");
+        }
         char strAp[18] = "";
         if (gravity_stas[i].ap == NULL) {
             strcpy(strAp, "Unknown");
         } else {
             ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[i].apMac, strAp));
         }
-        printf("%s%2d | %-17s | %-17s | %2d | %22lu | Not Implemented\n", (gravity_stas[i].selected)?"*":" ",
-                gravity_stas[i].index, gravity_stas[i].strMac, strAp, gravity_stas[i].channel, gravity_stas[i].lastSeenClk);
+        printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (gravity_stas[i].selected)?"*":" ", gravity_stas[i].index,
+                gravity_stas[i].strMac, strAp, gravity_stas[i].channel, strTime);
     }    
 
     return ESP_OK;
@@ -438,7 +472,6 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         int maxIndex = 0;
         /* Copy previous records across */
         for (int j=0; j < gravity_ap_count; ++j) {
-            /* newAPs[j] = gravity_aps[j]; ID10T */
             newAPs[j].stationCount = gravity_aps[j].stationCount;
             newAPs[j].stations = gravity_aps[j].stations;
             newAPs[j].espRecord = gravity_aps[j].espRecord;
@@ -460,6 +493,8 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         newAPs[gravity_ap_count].stations = NULL;
         if (newSSID != NULL) {
             strcpy((char *)newAPs[gravity_ap_count].espRecord.ssid, newSSID);
+        } else {
+            newAPs[gravity_ap_count].espRecord.ssid[0] = '\0';
         }
         memcpy(newAPs[gravity_ap_count].espRecord.bssid, newAP, 6);
 

@@ -21,6 +21,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
     * stalk
     * ap-dos
     * ap-clone
+    * CLI commands to analyse captured data - stations(ap), ap(station), stations/aps(channel), etc
     * **DONE** scan [ ON | OFF ]
     * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
     * **DONE**view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
@@ -32,6 +33,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Beacon spam - Infinite (Random strings)
 * **ONGOING** Receive and parse 802.11 frames
 * **DONE** Commands to Get/Set channel, hopping mode, MAC, etc.
+* **DONE** commands to get/set local clock time :( ... or go back to millis since launch (clock())?
 * **NOT DOING**Scan APs - Fast (API)
 * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
 * **DONE**Commands to select/view/remove APs/STAs in scope
@@ -39,10 +41,12 @@ Initial development will be focused on implementing a core set of 802.11 explora
   * TODO: additional option to show hidden SSIDs
   * **DONE** Fix bug with hidden SSIDs being included in network scan and getting garbled names
   * **DONE** Update client count when new STAs are found
+  * **DONE** Format timestamps for display
 * Fix buffer overflow bug in parseChannel()
 * **DONE** Probe Flood - broadcast/specific
 * Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes
+* **DONE** Loud Mana - Respond with SSIDs from all STAs
 * **DONE** Options to get/set MAC hopping between frames
 * Homing attack (Focus on RSSI for selected STA(s) or AP)
 * Capture authentication frames for cracking
