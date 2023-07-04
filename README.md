@@ -15,7 +15,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * **DONE** Implement console component with commands:
     * **DONE** beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
     * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
-    * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
+    * **DONE** deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * **DONE** mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
       verbose output, and set the authentication type it indicates. If not specified returns the current status. 
     * stalk
@@ -44,7 +44,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
   * **DONE** Format timestamps for display
 * Fix buffer overflow bug in parseChannel()
 * **DONE** Probe Flood - broadcast/specific
-* Deauth - broadcast/specific
+* **DONE** Deauth - broadcast/specific
 * **DONE** Mana attack - Respond to all probes
 * **DONE** Loud Mana - Respond with SSIDs from all STAs
 * **DONE** Options to get/set MAC hopping between frames

@@ -79,6 +79,11 @@ int PROBE_RESPONSE_AUTH_TYPE_OFFSET = 74; /* + ssid_len */
 #define MOUNT_PATH "/data"
 #define HISTORY_PATH MOUNT_PATH "/history.txt"
 
+/* Over-ride the default implementation so we can send deauth frames */
+int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
+    return 0;
+}
+
 /* Channel hopping task - Called every hop_millis milliseconds (maybe) */
 void channelHopCallback(void *pvParameter) {
     uint8_t ch;
