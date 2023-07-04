@@ -10,13 +10,14 @@
 #define CHANNEL_TAG 0x03
 
 int gravity_ap_count = 0;
-int gravity_sel_ap_count = 0;
 int gravity_sta_count = 0;
-int gravity_sel_sta_count = 0;
-static ScanResultAP *gravity_aps;
-static ScanResultAP **gravity_selected_aps;
-static ScanResultSTA *gravity_stas;
-static ScanResultSTA **gravity_selected_stas;
+ScanResultAP *gravity_aps;
+ScanResultSTA *gravity_stas;
+int gravity_sel_ap_count;
+int gravity_sel_sta_count;
+ScanResultAP **gravity_selected_aps;
+ScanResultSTA **gravity_selected_stas;
+
 
 enum GravityScanType {
     GRAVITY_SCAN_AP,

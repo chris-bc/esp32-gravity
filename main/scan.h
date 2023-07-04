@@ -1,5 +1,6 @@
 #include <esp_err.h>
 #include <esp_wifi.h>
+#include "common.h"
 
 #define DEBUG
 
@@ -7,42 +8,8 @@
 extern char scan_filter_ssid[33];
 extern uint8_t scan_filter_ssid_bssid[6];
 
-extern int gravity_ap_count;
-extern int gravity_sel_ap_count;
-extern int gravity_sta_count;
-extern int gravity_sel_sta_count;
-
 static const char* SCAN_TAG = "scan@GRAVITY";
 static const uint8_t bBroadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-
-struct ScanResultAP {
-    wifi_ap_record_t espRecord;
-    time_t lastSeen;
-    clock_t lastSeenClk;
-    int index;
-    bool selected;
-    void **stations; /* Argh. I'm pretty sure there's no way I can have ScanResultAP */ 
-    int stationCount;                        /* contain ScanResultSTA and vice versa */
-};
-typedef struct ScanResultAP ScanResultAP;
-
-struct ScanResultSTA {
-    long long lastSeen;
-    clock_t lastSeenClk;
-    int index;
-    bool selected;
-    uint8_t mac[6];
-    char strMac[18];
-    uint8_t apMac[6];
-    ScanResultAP *ap;
-    int channel;
-};
-typedef struct ScanResultSTA ScanResultSTA;
-
-static ScanResultAP *gravity_aps;
-static ScanResultAP **gravity_selected_aps;
-static ScanResultSTA *gravity_stas;
-static ScanResultSTA **gravity_selected_stas;
 
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);
 esp_err_t gravity_clear_ap();

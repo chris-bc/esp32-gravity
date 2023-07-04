@@ -39,31 +39,16 @@ int cmd_hop(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 
-/*  Globals to track module status information */
-enum {
-    ATTACK_BEACON,
-    ATTACK_PROBE,
-    ATTACK_SNIFF,
-    ATTACK_DEAUTH,
-    ATTACK_MANA,
-    ATTACK_MANA_VERBOSE,
-    ATTACK_MANA_LOUD,
-    ATTACK_AP_DOS,
-    ATTACK_AP_CLONE,
-    ATTACK_SCAN,
-    ATTACK_HANDSHAKE,
-    ATTACK_RANDOMISE_MAC, // True
-    ATTACKS_COUNT
-};
-/* Moving attack_status and hop_defaults off the heap */
-bool *attack_status;
-bool *hop_defaults;
-
 enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_NONE,
     AUTH_TYPE_WEP,
     AUTH_TYPE_WPA
 };
+
+/* Moving attack_status and hop_defaults off the heap */
+bool *attack_status;
+bool *hop_defaults;
+
 uint8_t PRIVACY_OFF_BYTES[] = {0x01, 0x11};
 uint8_t PRIVACY_ON_BYTES[] = {0x11, 0x11};
 
@@ -82,7 +67,7 @@ static bool WIFI_INITIALISED = false;
 static const char *TAG = "GRAVITY";
 static const char *MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
-static const char *DEAUTH_TAG = "deauth@GRAVITY";
+
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 

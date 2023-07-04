@@ -3,22 +3,8 @@
 #include "esp_err.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
+#include "common.h"
 #include "probe.h"
-
-enum {
-    ATTACK_BEACON,
-    ATTACK_PROBE,
-    ATTACK_SNIFF,
-    ATTACK_DEAUTH,
-    ATTACK_MANA,
-    ATTACK_MANA_VERBOSE,
-    ATTACK_AP_DOS,
-    ATTACK_AP_CLONE,
-    ATTACK_SCAN,
-    ATTACK_HANDSHAKE,
-    ATTACK_RANDOMISE_MAC, // True
-    ATTACKS_COUNT
-};
 
 int PROBE_SSID_OFFSET = 26;
 int PROBE_SRCADDR_OFFSET = 10;

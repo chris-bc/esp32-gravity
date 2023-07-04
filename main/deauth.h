@@ -1,7 +1,6 @@
 #include <esp_err.h>
 #include <stdbool.h>
 
-#define DEAUTH_MAC_DEFAULT true
 #define DEAUTH_MILLIS_DEFAULT 0
 
 enum DeauthMode {
@@ -11,5 +10,14 @@ enum DeauthMode {
 };
 typedef enum DeauthMode DeauthMode;
 
-esp_err_t deauth_start(DeauthMode dMode, bool setMAC, long millis);
+enum DeauthMAC {
+    DEAUTH_MAC_FRAME,
+    DEAUTH_MAC_DEVICE,
+    DEAUTH_MAC_SPOOF
+};
+typedef enum DeauthMAC DeauthMAC;
+
+esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis);
 esp_err_t deauth_stop();
+
+extern char *DEAUTH_TAG;

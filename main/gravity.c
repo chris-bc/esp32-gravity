@@ -14,6 +14,7 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "freertos/portmacro.h"
+//#include "common.h"
 #include "probe.h"
 #include "scan.h"
 #include "deauth.h"
@@ -444,15 +445,18 @@ int cmd_sniff(int argc, char **argv) {
 }
 
 int cmd_deauth(int argc, char **argv) {
-    /* Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ] */
+    /* Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ] */
     if (argc > 4 || (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "BROADCAST") &&
             strcasecmp(argv[3], "OFF")) || (argc == 4 && atol(argv[1]) == 0 && atol(argv[2]) == 0) ||
-            (argc == 4 && strcasecmp(argv[1], "setMAC") && strcasecmp(argv[2], "setMAC")) ||
+            (argc == 4 && strcasecmp(argv[1], "FRAME") && strcasecmp(argv[2], "FRAME") &&
+            strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[2], "DEVICE") &&
+            strcasecmp(argv[1], "SPOOF") && strcasecmp(argv[2], "SPOOF")) ||
             (argc == 3 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "BROADCAST") &&
             strcasecmp(argv[2], "OFF")) || (argc == 3 && atol(argv[1]) == 0 &&
-            strcasecmp(argv[1], "setMAC")) || (argc == 2 && strcasecmp(argv[1], "STA") &&
+            strcasecmp(argv[1], "FRAME") && strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
+            (argc == 2 && strcasecmp(argv[1], "STA") &&
             strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGE(TAG, "Invalid arguments. Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ]");
+        ESP_LOGE(TAG, "Invalid arguments. Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ]");
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
@@ -470,7 +474,7 @@ int cmd_deauth(int argc, char **argv) {
 
     /* Extract parameters */
     long delay = DEAUTH_MILLIS_DEFAULT;
-    bool setMAC = DEAUTH_MAC_DEFAULT;
+    DeauthMAC setMAC = DEAUTH_MAC_FRAME;
     DeauthMode dMode = DEAUTH_MODE_OFF;
     switch (argc) {
     case 4:
@@ -486,8 +490,14 @@ int cmd_deauth(int argc, char **argv) {
         if (delay == 0) {
             delay = atol(argv[2]);
         }
-        /* If 4 params are provided, setMAC has to be there*/
-        setMAC = true;
+        /* Retrieve MAC mode */
+        if (!strcasecmp(argv[1], "FRAME") || !strcasecmp(argv[2], "FRAME")) {
+            setMAC = DEAUTH_MAC_FRAME;
+        } else if (!strcasecmp(argv[1], "DEVICE") || !strcasecmp(argv[2], "DEVICE")) {
+            setMAC = DEAUTH_MAC_DEVICE;
+        } else if (!strcasecmp(argv[1], "SPOOF") || !strcasecmp(argv[2], "SPOOF")) {
+            setMAC = DEAUTH_MAC_SPOOF;
+        }
         break;
     case 3:
         if (!strcasecmp(argv[2], "STA")) {
@@ -497,12 +507,16 @@ int cmd_deauth(int argc, char **argv) {
         } else if (!strcasecmp(argv[2], "OFF")) {
             dMode = DEAUTH_MODE_OFF;
         }
-        setMAC = !strcasecmp(argv[1], "setMAC");
         delay = atol(argv[1]); /* If argv[1] contains setMAC then delay will be set to 0 - perfect! */
+        if (!strcasecmp(argv[1], "FRAME")) {
+            setMAC = DEAUTH_MAC_FRAME;
+        } else if (!strcasecmp(argv[1], "DEVICE")) {
+            setMAC = DEAUTH_MAC_DEVICE;
+        } else if (!strcasecmp(argv[1], "SPOOF")) {
+            setMAC = DEAUTH_MAC_SPOOF;
+        }
         break;
     case 2:
-        setMAC = DEAUTH_MAC_DEFAULT;
-        delay = DEAUTH_MILLIS_DEFAULT;
         if (!strcasecmp(argv[1], "STA")) {
             dMode = DEAUTH_MODE_STA;
         } else if (!strcasecmp(argv[1], "BROADCAST")) {
