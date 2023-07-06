@@ -103,7 +103,9 @@ void channelHopCallback(void *pvParameter) {
             if (ch >= MAX_CHANNEL) {
                 ch -= (MAX_CHANNEL - 1);
             }
-            ESP_ERROR_CHECK(esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_ABOVE));
+            if (esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_ABOVE) != ESP_OK) {
+                ESP_LOGW(TAG, "Failed to change to channel %d", ch);
+            }
         }
     }
 }
@@ -924,18 +926,22 @@ int cmd_view(int argc, char **argv) {
 }
 
 int cmd_select(int argc, char **argv) {
-    if (argc != 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: select ( AP | STA ) <elementID>");
+    if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
+        ESP_LOGE(TAG, "Invalid arguments provided. Usage: select ( AP | STA ) <elementID>+");
         return ESP_ERR_INVALID_ARG;
     }
 
     esp_err_t err = ESP_OK;;
     if (!strcasecmp(argv[1], "AP")) {
-        err = gravity_select_ap(atoi(argv[2]));
-        ESP_LOGI(TAG, "AP element %d is %sselected", atoi(argv[2]), (gravity_ap_isSelected(atoi(argv[2])))?"":"not ");
+        for (int i = 2; i < argc; ++i) {
+            err = gravity_select_ap(atoi(argv[i]));
+            ESP_LOGI(TAG, "AP element %d is %sselected", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
+        }
     } else if (!strcasecmp(argv[1], "STA")) {
-        err = gravity_select_sta(atoi(argv[2]));
-        ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[2]), (gravity_sta_isSelected(atoi(argv[2])))?"":"not ");
+        for (int i = 2; i < argc; ++i) {
+            err = gravity_select_sta(atoi(argv[i]));
+            ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
+        }
     }
     return err;
 }

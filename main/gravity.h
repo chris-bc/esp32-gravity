@@ -109,8 +109,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_sniff
     }, {
         .command = "deauth",
-        .hint = "Deauth attack. Usage: deauth [ <millis> ] [ setMAC ] [ STA | BROADCAST | OFF ]",
-        .help = "Arguments:   <millis>: Time to wait between packets.  <useMAC>: Change device's MAC to match the packet sender.  STA: Send deauthentication packets to selected stations.   BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
+        .hint = "Deauth attack. Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ]",
+        .help = "Arguments:   <millis>: Time to wait between packets.  FRAME | DEVICE | SPOOF : Deauth packet is sent with the AP's source address, the device's source address, or the device's MAC is changed to match AP.  STA: Send deauthentication packets to selected stations.   BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
         .func = cmd_deauth
     } , {
         .command = "mana",
@@ -159,8 +159,8 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_view
     }, {
         .command = "select",
-        .hint = "Select an element. Usage: select ( AP | STA ) <elementId>",
-        .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list.",
+        .hint = "Select an element. Usage: select ( AP | STA ) <elementId>+",
+        .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list. Multiple items can be specified separated by spaces.",
         .func = cmd_select
     }, {
         .command = "clear",
