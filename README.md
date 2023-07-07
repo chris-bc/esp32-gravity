@@ -120,7 +120,7 @@ TelstraB20819 BC:30:D9:B2:08:1B
 | Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
 | Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Deauth - Frame Src   |  No Hop   |  Pass   | Pass  |  Pass             |  N/A         |
+| Deauth - Frame Src   |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
 | Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
 | Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |
 |----------------------|-----------|-----------------|-------------------|--------------|
