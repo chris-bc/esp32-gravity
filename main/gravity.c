@@ -652,6 +652,13 @@ int cmd_mana(int argc, char **argv) {
     if (!attack_status[ATTACK_MANA]) {
         args[1] = "off";
         cmd_hop(2, args);
+        /* Clean up networkList */
+        for (int i = 0; i < networkCount; ++i) {
+            if (networkList[i].ssidCount > 0) {
+                free(networkList[i].ssids);
+            }
+        }
+        free(networkList);
     }
     return ESP_OK;
 }
@@ -1003,7 +1010,7 @@ int cmd_handshake(int argc, char **argv) {
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType) {
     uint8_t *probeBuffer;
 
-    #ifdef DEBUG
+    #ifdef DEBUG_VERBOSE
         printf("send_probe_response(): ");
         char strSrcAddr[18];
         char strDestAddr[18];
@@ -1236,7 +1243,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                         #ifdef DEBUG
                             ESP_LOGI(MANA_TAG, "SSID \"%s\" not found in PNL, add it", ssid);
                         #endif
-                        char **newSsids = malloc(sizeof(char *) * (j + 1));
+                        char **newSsids = malloc(sizeof(char *) * (networkList[i].ssidCount + 1));
                         if (newSsids == NULL) {
                             ESP_LOGW(MANA_TAG, "Unable to add SSID \"%s\" to PNL for STA %s", ssid, strDestMac);
                         } else {
