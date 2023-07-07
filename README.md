@@ -120,9 +120,9 @@ TelstraB20819 BC:30:D9:B2:08:1B
 | Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
 | Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Deauth - Frame Src   |  No Hop   |  Fail           |  Pass             |              |
-| Deauth - Device Src  |  Pass     |                 |  Pass             |              |
-| Deauth - Spoof Src   |  N/A      |                 |  Fail - No pkt    |              |
+| Deauth - Frame Src   |  No Hop   |  Pass   | Pass  |  Pass             |  N/A         |
+| Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
+| Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |
 |----------------------|-----------|-----------------|-------------------|--------------|
 | Mana - Open Auth     |           |                 |                   |              |
 | Mana - Open - Loud   |           |                 |                   |              |
@@ -130,9 +130,12 @@ TelstraB20819 BC:30:D9:B2:08:1B
 | Mana - WPA           |           |                 |                   |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
 
-Probe fails after a period:
+*Probe fails after a period:
 probe@GRAVITY: Failed to allocate memory to construct a probe request
 FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
+* Deauth eventually results in "wifi:max connection, deauth!"
+* Deauth spoof sta may freeze on stop (1 or many STA)
+
 
 # Installation notes
 

