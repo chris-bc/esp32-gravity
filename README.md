@@ -114,8 +114,8 @@ TelstraB20819 BC:30:D9:B2:08:1B
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Beacon - Random MAC  |           |                 |                   |              |
-| Beacon - Device MAC  |           |                 |                   |              |
+| Beacon - Random MAC  |  Pass     |    N/A          |     N/A           |   Pass       |
+| Beacon - Device MAC  |  Pass     |    N/A          |     N/A           |   Pass       |
 |----------------------|-----------|-----------------|-------------------|--------------|
 | Probe - Random MAC   |           |                 |                   |              |
 | Probe - Device MAC   |           |                 |                   |              |
