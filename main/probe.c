@@ -125,7 +125,7 @@ void probeCallback(void *pvParameter) {
             memcpy(&probeBuffer[PROBE_SRCADDR_OFFSET], bMac, 6);
         }
 
-        // Use MAC/srcAddr for BSSID - For now at least?
+        // Use MAC/srcAddr for BSSID
         for (addr = 0; addr < 6; ++addr) {
             probeBuffer[PROBE_BSSID_OFFSET + addr] = probeBuffer[PROBE_SRCADDR_OFFSET + addr];
         }
@@ -142,6 +142,7 @@ void probeCallback(void *pvParameter) {
         if (ssid_idx >= user_ssid_count) {
             ssid_idx = 0;
         }
+        free(probeBuffer);
     }
 }
 
@@ -158,21 +159,9 @@ int probe_stop() {
     return ESP_OK;
 }
 
-int probe_start(probe_attack_t type, bool *stats) {
-    char strType[25];
+int probe_start(probe_attack_t type) {
     srand(time(NULL));
 
-    switch (type) {
-    case ATTACK_PROBE_UNDIRECTED:
-        strcpy(strType, "ATTACK_PROBE_UNDIRECTED");
-        break;
-    case ATTACK_PROBE_DIRECTED:
-        strcpy(strType, "ATTACK_PROBE_DIRECTED");
-        break;
-    case ATTACK_PROBE_NONE:
-        ESP_LOGW(PROBE_TAG, "GRAVITY: Starting an attack of type ATTACK_PROBE_NONE doesn't do very much...");
-        return ESP_ERR_INVALID_ARG;
-    }
     // Stop the existing probe attack if there is one
     if (attackType != ATTACK_PROBE_NONE) {
         ESP_LOGI(PROBE_TAG, "Halting existing %sdirected probe...", (attackType==ATTACK_PROBE_UNDIRECTED)?"un-":"");

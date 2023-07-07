@@ -389,6 +389,9 @@ int cmd_probe(int argc, char **argv) {
         ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
     } else if (!strcasecmp(argv[1], "OFF")) {
         ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
+        /* Stop channel hopping */
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
         probe_stop();
     } else {
         // Gather parameters for probe_start()
@@ -405,7 +408,7 @@ int cmd_probe(int argc, char **argv) {
         }
 
         ESP_LOGI(PROBE_TAG, "%s", probeNote);
-        probe_start(probeType, attack_status);
+        probe_start(probeType);
     }
 
     // Set attack_status[ATTACK_PROBE]

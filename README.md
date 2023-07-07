@@ -12,7 +12,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
-* **DONE** CCommand line interface with commands:
+* **DONE** Command line interface with commands:
     * **DONE** scan [ ON | OFF ]
       * **NOT DOING**Scan APs - Fast (API)
       * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
@@ -59,16 +59,13 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
-* Probe fails after a period:
-probe@GRAVITY: Failed to allocate memory to construct a probe request
-FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
 * Deauth eventually results in "wifi:max connection, deauth!"
 * Deauth spoof sta may freeze on stop (1 or many STA)
 * view sta/ap glitches - maybe due to hidden SSIDs?
 * Fix buffer overflow bug in parseChannel()
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
-* STA channel issues - type/base conversion??
+* STA channel issues - can't set channel >= 10 - type/base conversion??
 * Display STA's AP
 * Display STA vs. AP
 
@@ -78,8 +75,8 @@ FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
 |----------------------|-----------|-----------------|-------------------|--------------|
 | Beacon - Random MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
 | Beacon - Device MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
-| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
-| Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
+| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Pass        |
+| Probe - Device MAC   |  Pass     |  N/A            |  N/A              |  Pass        |
 | Deauth - Frame Src   |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
 | Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
 | Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |

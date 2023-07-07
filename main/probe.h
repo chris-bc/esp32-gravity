@@ -29,7 +29,7 @@ extern bool *hop_defaults;
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 int probe_stop();
-int probe_start(probe_attack_t type, bool *stats);
+int probe_start(probe_attack_t type);
 
 /* extern functions - defined in gravity.c */
 int addSsid(char *ssid);
