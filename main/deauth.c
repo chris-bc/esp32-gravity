@@ -66,7 +66,7 @@ void deauthLoop(void *pvParameter) {
                 /* Use gravity_selected_sta as targetSTA */
                 targetSTA = gravity_selected_stas;
                 targetCount = gravity_sel_sta_count;
-                #ifdef DEBUG
+                #ifdef DEBUG_VERBOSE
                     printf("DEAUTH STA mode. targetCount %d", targetCount);
                     for (int z=0; z<targetCount; ++z) {
                         printf(" targetSTA[%d] %02x:%02x:%02x:%02x:%02x:%02x",z,targetSTA[z]->mac[0],targetSTA[z]->mac[1],targetSTA[z]->mac[2],targetSTA[z]->mac[3],targetSTA[z]->mac[4],targetSTA[z]->mac[5]);
@@ -112,7 +112,9 @@ void deauthLoop(void *pvParameter) {
                             ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
                         }
                     } else {
-                        printf("No AP info, not changing SRC\n");
+                        #ifdef DEBUG_VERBOSE
+                            printf("No AP info, not changing SRC\n");
+                        #endif
                     }
                     break;
                 default:
@@ -120,7 +122,7 @@ void deauthLoop(void *pvParameter) {
                     continue;
             }
             /* Set destination */
-            #ifdef DEBUG
+            #ifdef DEBUG_VERBOSE
                 printf("Destination %s\n",targetSTA[i]->strMac);
             #endif
             memcpy(&deauth_pkt[DEAUTH_DEST_OFFSET], targetSTA[i]->mac, 6);

@@ -538,6 +538,12 @@ int cmd_deauth(int argc, char **argv) {
     default:
         /* Unreachable */
     }
+    /* Disable channel hopping if we're stopping */
+    if (dMode == DEAUTH_MODE_OFF) {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
+    attack_status[ATTACK_DEAUTH] = (dMode != DEAUTH_MODE_OFF);
     return deauth_start(dMode, setMAC, delay);
 }
 

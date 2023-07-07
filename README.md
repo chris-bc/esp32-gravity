@@ -59,8 +59,8 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
-* Deauth eventually results in "wifi:max connection, deauth!"
 * Deauth spoof sta may freeze on stop (1 or many STA)
+  * Now it doesn't send any packets
 * view sta/ap glitches - maybe due to hidden SSIDs?
 * Fix buffer overflow bug in parseChannel()
 * figure out RSSI
