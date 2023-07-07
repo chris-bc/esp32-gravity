@@ -59,9 +59,8 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
-* Deauth spoof sta may freeze on stop (1 or many STA)
-  * Now it doesn't send any packets
-* view sta/ap glitches - maybe due to hidden SSIDs?
+* Occasional crash after scan off
+* STA channels not recorded
 * Fix buffer overflow bug in parseChannel()
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)

