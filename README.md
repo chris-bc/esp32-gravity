@@ -6,75 +6,91 @@
 This project contains an evolving collection of wireless utilities for use on the ESP32-C6.
 Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into BLE and 802.15.4 (ZigBee).
 
-## Feature List
+# Feature List
 
 * **DONE** Soft AP
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
-* **DONE** Implement console component with commands:
+* **DONE** CCommand line interface with commands:
+    * **DONE** scan [ ON | OFF ]
+      * **NOT DOING**Scan APs - Fast (API)
+      * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
+      * **DONE**Commands to select/view/remove APs/STAs in scope
+      * **DONE** Scan STAs - Only include clients of selected AP(s), or all 
+      * TODO: additional option to show hidden SSIDs
+      * **DONE** Fix bug with hidden SSIDs being included in network scan and getting garbled names
+      * **DONE** Update client count when new STAs are found
+      * **DONE** Format timestamps for display
+    * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
+      * **DONE** Options to get/set MAC hopping between frames
+    * **DONE**view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
+    * **DONE**select: select ( SSID | STA ) <specifier>+ - Select/deselect targets for the included tools.
+    * handshake
     * **DONE** beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
+      * **DONE** Beacon spam - Rickroll
+      * **DONE** Beacon spam - User-specified SSIDs
+      * **DONE** Beacon spam - Fuzzing (Random strings)
+      * **DONE** Beacon spam - Infinite (Random strings)
     * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * **DONE** deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * **DONE** mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
       verbose output, and set the authentication type it indicates. If not specified returns the current status. 
+      * **DONE** Mana attack - Respond to all probes
+      * **DONE** Loud Mana - Respond with SSIDs from all STAs
     * stalk
+      * Homing attack (Focus on RSSI for selected STA(s) or AP)
     * ap-dos
+      * DOS AP
+      * Use target's MAC
+      * Respond to frames directed at AP with a deauth packet
     * ap-clone
+      * Clone AP
+      * Use target's MAC
+      * Respond to probe requests with forged beacon frames
+      * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
+      * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
     * CLI commands to analyse captured data - stations(ap), ap(station), stations/aps(channel), etc
-    * **DONE** CLI - Specify any number of elements with select
-    * **DONE** scan [ ON | OFF ]
-    * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
-    * **DONE**view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
-    * **DONE**select: select ( SSID | STA ) <specifier> - Select/deselect targets for the included tools.
-    * handshake
-* **DONE** Beacon spam - Rickroll
-* **DONE** Beacon spam - User-specified SSIDs
-* **DONE** Beacon spam - Fuzzing (Random strings)
-* **DONE** Beacon spam - Infinite (Random strings)
 * **ONGOING** Receive and parse 802.11 frames
-* **DONE** Commands to Get/Set channel, hopping mode, MAC, etc.
-* **DONE** commands to get/set local clock time :( ... or go back to millis since launch (clock())?
-* **NOT DOING**Scan APs - Fast (API)
-* **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
-* **DONE**Commands to select/view/remove APs/STAs in scope
-* **DONE** Scan STAs - Only include clients of selected AP(s), or all 
-  * TODO: additional option to show hidden SSIDs
-  * **DONE** Fix bug with hidden SSIDs being included in network scan and getting garbled names
-  * **DONE** Update client count when new STAs are found
-  * **DONE** Format timestamps for display
-* Fix buffer overflow bug in parseChannel()
-* **DONE** Probe Flood - broadcast/specific
-* **DONE** Deauth - broadcast/specific
-* **DONE** Mana attack - Respond to all probes
-* **DONE** Loud Mana - Respond with SSIDs from all STAs
-* **DONE** Options to get/set MAC hopping between frames
-* Homing attack (Focus on RSSI for selected STA(s) or AP)
 * Capture authentication frames for cracking
-* DOS AP
-    * Use target's MAC
-    * Respond to frames directed at AP with a deauth packet
-* Clone AP
-    * Use target's MAC
-    * Respond to probe requests with forged beacon frames
-    * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
-    * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
 * Scan 802.15.1 (BLE/BT) devices and types
 * Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
 
-## Migration notes
+## Bugs / Todo
 
-#define ATTACK_BEACON 0
-#define ATTACK_PROBE 1
-#define ATTACK_DEAUTH 2
-#define ATTACK_MANA 3
-#define ATTACK_AP_DOS 4
-#define ATTACK_AP_CLONE 5
-#define ATTACK_SCAN 6
-#define ATTACK_HANDSHAKE 7
+* Probe fails after a period:
+probe@GRAVITY: Failed to allocate memory to construct a probe request
+FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
+* Deauth eventually results in "wifi:max connection, deauth!"
+* Deauth spoof sta may freeze on stop (1 or many STA)
+* view sta/ap glitches - maybe due to hidden SSIDs?
+* Fix buffer overflow bug in parseChannel()
+* figure out RSSI
+* get/set scan result expiry (lastSeen + x seconds)
+* STA channel issues - type/base conversion??
+* Display STA's AP
+* Display STA vs. AP
 
-## Scanning implementation
+## Testing / Packet verification
+
+| Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
+|----------------------|-----------|-----------------|-------------------|--------------|
+| Beacon - Random MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
+| Beacon - Device MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
+| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
+| Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
+| Deauth - Frame Src   |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
+| Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
+| Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |
+| Mana - Open Auth     |           |                 |                   |              |
+| Mana - Open - Loud   |           |                 |                   |              |
+| Mana - WEP           |           |                 |                   |              |
+| Mana - WPA           |           |                 |                   |              |
+|----------------------|-----------|-----------------|-------------------|--------------|
+
+
+## Packet types
 
 802.11 type/subtypes
 0x40 Probe request
@@ -98,43 +114,7 @@ BSSID 10
 
 STA 431:83:40:14:00:00
 
-
-# TODO
-
-* figure out RSSI
-* get/set scan result expiry (lastSeen + x seconds)
-* STA channel issues - type/base conversion??
-* Display STA's AP
-* Display STA vs. AP
-* view sta/ap glitches - maybe due to hidden SSIDs?
-
 TelstraB20819 BC:30:D9:B2:08:1B
-
-# Packet verification
-
-| Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
-|----------------------|-----------|-----------------|-------------------|--------------|
-| Beacon - Random MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
-| Beacon - Device MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
-|----------------------|-----------|-----------------|-------------------|--------------|
-| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
-| Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
-|----------------------|-----------|-----------------|-------------------|--------------|
-| Deauth - Frame Src   |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
-| Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
-| Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |
-|----------------------|-----------|-----------------|-------------------|--------------|
-| Mana - Open Auth     |           |                 |                   |              |
-| Mana - Open - Loud   |           |                 |                   |              |
-| Mana - WEP           |           |                 |                   |              |
-| Mana - WPA           |           |                 |                   |              |
-|----------------------|-----------|-----------------|-------------------|--------------|
-
-*Probe fails after a period:
-probe@GRAVITY: Failed to allocate memory to construct a probe request
-FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
-* Deauth eventually results in "wifi:max connection, deauth!"
-* Deauth spoof sta may freeze on stop (1 or many STA)
 
 
 # Installation notes
