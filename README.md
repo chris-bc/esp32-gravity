@@ -114,11 +114,11 @@ TelstraB20819 BC:30:D9:B2:08:1B
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Beacon - Random MAC  |  Pass     |    N/A          |     N/A           |   Pass       |
-| Beacon - Device MAC  |  Pass     |    N/A          |     N/A           |   Pass       |
+| Beacon - Random MAC  |  Pass     |    N/A          |     N/A           |  Pass        |
+| Beacon - Device MAC  |  Pass     |    N/A          |     N/A           |  Pass        |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Probe - Random MAC   |           |                 |                   |              |
-| Probe - Device MAC   |           |                 |                   |              |
+| Probe - Random MAC   |  Pass     |                 |                   |  Single Pkt  |
+| Probe - Device MAC   |  Hops     |                 |                   |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
 | Deauth - Random MAC  |           |                 |                   |              |
 | Deauth - AP MAC      |           |                 |                   |              |
@@ -130,6 +130,9 @@ TelstraB20819 BC:30:D9:B2:08:1B
 | Mana - WPA           |           |                 |                   |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
 
+Probe fails after a period:
+probe@GRAVITY: Failed to allocate memory to construct a probe request
+FreeRTOS: FreeRTOS Task "probeCallback" should not return, Aborting now!
 
 # Installation notes
 
