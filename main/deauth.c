@@ -41,9 +41,14 @@ void deauthLoop(void *pvParameter) {
         switch (mode) {
             case DEAUTH_MODE_BROADCAST:
                 /* Put a single object in targetSTA representing broadcast */
-                targetSTA = malloc(sizeof(ScanResultSTA));
+                targetSTA = malloc(sizeof(ScanResultSTA *));
                 if (targetSTA == NULL) {
                     ESP_LOGE(DEAUTH_TAG, "Failed to allocate memory to model a broadcast station");
+                    continue;
+                }
+                targetSTA[0] = malloc(sizeof(ScanResultSTA));
+                if (targetSTA[0] == NULL) {
+                    ESP_LOGE(DEAUTH_TAG, "Failed to allocate memory to hold model broadcast station");
                     continue;
                 }
                 targetCount = 1;
@@ -114,6 +119,7 @@ void deauthLoop(void *pvParameter) {
         // post-loop
 
         if (mode == DEAUTH_MODE_BROADCAST) {
+            free(targetSTA[0]);
             free(targetSTA);
         }
     }

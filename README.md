@@ -114,15 +114,15 @@ TelstraB20819 BC:30:D9:B2:08:1B
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Beacon - Random MAC  |  Pass     |    N/A          |     N/A           |  Pass        |
-| Beacon - Device MAC  |  Pass     |    N/A          |     N/A           |  Pass        |
+| Beacon - Random MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
+| Beacon - Device MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Probe - Random MAC   |  Pass     |                 |                   |  Single Pkt  |
-| Probe - Device MAC   |  Hops     |                 |                   |              |
+| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Single Pkt  |
+| Probe - Device MAC   |  Hops     |  N/A            |  N/A              |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
-| Deauth - Random MAC  |           |                 |                   |              |
-| Deauth - AP MAC      |           |                 |                   |              |
-| Deauth - Default MAC |           |                 |                   |              |
+| Deauth - Frame Src   |  No Hop   |  Fail           |  Pass             |              |
+| Deauth - Device Src  |  Pass     |                 |  Pass             |              |
+| Deauth - Spoof Src   |  N/A      |                 |  Fail - No pkt    |              |
 |----------------------|-----------|-----------------|-------------------|--------------|
 | Mana - Open Auth     |           |                 |                   |              |
 | Mana - Open - Loud   |           |                 |                   |              |
