@@ -84,7 +84,13 @@ int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
     return 0;
 }
 
-/* Channel hopping task - Called every hop_millis milliseconds (maybe) */
+bool arrayContainsString(char **arr, int arrCnt, char *str) {
+    int i;
+    for (i=0; i < arrCnt && strcmp(arr[i], str); ++i) { }
+    return (i != arrCnt);
+}
+
+/* Channel hopping task  */
 void channelHopCallback(void *pvParameter) {
     uint8_t ch;
     wifi_second_chan_t sec;
@@ -641,6 +647,12 @@ int cmd_mana(int argc, char **argv) {
         ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
         return ESP_ERR_INVALID_ARG;
     }
+
+    /* Disable channel hopping if we enabled it */
+    if (!attack_status[ATTACK_MANA]) {
+        args[1] = "off";
+        cmd_hop(2, args);
+    }
     return ESP_OK;
 }
 
@@ -989,9 +1001,9 @@ int cmd_handshake(int argc, char **argv) {
 }
 
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType) {
-    uint8_t probeBuffer[208];
+    uint8_t *probeBuffer;
 
-    #ifdef DEBUG_VERBOSE
+    #ifdef DEBUG
         printf("send_probe_response(): ");
         char strSrcAddr[18];
         char strDestAddr[18];
@@ -1012,11 +1024,17 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
         printf("srcAddr: %s\tdestAddr: %s\tSSID: \"%s\"\tauthType: %s\n", strSrcAddr, strDestAddr, ssid, strAuthType);
     #endif
 
+    probeBuffer = malloc(sizeof(uint8_t) * 208);
+    if (probeBuffer == NULL) {
+        ESP_LOGE(MANA_TAG, "Failed to register probeBuffer on the stack");
+        return ESP_ERR_NO_MEM;
+    }
     /* Copy bytes to SSID (correct src/dest later) */
     memcpy(probeBuffer, probe_response_raw, PROBE_RESPONSE_SSID_OFFSET - 1);
     /* Replace SSID length and append SSID */
     probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1] = strlen(ssid);
-    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
+    //memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
+    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, sizeof(char) * strlen(ssid));
     /* Append the remainder of the packet */
     memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET + strlen(ssid)], &probe_response_raw[PROBE_RESPONSE_SSID_OFFSET], sizeof(probe_response_raw) - PROBE_RESPONSE_SSID_OFFSET);
     
@@ -1046,7 +1064,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     }
     memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
 
-    #ifdef DEBUG_VERBOSE
+    #ifdef DEBUG
         char debugOut[1024];
         int debugLen=0;
         strcpy(debugOut, "SSID: \"");
@@ -1076,7 +1094,9 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     #endif
 
     // Send the frame
-    return esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_response_raw) + strlen(ssid), true);
+    esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_response_raw) + strlen(ssid), false);
+    free(probeBuffer);
+    return e;
 }
 
 /* Monitor mode callback
@@ -1161,17 +1181,38 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                    I settled on the latter, but with flawed reasoning.
                    TODO: Refactor the below to send a maximum of one probe response for each AP
                 */
+                /* Update to Mana Loud - Do NOT send duplicate packets where many STAs know an AP */
+                int loudSSIDCount = 0;
+                char **loudSSIDs = NULL;
                 int i;
                 for (i = 0; i < networkCount; ++i) {
                     if (!strcasecmp(strDestMac, networkList[i].strMac) || attack_status[ATTACK_MANA_LOUD]) {
                     /* Cycle through networkList[i]'s SSIDs */
                         for (int j=0; j < networkList[i].ssidCount; ++j) {
-                            #ifdef DEBUG
-                                ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
-                            #endif
-                            send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
+                            if (!arrayContainsString(loudSSIDs, loudSSIDCount, networkList[i].ssids[j])) {
+                                /* Add it */
+                                char **newLoud = malloc(sizeof(char *) * (loudSSIDCount + 1));
+                                if (newLoud == NULL) {
+                                    ESP_LOGE(MANA_TAG, "Failed to realloc space for used Mana Loud SSIDs");
+                                }
+                                for (int k = 0; k < loudSSIDCount; ++k) {
+                                    newLoud[k] = loudSSIDs[k];
+                                }
+                                if (loudSSIDCount > 0) {
+                                    free(loudSSIDs);
+                                    loudSSIDs = newLoud;
+                                    ++loudSSIDCount;
+                                }
+                                #ifdef DEBUG
+                                    ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
+                                #endif
+                                send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
+                            }
                         }
                     }
+                }
+                if (loudSSIDCount > 0) {
+                    free(loudSSIDs);
                 }
             } else {
                 /* Directed probe request - Send a directed probe response in reply */
