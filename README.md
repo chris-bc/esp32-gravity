@@ -101,7 +101,6 @@ STA 431:83:40:14:00:00
 
 # TODO
 
-* Mana-Loud
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
 * STA channel issues - type/base conversion??
@@ -110,6 +109,27 @@ STA 431:83:40:14:00:00
 * view sta/ap glitches - maybe due to hidden SSIDs?
 
 TelstraB20819 BC:30:D9:B2:08:1B
+
+# Packet verification
+
+| Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
+|----------------------|-----------|-----------------|-------------------|--------------|
+| Beacon - Random MAC  |           |                 |                   |              |
+| Beacon - Device MAC  |           |                 |                   |              |
+|----------------------|-----------|-----------------|-------------------|--------------|
+| Probe - Random MAC   |           |                 |                   |              |
+| Probe - Device MAC   |           |                 |                   |              |
+|----------------------|-----------|-----------------|-------------------|--------------|
+| Deauth - Random MAC  |           |                 |                   |              |
+| Deauth - AP MAC      |           |                 |                   |              |
+| Deauth - Default MAC |           |                 |                   |              |
+|----------------------|-----------|-----------------|-------------------|--------------|
+| Mana - Open Auth     |           |                 |                   |              |
+| Mana - Open - Loud   |           |                 |                   |              |
+| Mana - WEP           |           |                 |                   |              |
+| Mana - WPA           |           |                 |                   |              |
+|----------------------|-----------|-----------------|-------------------|--------------|
+
 
 # Installation notes
 
