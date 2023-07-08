@@ -13,6 +13,8 @@
 #include "cmd_system.h"
 #include "cmd_wifi.h"
 #include "cmd_nvs.h"
+#include <stdlib.h>
+#include <stdint.h>
 
 /* Enable verbose debug outputs */
 #define DEBUG
@@ -114,7 +116,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_deauth
     } , {
         .command = "mana",
-        .hint = "Mana attack. Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )",
+        .hint = "Mana attack. Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )",
         .help = "Call without arguments to obtain the current status of the module.  Including the verbose keyword will enable or disable verbose logging as the attack progresses.  Default authentication type is NONE.  The Mana attack is a way to 'trick' stations into connecting to a rogue access point. With Mana enabled the AP will respond to all directed probe requests, impersonating any SSID a STA is searching for. If the STA expects any of these SSIDs to have open (i.e. no) authentication the STA will then establish a connection with the AP. The only criterion for vulnerability is that the station has at least one open/unsecured SSID saved in its WiFi history.",
         .func = cmd_mana
     }, {

