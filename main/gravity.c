@@ -206,7 +206,7 @@ int rmSsid(char *ssid) {
 */
 int cmd_hop(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(HOP_TAG, "Incorrect arguments specified. Usage: hop [ MILLIS ] [ ON | OFF | KILL ]");
+        ESP_LOGE(HOP_TAG, "%s", USAGE_HOP);
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
@@ -377,7 +377,7 @@ int cmd_target_ssids(int argc, char **argv) {
 int cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGW(PROBE_TAG, "Syntax: PROBE [ ANY | SSIDS | OFF ].  SSIDS uses the target-ssids specification.");
+        ESP_LOGW(PROBE_TAG, "%s", USAGE_PROBE);
         return ESP_ERR_INVALID_ARG;
     }
     /* Start hopping task loop if hopping is on by default */
@@ -431,7 +431,7 @@ int cmd_probe(int argc, char **argv) {
 int cmd_sniff(int argc, char **argv) {
     // Usage: sniff [ ON | OFF ]
     if (argc > 2) {
-        ESP_LOGE(TAG, "Usage: sniff [ ON | OFF ]");
+        ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         return ESP_ERR_INVALID_ARG;
     }
     /* Start hopping task loop if hopping is on by default */
@@ -453,7 +453,7 @@ int cmd_sniff(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "off")) {
         attack_status[ATTACK_SNIFF] = false;
     } else {
-        ESP_LOGE(TAG, "Usage: sniff [ ON | OFF ]");
+        ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -472,7 +472,7 @@ int cmd_deauth(int argc, char **argv) {
             strcasecmp(argv[1], "FRAME") && strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
             (argc == 2 && strcasecmp(argv[1], "STA") &&
             strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGE(TAG, "Invalid arguments. Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ]");
+        ESP_LOGE(TAG, "%s", USAGE_DEAUTH);
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
@@ -581,7 +581,7 @@ int cmd_deauth(int argc, char **argv) {
  */
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+        ESP_LOGE(TAG, "%s", USAGE_MANA);
         return ESP_ERR_INVALID_ARG;
     }
     /* Start hopping task loop if hopping is on by default */
@@ -601,7 +601,7 @@ int cmd_mana(int argc, char **argv) {
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
@@ -621,7 +621,7 @@ int cmd_mana(int argc, char **argv) {
                 mana_auth = AUTH_TYPE_WPA;
             }
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "LOUD")) {
@@ -640,7 +640,7 @@ int cmd_mana(int argc, char **argv) {
                 cmd_mana(2, manaArgs);
             }
         } else {
-            ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "clear")) {
@@ -652,7 +652,7 @@ int cmd_mana(int argc, char **argv) {
         }
         free(networkList);
     } else {
-        ESP_LOGE(MANA_TAG, "Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )");
+        ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -699,7 +699,7 @@ int cmd_scan(int argc, char **argv) {
     if (argc > 3 || (argc == 3 && strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF")) ||
             (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
             (argc == 3 && strlen(argv[1]) > 32)) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: scan [ <ssid> ] [ ON | OFF ]");
+        ESP_LOGE(TAG, "%s", USAGE_SCAN);
         return ESP_ERR_INVALID_ARG;
     }
     /* Start hopping task loop if hopping is on by default */
@@ -769,7 +769,7 @@ int cmd_scan(int argc, char **argv) {
       MAC, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: set <variable> <value>");
+        ESP_LOGE(TAG, "%s", USAGE_SET);
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
         ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
@@ -846,7 +846,7 @@ int cmd_set(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
         ESP_LOGI(TAG, "This command has not been implemented.");
     } else {
-        ESP_LOGE(TAG, "Invalid variable specified. Usage: set <variable> <value>");
+        ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
         ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
         return ESP_ERR_INVALID_ARG;
@@ -862,7 +862,7 @@ int cmd_set(int argc, char **argv) {
       MAC, ATTACK_PKTS, ATTACK_MILLIS */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
-        ESP_LOGE(TAG, "Usage: get <variable>");
+        ESP_LOGE(TAG, "%s", USAGE_GET);
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
         ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         return ESP_ERR_INVALID_ARG;
@@ -923,7 +923,7 @@ int cmd_get(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
         //
     } else {
-        ESP_LOGE(TAG, "Invalid variable specified. Usage: get <variable>");
+        ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
         ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
         ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
         return ESP_ERR_INVALID_ARG;
@@ -934,7 +934,7 @@ int cmd_get(int argc, char **argv) {
 
 int cmd_view(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: view ( AP | STA )*");
+        ESP_LOGE(TAG, "%s", USAGE_VIEW);
         return ESP_ERR_INVALID_ARG;
     }
     bool success = true;
@@ -944,7 +944,7 @@ int cmd_view(int argc, char **argv) {
         } else if (!strcasecmp(argv[i], "STA")) {
             success = (success && gravity_list_sta() == ESP_OK);
         } else {
-            ESP_LOGE(TAG, "Invalid argument %d. Usage: view ( AP | STA )*", i);
+            ESP_LOGE(TAG, "%s", USAGE_VIEW);
             return ESP_ERR_INVALID_ARG;
         }
     }
@@ -956,7 +956,7 @@ int cmd_view(int argc, char **argv) {
 
 int cmd_select(int argc, char **argv) {
     if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
-        ESP_LOGE(TAG, "Invalid arguments provided. Usage: select ( AP | STA ) <elementID>+");
+        ESP_LOGE(TAG, "%s", USAGE_SELECT);
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -977,12 +977,12 @@ int cmd_select(int argc, char **argv) {
 
 int cmd_clear(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
-        ESP_LOGE(TAG, "Invalid arguments. Usage: clear ( AP | STA | ALL )");
+        ESP_LOGE(TAG, "%s", USAGE_CLEAR);
         return ESP_ERR_INVALID_ARG;
     }
     for (int i=1; i < argc; ++i) {
         if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL")) {
-            ESP_LOGE(TAG, "Invalid arguments. Usage: clear ( AP | STA | ALL )");
+            ESP_LOGE(TAG, "%s", USAGE_CLEAR);
             return ESP_ERR_INVALID_ARG;
         }
         if (!(strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "ALL"))) {

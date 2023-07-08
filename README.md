@@ -59,7 +59,7 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
-* DRY - Define usage strings once
+* Set hop interval and on ignores interval
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
