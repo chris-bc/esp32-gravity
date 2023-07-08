@@ -42,6 +42,9 @@ static uint8_t beacon_raw[] = {
 	
 };
 
+char *currentSsid = NULL;
+int currentSsidLen = 0;
+
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;
 
@@ -55,9 +58,6 @@ void beaconSpam(void *pvParameter) {
 		seqnum[i] = 0;
 	}
 
-	char *currentSsid = NULL;
-	int currentSsidLen = 0;
-
 	for (;;) {
 		if (attackType != ATTACK_BEACON_INFINITE) {
 			vTaskDelay(100 / SSID_COUNT / portTICK_PERIOD_MS);
@@ -67,6 +67,9 @@ void beaconSpam(void *pvParameter) {
 		// Pull the current SSID and SSID length into variables to more
 		//   easily implement infinite beacon spam
 		if (attackType == ATTACK_BEACON_INFINITE) {
+			if (currentSsid != NULL) {
+				free(currentSsid);
+			}
 			currentSsid = generate_random_ssid();
 			currentSsidLen = strlen(currentSsid);
 		} else {
@@ -149,7 +152,15 @@ int beacon_stop() {
 		vTaskDelete(beaconTask);
 		beaconTask = NULL;
 	}
+
+	/* Clean up generated SSIDs */
+	if (attackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
+		free(currentSsid);
+	} else if (attackType == ATTACK_BEACON_RANDOM) {
+		free(attack_ssids);
+	}
 	attackType = ATTACK_BEACON_NONE;
+
     return ESP_OK;
 }
 

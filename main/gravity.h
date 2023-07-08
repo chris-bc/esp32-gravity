@@ -16,9 +16,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-/* Enable verbose debug outputs */
-#define DEBUG
-
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);

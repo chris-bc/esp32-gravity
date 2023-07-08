@@ -1,6 +1,9 @@
 #include <stdbool.h>
 #include <esp_wifi.h>
 
+/* Enable verbose debug outputs */
+#define DEBUG
+
 /*  Globals to track module status information */
 enum AttackMode {
     ATTACK_BEACON,

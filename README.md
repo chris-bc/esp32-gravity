@@ -61,9 +61,9 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 * DRY - Define usage strings once
 * Mana "Scream" - Broadcast known APs
-* Occasional crash after scan off
+* Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
-* Fix buffer overflow bug in parseChannel()
+* Fix buffer overflow bug in parseChannel() (still present?)
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
 * STA channel issues - can't set channel >= 10 - type/base conversion??

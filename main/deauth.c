@@ -10,8 +10,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-#define DEBUG
-
 // ========== DEAUTH PACKET ========== //
 uint8_t deauth_pkt[26] = {
     /*  0 - 1  */ 0xC0, 0x00,                         // Type, subtype: c0 => deauth, a0 => disassociate
