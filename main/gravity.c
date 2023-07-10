@@ -93,8 +93,14 @@ bool isHopEnabledByDefault() {
        with hopping enabled is found
     */
     for (; i < ATTACKS_COUNT && (!attack_status[i] || !hop_defaults[i]); ++i) { }
-    
     return (i < ATTACKS_COUNT);
+}
+
+/* Evaluate whether channel hopping is enabled, using the combination of
+   hopStatus and isHopEnabledByDefault()
+*/
+bool isHopEnabled() {
+    return (hopStatus == HOP_STATUS_ON || (hopStatus == HOP_STATUS_DEFAULT && isHopEnabledByDefault()));
 }
 
 /* Calculate the default dwell time (hop_millis) based on the features that are currently active */
@@ -328,9 +334,19 @@ int cmd_beacon(int argc, char **argv) {
         ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
         return ESP_OK;
     }
-    /* Start hopping task loop if hopping is on by default */
+
+    int ret = ESP_OK;
+    // Update attack_status[ATTACK_BEACON] appropriately
+    if (!strcasecmp(argv[1], "off")) {
+        attack_status[ATTACK_BEACON] = false;
+    } else {
+        attack_status[ATTACK_BEACON] = true;
+    }
+    hop_enabled = isHopEnabled();
+
+    /* Start/stop hopping task loop as needed */
     char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_BEACON]) {
+    if (hop_enabled) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -338,7 +354,6 @@ int cmd_beacon(int argc, char **argv) {
     }
 
     /* Handle arguments to beacon */
-    int ret = ESP_OK;
     int ssidCount = DEFAULT_SSID_COUNT;
     if (!strcasecmp(argv[1], "rickroll")) {
         ret = beacon_start(ATTACK_BEACON_RICKROLL, 0);
@@ -366,20 +381,10 @@ int cmd_beacon(int argc, char **argv) {
         ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
         return ESP_ERR_INVALID_ARG;
     }
-
-    // Update attack_status[ATTACK_BEACON] appropriately
-    if (ret == ESP_OK) {
-        if (!strcasecmp(argv[1], "off")) {
-            attack_status[ATTACK_BEACON] = false;
-        } else {
-            attack_status[ATTACK_BEACON] = true;
-        }
-        /* Set channel hopping based on defined defaults */
-        hop_enabled = (hopStatus == HOP_STATUS_ON || (hopStatus == HOP_STATUS_DEFAULT && hop_defaults[ATTACK_BEACON]));
-    }
     return ret;
 }
 
+/* This feature does not modify channel hopping settings */
 int cmd_target_ssids(int argc, char **argv) {
     int ssidCount = countSsid();
     // Must have no args (return current value) or two (add/remove SSID)
@@ -424,14 +429,24 @@ int cmd_target_ssids(int argc, char **argv) {
 }
 
 int cmd_probe(int argc, char **argv) {
-    // Syntax: PROBE [ ANY [ COUNT ] | SSIDS [ COUNT ] | OFF ]
+    // Syntax: PROBE [ ANY | SSIDS | OFF ]
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         ESP_LOGW(PROBE_TAG, "%s", USAGE_PROBE);
         return ESP_ERR_INVALID_ARG;
     }
+
+    if (argc == 1) {
+        ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
+        return ESP_OK;
+    }
+
+    /* Set attack_status[ATTACK_PROBE] before checking channel hopping or starting/stopping */
+    attack_status[ATTACK_PROBE] = !strcasecmp(argv[1], "OFF");
+    hop_enabled = isHopEnabled();
+
     /* Start hopping task loop if hopping is on by default */
     char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_PROBE]) {
+    if (hop_enabled) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -440,13 +455,8 @@ int cmd_probe(int argc, char **argv) {
 
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
 
-    if (argc == 1) {
-        ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
-    } else if (!strcasecmp(argv[1], "OFF")) {
+    if (!strcasecmp(argv[1], "OFF")) {
         ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
-        /* Stop channel hopping */
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
         probe_stop();
     } else {
         // Gather parameters for probe_start()
@@ -465,15 +475,6 @@ int cmd_probe(int argc, char **argv) {
         ESP_LOGI(PROBE_TAG, "%s", probeNote);
         probe_start(probeType);
     }
-
-    // Set attack_status[ATTACK_PROBE]
-    if (argc > 1) {
-        if (!strcasecmp(argv[1], "off")) {
-            attack_status[ATTACK_PROBE] = false;
-        } else {
-            attack_status[ATTACK_PROBE] = true;
-        }
-    }
     return ESP_OK;
 }
 
@@ -483,20 +484,12 @@ int cmd_sniff(int argc, char **argv) {
         ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         return ESP_ERR_INVALID_ARG;
     }
-    /* Start hopping task loop if hopping is on by default */
-    char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_SNIFF]) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    }
 
     if (argc == 1) {
         ESP_LOGI(TAG, "Sniffing is %s", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
         return ESP_OK;
     }
-    // If we get here argc==2
+
     if (!strcasecmp(argv[1], "on")) {
         attack_status[ATTACK_SNIFF] = true;
     } else if (!strcasecmp(argv[1], "off")) {
@@ -505,7 +498,16 @@ int cmd_sniff(int argc, char **argv) {
         ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         return ESP_ERR_INVALID_ARG;
     }
+    hop_enabled = isHopEnabled();
 
+    /* Start hopping task loop if hopping is on by default */
+    char *args[] = {"hop","on"};
+    if (hop_enabled) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
     return ESP_OK;
 }
 
