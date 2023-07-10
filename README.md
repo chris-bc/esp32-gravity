@@ -79,12 +79,9 @@ Note: Gravity is (at this stage) primarily a command-line application intended t
 * Move #defines into menuconfig
 * Add default hop millis - so Mana can be 5000
 * Compact UI for flipper
-* hop settings default, on, off
-* Set hop interval and on ignores interval
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
-* Fix buffer overflow bug in parseChannel() (still present?)
 * figure out RSSI
 * get/set scan result expiry (lastSeen + x seconds)
 * STA channel issues - can't set channel >= 10 - type/base conversion??

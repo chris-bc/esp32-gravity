@@ -27,7 +27,7 @@ static const char USAGE_STALK[] = "Toggle target tracking/homing. Usage: stalk";
 static const char USAGE_AP_DOS[] = "802.11 denial-of-service attack. Usage: ap-dos [ ON | OFF ]";
 static const char USAGE_AP_CLONE[] = "Clone and attempt takeover of the specified AP. Usage: ap-clone [ <AP MAC> | OFF ]";
 static const char USAGE_SCAN[] = "Scan for wireless devices. Usage: scan [ <ssid> ] [ ON | OFF ]";
-static const char USAGE_HOP[] = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | KILL ]";
+static const char USAGE_HOP[] = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | DEFAULT | KILL ]";
 static const char USAGE_SET[] = "Set a variable. Usage: set <variable> <value>";
 static const char USAGE_GET[] = "Get a variable. Usage: get <variable>";
 static const char USAGE_VIEW[] = "List available targets. Usage: view ( AP | STA )*";
@@ -64,9 +64,17 @@ enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_WPA
 };
 
+enum HopStatus {
+    HOP_STATUS_OFF,
+    HOP_STATUS_ON,
+    HOP_STATUS_DEFAULT
+};
+
 /* Moving attack_status and hop_defaults off the heap */
 bool *attack_status;
 bool *hop_defaults;
+int *hop_millis_defaults;
+
 
 uint8_t PRIVACY_OFF_BYTES[] = {0x01, 0x11};
 uint8_t PRIVACY_ON_BYTES[] = {0x11, 0x11};

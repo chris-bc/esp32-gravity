@@ -25,7 +25,8 @@
 char **user_ssids = NULL;
 int user_ssid_count = 0;
 static long hop_millis = DEFAULT_HOP_MILLIS;
-static bool hop_enabled = false;
+static enum HopStatus hopStatus = HOP_STATUS_OFF;
+static bool hop_enabled; /* Combo of hopStatus and hop_defaults[ATTACK_XXXX] */
 static TaskHandle_t channelHopTask = NULL;
 
 uint8_t probe_response_raw[] = {
@@ -201,60 +202,79 @@ int rmSsid(char *ssid) {
 }
 
 /* Control channel hopping
-   Usage: hop [ MILLIS ] [ ON | OFF | KILL ]
-   Not specifying ON or OFF will report the status. KILL terminates the event loop.
+   Usage: hop [ MILLIS ] [ ON | OFF | DEFAULT | KILL ]
+   Not specifying a parameter will report the status. KILL terminates the event loop.
 */
 int cmd_hop(int argc, char **argv) {
     if (argc > 3) {
         ESP_LOGE(HOP_TAG, "%s", USAGE_HOP);
         return ESP_ERR_INVALID_ARG;
     }
-    if (argc == 1) {
-        ESP_LOGI(HOP_TAG, "Channel hopping is %s; Gravity will dwell on each channel for approximately %ldms", (hop_enabled)?"enabled":"disabled", hop_millis);
-        return ESP_OK;
-    }
 
-    /* argv[1] could be a duration, "on" or "off" */
-    if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
-        char strOutput[220] = "Channel hopping enabled. ";
-        char working[128];
-        if (hop_millis == 0) {
-            hop_millis = DEFAULT_HOP_MILLIS;
-            sprintf(working, "HOP_MILLIS is unconfigured. Using default value of ");
-        } else {
-            sprintf(working, "HOP_MILLIS set to ");
+    if (argc == 1) {
+        char hopMsg[18] = "\0";
+        switch (hopStatus) {
+        case HOP_STATUS_OFF:
+            strcpy(hopMsg, "is disabled");
+            break;
+        case HOP_STATUS_ON:
+            strcpy(hopMsg, "is enabled");
+            break;
+        case HOP_STATUS_DEFAULT:
+            strcpy(hopMsg, "will use defaults");
+            break;
         }
-        strcat(strOutput, working);
-        sprintf(working, "%ld milliseconds.", hop_millis);
-        strcat(strOutput, working);
-        ESP_LOGI(HOP_TAG, "%s", strOutput);
-        hop_enabled = true;
-        if (channelHopTask == NULL) {
-            ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
-            xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
-        }
-    } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
-        hop_enabled = false;
-        ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
-    } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
-        hop_enabled = false;
-        if (channelHopTask == NULL) {
-            ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
-            return ESP_ERR_INVALID_ARG;
-        } else {
-            ESP_LOGI(HOP_TAG, "Killing WiFi channel hopping event task %p...", &channelHopTask);
-            vTaskDelete(channelHopTask);
-            channelHopTask = NULL;
-        }
+        ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
     } else {
-        /* We got either a duration or an invalid argument */
+        /* argv[1] could be a duration, "on" or "off" */
+        /* To avoid starting hopping before updating hop_millis we need to check for duration first */
         long duration = atol(argv[1]);
-        if (duration <= 0) {
-            ESP_LOGE(HOP_TAG, "Invalid dwell duration \"%s\" specified. This positive integer represents the number of milliseconds Gravity will dwell on each channel before moving on.", argv[1]);
+        if (duration > 0) {
+            hop_millis = duration;
+            ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
+        } else if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
+            hop_enabled = true;
+            char strOutput[220] = "Channel hopping enabled. ";
+            char working[128];
+            if (hop_millis == 0) {
+                hop_millis = DEFAULT_HOP_MILLIS;
+                sprintf(working, "HOP_MILLIS is unconfigured. Using default value of ");
+            } else {
+                sprintf(working, "HOP_MILLIS set to ");
+            }
+            strcat(strOutput, working);
+            sprintf(working, "%ld milliseconds.", hop_millis);
+            strcat(strOutput, working);
+            ESP_LOGI(HOP_TAG, "%s", strOutput);
+            hopStatus = HOP_STATUS_ON;
+            if (channelHopTask == NULL) {
+                ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
+                xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
+            }
+        } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
+            hop_enabled = false;
+            hopStatus = HOP_STATUS_OFF;
+            ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
+        } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
+            hop_enabled = false;
+            hopStatus = HOP_STATUS_OFF;
+            if (channelHopTask == NULL) {
+                ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
+                return ESP_ERR_INVALID_ARG;
+            } else {
+                ESP_LOGI(HOP_TAG, "Killing WiFi channel hopping event task %p...", &channelHopTask);
+                vTaskDelete(channelHopTask);
+                channelHopTask = NULL;
+            }
+        } else if (!strcasecmp(argv[1], "DEFAULT") || (argc == 3 && !strcasecmp(argv[2], "DEFAULT"))) {
+            hop_enabled = false; /* Implicit default */
+            hopStatus = HOP_STATUS_DEFAULT;
+            ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
+        } else {
+            /* Invalid argument */
+            ESP_LOGE(HOP_TAG, "Invalid arguments provided: %s", USAGE_HOP);
             return ESP_ERR_INVALID_ARG;
         }
-        hop_millis = duration;
-        ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
     }
     return ESP_OK;
 }
@@ -326,7 +346,7 @@ int cmd_beacon(int argc, char **argv) {
             attack_status[ATTACK_BEACON] = true;
         }
         /* Set channel hopping based on defined defaults */
-        hop_enabled = hop_defaults[ATTACK_BEACON];
+        hop_enabled = (hopStatus == HOP_STATUS_ON || (hopStatus == HOP_STATUS_DEFAULT && hop_defaults[ATTACK_BEACON]));
     }
     return ret;
 }
