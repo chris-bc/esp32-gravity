@@ -20,11 +20,10 @@
 #include "deauth.h"
 
 #define MAX_CHANNEL 9
-#define DEFAULT_HOP_MILLIS 500
 
 char **user_ssids = NULL;
 int user_ssid_count = 0;
-static long hop_millis = DEFAULT_HOP_MILLIS;
+static long hop_millis;
 static enum HopStatus hopStatus = HOP_STATUS_OFF;
 static bool hop_enabled; /* Combo of hopStatus and hop_defaults[ATTACK_XXXX] */
 static TaskHandle_t channelHopTask = NULL;
@@ -1446,7 +1445,7 @@ static int register_gravity_commands() {
 
 void app_main(void)
 {
-    /* Initialise attack_status and hop_defaults */
+    /* Initialise attack_status, hop_defaults and hop_millis_defaults */
     attack_status = malloc(sizeof(bool) * ATTACKS_COUNT);
     if (attack_status == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory to manage attack status");
@@ -1456,6 +1455,13 @@ void app_main(void)
     if (hop_defaults == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory to manage channel hopping defaults");
         free(attack_status);
+        return;
+    }
+    hop_millis_defaults = malloc(sizeof(int) * ATTACKS_COUNT);
+    if (hop_millis_defaults == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory to manage channel hopping default durations");
+        free(attack_status);
+        free(hop_defaults);
         return;
     }
     for (int i = 0; i < ATTACKS_COUNT; ++i) {
@@ -1480,6 +1486,7 @@ void app_main(void)
                 ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
                 free(attack_status);
                 free(hop_defaults);
+                free(hop_millis_defaults);
                 return;
         }
     }
@@ -1505,6 +1512,33 @@ void app_main(void)
                 ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
                 free(attack_status);
                 free(hop_defaults);
+                free(hop_millis_defaults);
+                return;
+        }
+    }
+    for (int i = 0; i < ATTACKS_COUNT; ++i) {
+        switch (i) {
+            case ATTACK_MANA:
+            case ATTACK_MANA_LOUD:
+            case ATTACK_MANA_VERBOSE:                               /* Should these features */
+            case ATTACK_HANDSHAKE:
+                hop_millis_defaults[i] = DEFAULT_MANA_HOP_MILLIS;
+                break;
+            case ATTACK_BEACON:
+            case ATTACK_PROBE:
+            case ATTACK_SNIFF:
+            case ATTACK_SCAN:
+            case ATTACK_DEAUTH:
+            case ATTACK_AP_DOS:                                     /* where hopping doesn't */
+            case ATTACK_AP_CLONE:                                   /* make sense be */
+            case ATTACK_RANDOMISE_MAC:                              /* treated differently somehow? */
+                hop_millis_defaults[i] = DEFAULT_HOP_MILLIS;
+                break;
+            default:
+                ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
+                free(attack_status);
+                free(hop_defaults);
+                free(hop_millis_defaults);
                 return;
         }
     }
