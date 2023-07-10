@@ -2,9 +2,26 @@
 | ----------------- | -------- | ----- | -------- | -------- | -------- |
 
 # GRAVITY - ESP32-C6 Wireless Tools
+## The unseen force
 
 This project contains an evolving collection of wireless utilities for use on the ESP32-C6.
 Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into BLE and 802.15.4 (ZigBee).
+
+## Configuration
+
+global build settings in common.h:
+* #define DEBUG: Enable additional logging to isolate issues
+* #define DEBUG_VERBOSE: Enable way too much logging
+* #define FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display (Coming soon)
+
+## Building & running
+
+* Install ESP-IDF
+* idf.py set-target <chipset>
+* idf.py menuconfig
+* idf.py build flash monitor
+
+Note: Gravity is (at this stage) primarily a command-line application intended to be used over a UART console (such as ESP-IDF's inbuilt monitor).
 
 # Feature List
 
@@ -59,6 +76,10 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Bugs / Todo
 
+* Move #defines into menuconfig
+* Add default hop millis - so Mana can be 5000
+* Compact UI for flipper
+* hop settings default, on, off
 * Set hop interval and on ignores interval
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)

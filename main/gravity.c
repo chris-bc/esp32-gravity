@@ -261,7 +261,7 @@ int cmd_hop(int argc, char **argv) {
 
 int cmd_commands(int argc, char **argv) {
     ESP_LOGI(TAG, "Generating command summary...");
-    for (int i=0; i < CMD_COUNT; ++i) {
+    for (int i=0; i < CMD_COUNT - 1; ++i) { /* -1 because they already know about this command */
         printf("%-13s: %s\n", commands[i].command, commands[i].hint);
     }
     return ESP_OK;
@@ -1469,9 +1469,9 @@ void app_main(void)
             case ATTACK_PROBE:
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
+            case ATTACK_MANA:
                 hop_defaults[i] = true;
                 break;
-            case ATTACK_MANA:
             case ATTACK_DEAUTH:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:

@@ -194,7 +194,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "commands",
         .hint = USAGE_COMMANDS,
-        .help = "Espresso having a help menu built right into their development framework is a great idea...in theory. The help pace is HUGE though, so as part of rectifying this the 'commands' command will give you a brief overview of all commands.",
+        .help = "Display a BRIEF command summary",
         .func = cmd_commands
     }
 };
