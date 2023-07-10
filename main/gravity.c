@@ -84,6 +84,35 @@ int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
     return 0;
 }
 
+/* Evaluate whether channel hopping should be enabled based on currently-active
+   features and their defaults
+*/
+bool isHopEnabledByDefault() {
+    int i = 0;
+    /* Loop exits either at the end of the array or when an active task
+       with hopping enabled is found
+    */
+    for (; i < ATTACKS_COUNT && (!attack_status[i] || !hop_defaults[i]); ++i) { }
+    
+    return (i < ATTACKS_COUNT);
+}
+
+/* Calculate the default dwell time (hop_millis) based on the features that are currently active */
+/* Where multiple features are active the greatest dwell time will be returned */
+int dwellForCurrentFeatures() {
+    int retVal = 0;
+    for (int i = 0; i < ATTACKS_COUNT; ++i) {
+        if (attack_status[i] && hop_defaults[i] && hop_millis_defaults[i] > retVal) {
+            retVal = hop_millis_defaults[i];
+        }
+    }
+    /* If no features ar active use the global default */
+    if (retVal == 0) {
+        retVal = DEFAULT_HOP_MILLIS;
+    }
+    return retVal;
+}
+
 bool arrayContainsString(char **arr, int arrCnt, char *str) {
     int i;
     for (i=0; i < arrCnt && strcmp(arr[i], str); ++i) { }
@@ -211,7 +240,7 @@ int cmd_hop(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        char hopMsg[18] = "\0";
+        char hopMsg[39] = "\0";
         switch (hopStatus) {
         case HOP_STATUS_OFF:
             strcpy(hopMsg, "is disabled");
@@ -220,7 +249,7 @@ int cmd_hop(int argc, char **argv) {
             strcpy(hopMsg, "is enabled");
             break;
         case HOP_STATUS_DEFAULT:
-            strcpy(hopMsg, "will use defaults");
+            sprintf(hopMsg, "will use defaults; currently %s.", (hop_enabled)?"enabled":"disabled");
             break;
         }
         ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
@@ -233,10 +262,11 @@ int cmd_hop(int argc, char **argv) {
             ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
         } else if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
             hop_enabled = true;
+            hopStatus = HOP_STATUS_ON;
             char strOutput[220] = "Channel hopping enabled. ";
             char working[128];
             if (hop_millis == 0) {
-                hop_millis = DEFAULT_HOP_MILLIS;
+                hop_millis = dwellForCurrentFeatures();
                 sprintf(working, "HOP_MILLIS is unconfigured. Using default value of ");
             } else {
                 sprintf(working, "HOP_MILLIS set to ");
@@ -245,7 +275,6 @@ int cmd_hop(int argc, char **argv) {
             sprintf(working, "%ld milliseconds.", hop_millis);
             strcat(strOutput, working);
             ESP_LOGI(HOP_TAG, "%s", strOutput);
-            hopStatus = HOP_STATUS_ON;
             if (channelHopTask == NULL) {
                 ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
                 xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
@@ -266,8 +295,9 @@ int cmd_hop(int argc, char **argv) {
                 channelHopTask = NULL;
             }
         } else if (!strcasecmp(argv[1], "DEFAULT") || (argc == 3 && !strcasecmp(argv[2], "DEFAULT"))) {
-            hop_enabled = false; /* Implicit default */
+            hop_enabled = isHopEnabledByDefault();
             hopStatus = HOP_STATUS_DEFAULT;
+            hop_millis = dwellForCurrentFeatures();
             ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
         } else {
             /* Invalid argument */
