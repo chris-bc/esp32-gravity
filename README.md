@@ -77,7 +77,6 @@ Note: Gravity is (at this stage) primarily a command-line application intended t
 ## Bugs / Todo
 
 * When enabling/disabling a feature, if hopStatus is HOP_STATUS_DEFAULT then recalculate hop_millis
-* Refactor out hop_enabled - replace with isHopEnabled()
 * Move #defines into menuconfig
 * Compact UI for flipper
 * Mana "Scream" - Broadcast known APs

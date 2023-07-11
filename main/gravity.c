@@ -25,7 +25,6 @@ char **user_ssids = NULL;
 int user_ssid_count = 0;
 static long hop_millis;
 static enum HopStatus hopStatus = HOP_STATUS_OFF;
-static bool hop_enabled; /* Combo of hopStatus and hop_defaults[ATTACK_XXXX] */
 static TaskHandle_t channelHopTask = NULL;
 
 uint8_t probe_response_raw[] = {
@@ -138,7 +137,7 @@ void channelHopCallback(void *pvParameter) {
         vTaskDelay(hop_millis / portTICK_PERIOD_MS);
 
         /* Check whether we should be hopping or not */
-        if (hop_enabled) {
+        if (isHopEnabled()) {
             ESP_ERROR_CHECK(esp_wifi_get_channel(&ch, &sec));
             ch++;
             if (ch >= MAX_CHANNEL) {
@@ -255,7 +254,7 @@ int cmd_hop(int argc, char **argv) {
             strcpy(hopMsg, "is enabled");
             break;
         case HOP_STATUS_DEFAULT:
-            sprintf(hopMsg, "will use defaults; currently %s.", (hop_enabled)?"enabled":"disabled");
+            sprintf(hopMsg, "will use defaults; currently %s.", (isHopEnabled())?"enabled":"disabled");
             break;
         }
         ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
@@ -267,7 +266,6 @@ int cmd_hop(int argc, char **argv) {
             hop_millis = duration;
             ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
         } else if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
-            hop_enabled = true;
             hopStatus = HOP_STATUS_ON;
             char strOutput[220] = "Channel hopping enabled. ";
             char working[128];
@@ -286,11 +284,9 @@ int cmd_hop(int argc, char **argv) {
                 xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
             }
         } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
-            hop_enabled = false;
             hopStatus = HOP_STATUS_OFF;
             ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
         } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
-            hop_enabled = false;
             hopStatus = HOP_STATUS_OFF;
             if (channelHopTask == NULL) {
                 ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
@@ -301,7 +297,6 @@ int cmd_hop(int argc, char **argv) {
                 channelHopTask = NULL;
             }
         } else if (!strcasecmp(argv[1], "DEFAULT") || (argc == 3 && !strcasecmp(argv[2], "DEFAULT"))) {
-            hop_enabled = isHopEnabledByDefault();
             hopStatus = HOP_STATUS_DEFAULT;
             hop_millis = dwellForCurrentFeatures();
             ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
@@ -342,11 +337,10 @@ int cmd_beacon(int argc, char **argv) {
     } else {
         attack_status[ATTACK_BEACON] = true;
     }
-    hop_enabled = isHopEnabled();
 
     /* Start/stop hopping task loop as needed */
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -442,11 +436,10 @@ int cmd_probe(int argc, char **argv) {
 
     /* Set attack_status[ATTACK_PROBE] before checking channel hopping or starting/stopping */
     attack_status[ATTACK_PROBE] = !strcasecmp(argv[1], "OFF");
-    hop_enabled = isHopEnabled();
 
     /* Start hopping task loop if hopping is on by default */
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -498,11 +491,10 @@ int cmd_sniff(int argc, char **argv) {
         ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         return ESP_ERR_INVALID_ARG;
     }
-    hop_enabled = isHopEnabled();
 
     /* Start hopping task loop if hopping is on by default */
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -590,9 +582,8 @@ int cmd_deauth(int argc, char **argv) {
     attack_status[ATTACK_DEAUTH] = (dMode != DEAUTH_MODE_OFF);
 
     /* Start/Stop channel hopping as required */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -698,9 +689,8 @@ int cmd_mana(int argc, char **argv) {
     /* Now that attack_status has been set correctly,
        start or stop channel hopping as needed
     */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -727,9 +717,8 @@ int cmd_ap_dos(int argc, char **argv) {
     /* TODO: Update attack_status[] */
 
     /* Start hopping task loop if hopping is on by default */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -743,9 +732,8 @@ int cmd_ap_clone(int argc, char **argv) {
     /* TODO: Update attack_status[] */
 
     /* Start hopping task loop if hopping is on by default */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -810,9 +798,8 @@ int cmd_scan(int argc, char **argv) {
     ESP_LOGI(SCAN_TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"ON":"OFF");
 
     /* Start/stop hopping task loop as needed */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -1066,9 +1053,8 @@ int cmd_handshake(int argc, char **argv) {
     /* TODO: Set attack_status appropriately */
 
     /* Start hopping task loop if hopping is on by default */
-    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_enabled) {
+    if (isHopEnabled()) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
