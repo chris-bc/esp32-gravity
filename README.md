@@ -76,7 +76,6 @@ Note: Gravity is (at this stage) primarily a command-line application intended t
 
 ## Bugs / Todo
 
-* ESP_LOGE need to be removed #ifdef FLIPPER
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded

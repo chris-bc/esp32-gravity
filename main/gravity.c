@@ -357,7 +357,11 @@ int cmd_hop(int argc, char **argv) {
             #endif
         } else {
             /* Invalid argument */
-            ESP_LOGE(HOP_TAG, "Invalid arguments provided: %s", USAGE_HOP);
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", USAGE_HOP);
+            #else
+                ESP_LOGE(HOP_TAG, "Invalid arguments provided: %s", USAGE_HOP);
+            #endif
             return ESP_ERR_INVALID_ARG;
         }
     }
@@ -383,7 +387,11 @@ int cmd_beacon(int argc, char **argv) {
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
     /* argc must be 1 or 2 - no arguments, or rickroll/random/user/infinite/off */
     if (argc < 1 || argc > 3) {
-        ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", USAGE_BEACON);
+        #else
+            ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
+        #endif
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
@@ -438,7 +446,11 @@ int cmd_beacon(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {
-        ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", USAGE_BEACON);
+        #else
+            ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
+        #endif
         return ESP_ERR_INVALID_ARG;
     }
     return ret;
@@ -456,7 +468,11 @@ int cmd_target_ssids(int argc, char **argv) {
                 ESP_LOGI(TAG, "target-ssids has no elements.");
             #endif
         } else {
-            ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", USAGE_BEACON);
+            #else
+                ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
+            #endif
             return ESP_ERR_INVALID_ARG;
         }
         return ESP_OK;
