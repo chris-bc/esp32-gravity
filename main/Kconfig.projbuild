@@ -1,4 +1,53 @@
-menu "Example Configuration"
+menu "Gravity Configuration"
+
+    config DEFAULT_HOP_MILLIS
+        int "Default dwell time for most features when channel hopping (milliseconds)"
+        default 500
+        help
+            This specifies the default length of time Gravity should remain on a
+            wireless channel before progressing to the next channel when
+            channel hopping is enabled, for all features except Mana and
+            handshake capture (not yet implemented).
+
+    config DEFAULT_MANA_HOP_MILLIS
+        int "Default dwell time for larger features when channel hopping (milliseconds)"
+        default 5000
+        help
+            The specifies the default length of time Gravity should remain on a
+            wireless channel before progressing to the next channel when channel
+            hopping is enabled, for the Mana attack and (when implemented)
+            handshake capture.
+
+    config DEFAULT_DEAUTH_MILLIS
+        int "Default time between packets during a deauthentication attack (milliseconds)"
+        default 0
+        help
+            To avoid causing too much traffic/chaos on a network during a deauthentication
+            attack, the rate at which deauth packets are sent can be throttled using this
+            setting. Gravity will pause the specified number of milliseconds in between
+            each packet during a deauthentication attack.
+
+    config FLIPPER
+        bool "Condense output for Flipper Zero screen size"
+        default n
+        help
+            As a console application, Gravity has been developed around a traditional
+            80x25 character terminal. Flipper Zero has a 20x5 character screen; this
+            option condenses and reduces output from Gravity to be more amenable
+            to use on Flipper Zero.
+
+    config DEBUG
+        bool "Enable debugging output"
+        default y
+        help
+            This option displays additional logging information to aid in the identification
+            and resolution of issues.
+        
+    config DEBUG_VERBOSE
+        bool "Enable verbose debugging output"
+        default n
+        help
+            This option displays an excessive amount of additional logging information.
 
     config CONSOLE_STORE_HISTORY
         bool "Store command history in flash"

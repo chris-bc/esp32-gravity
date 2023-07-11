@@ -1,19 +1,6 @@
 #include <stdbool.h>
 #include <esp_wifi.h>
 
-/* Enable verbose debug outputs */
-#define DEBUG
-
-/* Enable insane debug outputs */
-/* #define DEBUG_VERBOSE */
-
-/* Squash console output to be useable on the Flipper Zero's 20x5 display */
-#define FLIPPER
-
-/* Default channel hopping durations for different classes of operation */
-#define DEFAULT_HOP_MILLIS 500
-#define DEFAULT_MANA_HOP_MILLIS 5000
-
 /*  Globals to track module status information */
 enum AttackMode {
     ATTACK_BEACON,

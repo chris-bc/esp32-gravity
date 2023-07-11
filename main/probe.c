@@ -147,7 +147,7 @@ void probeCallback(void *pvParameter) {
 }
 
 int probe_stop() {
-    #ifdef DEBUG
+    #ifdef CONFIG_DEBUG
         ESP_LOGI(PROBE_TAG, "Trace: probe_stop()");
     #endif
     if (probeTask != NULL) {

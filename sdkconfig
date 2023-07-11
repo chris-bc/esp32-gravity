@@ -453,11 +453,17 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Example Configuration
+# Gravity Configuration
 #
+CONFIG_DEFAULT_HOP_MILLIS=500
+CONFIG_DEFAULT_MANA_HOP_MILLIS=5000
+CONFIG_DEFAULT_DEAUTH_MILLIS=0
+CONFIG_FLIPPER=y
+CONFIG_DEBUG=y
+# CONFIG_DEBUG_VERBOSE is not set
 CONFIG_CONSOLE_STORE_HISTORY=y
 CONFIG_CONSOLE_MAX_COMMAND_LINE_LENGTH=1024
-# end of Example Configuration
+# end of Gravity Configuration
 
 #
 # Compiler options

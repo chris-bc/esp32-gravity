@@ -67,7 +67,7 @@ int PROBE_RESPONSE_GROUP_CIPHER_OFFSET = 62; /* + ssid_len */
 int PROBE_RESPONSE_PAIRWISE_CIPHER_OFFSET = 68; /* + ssid_len */
 int PROBE_RESPONSE_AUTH_TYPE_OFFSET = 74; /* + ssid_len */
 
-#define PROMPT_STR CONFIG_IDF_TARGET
+#define PROMPT_STR "gravity"
 
 /* Console command history can be stored to and loaded from a file.
  * The easiest way to do this is to use FATFS filesystem on top of
@@ -113,7 +113,7 @@ int dwellForCurrentFeatures() {
     }
     /* If no features are active use the global default */
     if (retVal == 0) {
-        retVal = DEFAULT_HOP_MILLIS;
+        retVal = CONFIG_DEFAULT_HOP_MILLIS;
     }
     return retVal;
 }
@@ -142,7 +142,7 @@ void channelHopCallback(void *pvParameter) {
     uint8_t ch;
     wifi_second_chan_t sec;
     if (hop_millis == 0) {
-        hop_millis = DEFAULT_HOP_MILLIS;
+        hop_millis = CONFIG_DEFAULT_HOP_MILLIS;
     }
 
     while (true) {
@@ -173,7 +173,7 @@ char **lsSsid() {
 }
 
 int addSsid(char *ssid) {
-	#ifdef DEBUG_VERBOSE
+	#ifdef CONFIG_DEBUG_VERBOSE
 		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
 		for (int i=0; i < user_ssid_count; ++i) {
 			printf("    %d: \"%s\"\n", i, user_ssids[i]);
@@ -188,7 +188,7 @@ int addSsid(char *ssid) {
 		newSsids[i] = user_ssids[i];
 	}
 
-	#ifdef DEBUG_VERBOSE
+	#ifdef CONFIG_DEBUG_VERBOSE
 		printf("After creating a larger array and copying across previous values the new array was allocated %d elements. Existing values are:\n", (user_ssid_count + 1));
 		for (int i=0; i < user_ssid_count; ++i) {
 			printf("    %d: \"%s\"\n", i, newSsids[i]);
@@ -203,13 +203,13 @@ int addSsid(char *ssid) {
 	strcpy(newSsids[user_ssid_count], ssid);
 	++user_ssid_count;
 
-	#ifdef DEBUG_VERBOSE
+	#ifdef CONFIG_DEBUG_VERBOSE
 		printf("After adding the final item and incrementing length counter newSsids has %d elements. The final item is \"%s\"\n", user_ssid_count, newSsids[user_ssid_count - 1]);
 		printf("Pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 	#endif
 	free(user_ssids);
 	user_ssids = newSsids;
-	#ifdef DEBUG_VERBOSE
+	#ifdef CONFIG_DEBUG_VERBOSE
 		printf("After freeing user_ssids and setting newSsids pointers are:\tuser_ssids: %p\tnewSsids: %p\n", user_ssids, newSsids);
 	#endif
 
@@ -414,17 +414,17 @@ int cmd_target_ssids(int argc, char **argv) {
             ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
             return ESP_ERR_NO_MEM;
         }
-        #ifdef DEBUG_VERBOSE
+        #ifdef CONFIG_DEBUG_VERBOSE
             printf("Serialising target SSIDs");
         #endif
         strcpy(strSsids, (lsSsid())[0]);
-        #ifdef DEBUG_VERBOSE
+        #ifdef CONFIG_DEBUG_VERBOSE
             printf("Before serialisation loop returned value is \"%s\"\n", strSsids);
         #endif
         for (int i = 1; i < ssidCount; ++i) {
             sprintf(temp, " , %s", (lsSsid())[i]);
             strcat(strSsids, temp);
-            #ifdef DEBUG_VERBOSE
+            #ifdef CONFIG_DEBUG_VERBOSE
                 printf("At the end of iteration %d retVal is \"%s\"\n",i, strSsids);
             #endif
         }
@@ -542,7 +542,7 @@ int cmd_deauth(int argc, char **argv) {
     }
 
     /* Extract parameters */
-    long delay = DEAUTH_MILLIS_DEFAULT;
+    long delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
     DeauthMAC setMAC = DEAUTH_MAC_FRAME;
     DeauthMode dMode = DEAUTH_MODE_OFF;
     switch (argc) {
@@ -800,7 +800,7 @@ int cmd_scan(int argc, char **argv) {
         for (i = 0; i < gravity_ap_count && strcmp(scan_filter_ssid,
                                 (char *)gravity_aps[i].espRecord.ssid); ++i) { }
         if (i < gravity_ap_count) {
-            #ifdef DEBUG
+            #ifdef CONFIG_DEBUG
                 char strMac[18] = "\0";
                 ESP_ERROR_CHECK(mac_bytes_to_string(scan_filter_ssid_bssid, strMac));
                 printf("Had already seen BSSID %s for AP \"%s\"\n", strMac, scan_filter_ssid);
@@ -1093,7 +1093,7 @@ int cmd_handshake(int argc, char **argv) {
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum) {
     uint8_t *probeBuffer;
 
-    #ifdef DEBUG_VERBOSE
+    #ifdef CONFIG_DEBUG_VERBOSE
         printf("send_probe_response(): ");
         char strSrcAddr[18];
         char strDestAddr[18];
@@ -1163,7 +1163,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
     memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
 
-    #ifdef DEBUG_VERBOSE
+    #ifdef CONFIG_DEBUG_VERBOSE
         char debugOut[1024];
         int debugLen=0;
         strcpy(debugOut, "SSID: \"");
@@ -1239,7 +1239,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
         ssid[ssid_len] = '\0';
         
-        #ifdef DEBUG_VERBOSE
+        #ifdef CONFIG_DEBUG_VERBOSE
             char srcMac[18];
             esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
             ESP_LOGI(TAG, "Probe for \"%s\" from %s", ssid, srcMac);
@@ -1276,7 +1276,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
 
             if (ssid_len == 0) {
                 /* Broadcast probe request - send a probe response for every SSID in the STA's PNL */
-                #ifdef DEBUG
+                #ifdef CONFIG_DEBUG
                     ESP_LOGI(MANA_TAG, "Received broadcast probe from %s", strDestMac);
                 #endif
 
@@ -1310,7 +1310,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                                     loudSSIDs = newLoud;
                                     ++loudSSIDCount;
                                 }
-                                #ifdef DEBUG
+                                #ifdef CONFIG_DEBUG
                                     ESP_LOGI(MANA_TAG, "Sending probe response to %s for \"%s\"", strDestMac, networkList[i].ssids[j]);
                                 #endif
                                 send_probe_response(bCurrentMac, bDestMac, networkList[i].ssids[j], mana_auth, seqNum);
@@ -1333,14 +1333,14 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 for (i=0; i < networkCount && strcmp(strDestMac, networkList[i].strMac); ++i) { }
                 if (i < networkCount) {
                     /* The station is in networkList[] - See if it contains the SSID */
-                    #ifdef DEBUG
+                    #ifdef CONFIG_DEBUG
                         ESP_LOGI(MANA_TAG, "STA %s matched to PNL for %s at networkList[%d]. PNL count: %d", strDestMac, networkList[i].strMac, i, networkList[i].ssidCount);
                     #endif
                     int j;
                     for (j=0; j < networkList[i].ssidCount && strcmp(ssid, networkList[i].ssids[j]); ++j) { }
                     if (j == networkList[i].ssidCount) {
                         /* SSID was not found in ssids, add it to the list */
-                        #ifdef DEBUG
+                        #ifdef CONFIG_DEBUG
                             ESP_LOGI(MANA_TAG, "SSID \"%s\" not found in PNL, add it", ssid);
                         #endif
                         char **newSsids = malloc(sizeof(char *) * (networkList[i].ssidCount + 1));
@@ -1585,7 +1585,7 @@ void app_main(void)
             case ATTACK_MANA_LOUD:
             case ATTACK_MANA_VERBOSE:                               /* Should these features */
             case ATTACK_HANDSHAKE:
-                hop_millis_defaults[i] = DEFAULT_MANA_HOP_MILLIS;
+                hop_millis_defaults[i] = CONFIG_DEFAULT_MANA_HOP_MILLIS;
                 break;
             case ATTACK_BEACON:
             case ATTACK_PROBE:
@@ -1595,7 +1595,7 @@ void app_main(void)
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */
             case ATTACK_AP_CLONE:                                   /* make sense be */
             case ATTACK_RANDOMISE_MAC:                              /* treated differently somehow? */
-                hop_millis_defaults[i] = DEFAULT_HOP_MILLIS;
+                hop_millis_defaults[i] = CONFIG_DEFAULT_HOP_MILLIS;
                 break;
             default:
                 ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");

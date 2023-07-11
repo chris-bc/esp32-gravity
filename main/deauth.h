@@ -1,8 +1,6 @@
 #include <esp_err.h>
 #include <stdbool.h>
 
-#define DEAUTH_MILLIS_DEFAULT 0
-
 enum DeauthMode {
     DEAUTH_MODE_OFF,
     DEAUTH_MODE_STA,

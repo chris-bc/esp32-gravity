@@ -460,7 +460,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
             gravity_aps[i].espRecord.primary = channel;
         }
     } else {
-        #ifdef DEBUG
+        #ifdef CONFIG_DEBUG
             ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
         #endif
         /* AP is a new device */
@@ -529,7 +529,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         char strNewSTA[18];
         ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, strNewSTA));
 
-        #ifdef DEBUG
+        #ifdef CONFIG_DEBUG
             ESP_LOGI(SCAN_TAG, "Found new STA %s", strNewSTA);
         #endif
 
