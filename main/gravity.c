@@ -1623,6 +1623,16 @@ void app_main(void)
     esp_log_level_set("wifi", ESP_LOG_ERROR); /* YAGNI: Consider reducing these to ESP_LOG_WARN */
     esp_log_level_set("esp_netif_lwip", ESP_LOG_ERROR);
 
+    /* In Flipper mode remove all use of ESP logging except for errors (the line prefix is too long) */
+    #ifdef CONFIG_FLIPPER
+        esp_log_level_set(BEACON_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(TAG, ESP_LOG_ERROR);
+        esp_log_level_set(MANA_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(HOP_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(PROBE_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(SCAN_TAG, ESP_LOG_ERROR);
+    #endif
+
 
 #if CONFIG_CONSOLE_STORE_HISTORY
     initialize_filesystem();

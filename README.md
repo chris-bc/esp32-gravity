@@ -76,7 +76,7 @@ Note: Gravity is (at this stage) primarily a command-line application intended t
 
 ## Bugs / Todo
 
-* Compact UI for flipper
+* Compact UI for flipper (20x5)
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded

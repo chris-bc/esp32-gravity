@@ -26,6 +26,8 @@ enum GravityScanType {
     GRAVITY_SCAN_BLE
 };
 
+/* A compact display of STAs */
+/* TODO: Needs RSSI */
 void print_stas() {
     char strMac[18];
     char strSsid[33];
@@ -37,7 +39,7 @@ void print_stas() {
             char mac2[18];
             mac_bytes_to_string(gravity_stas[i].apMac, mac2);
             strcpy(strSsid, (char *)gravity_stas[i].ap->espRecord.ssid);
-            printf(", Associated with %s (%s)", mac2, strSsid);
+            printf(", AP %s (%s)", mac2, strSsid);
         }
         printf("\n");
     }
@@ -50,6 +52,7 @@ void print_aps() {
     for (int i=0; i < gravity_ap_count; ++i) {
         mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strMac);
         strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
+        /* YAGNI: Review whether this needs to be shortened for Flipper */
         printf("AP %s (%s)\t%d stations\n", strMac, strSsid, gravity_aps[i].stationCount);
     }
 }
@@ -276,8 +279,13 @@ esp_err_t gravity_select_sta(int selIndex) {
 esp_err_t gravity_list_ap() {
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
-    printf(" ID | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS\n");
-    printf("====|==================================|===================|=====|==========================|====|=====\n");
+    #ifdef CONFIG_FLIPPER
+        printf(" ID | Cli |  SSID\n");
+        printf("====|=====|========\n");
+    #else
+        printf(" ID | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS\n");
+        printf("====|==================================|===================|=====|==========================|====|=====\n");
+    #endif
     char strBssid[18];
     char strTime[26];
     char strSsid[36];
@@ -304,9 +312,21 @@ esp_err_t gravity_list_ap() {
             strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
         }
 
-        printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                strSsid, strBssid, gravity_aps[i].stationCount, strTime,
-                gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
+        #ifdef CONFIG_FLIPPER
+            if (strlen(strSsid) > 20) {
+                if (strSsid[17] == ' ') {
+                    memcpy(&strSsid[17], "...\0", 4);
+                } else {
+                    memcpy(&strSsid[18], "..\0", 3);
+                }
+            }
+            printf("%s%2d | %3d |\n%20s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
+                    gravity_aps[i].stationCount, strSsid);
+        #else
+            printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
+                    strSsid, strBssid, gravity_aps[i].stationCount, strTime,
+                    gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
+        #endif
     }
 
     return ESP_OK;
@@ -317,8 +337,14 @@ esp_err_t gravity_list_sta() {
     char strTime[26];
     unsigned long nowTime;
     unsigned long elapsed;
-    printf(" ID | MAC               | Access Point      | Ch | Last Seen               \n");
-    printf("====|===================|===================|====|=========================\n");
+
+    #ifdef CONFIG_FLIPPER
+        printf(" ID |  MAC  | AP\n");
+        printf("====|=======|=======\n");
+    #else
+        printf(" ID | MAC               | Access Point      | Ch | Last Seen               \n");
+        printf("====|===================|===================|====|=========================\n");
+    #endif
 
     for (int i=0; i < gravity_sta_count; ++i) {
         /* Stringify timestamp */
@@ -337,8 +363,15 @@ esp_err_t gravity_list_sta() {
         } else {
             ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[i].apMac, strAp));
         }
-        printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (gravity_stas[i].selected)?"*":" ", gravity_stas[i].index,
-                gravity_stas[i].strMac, strAp, gravity_stas[i].channel, strTime);
+        #ifdef CONFIG_FLIPPER
+            printf("%s%2d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (gravity_stas[i].selected)?"*":" ",
+                gravity_stas[i].index, gravity_stas[i].mac[0], gravity_stas[i].mac[1],
+                gravity_stas[i].mac[2], gravity_stas[i].mac[3], gravity_stas[i].mac[4],
+                gravity_stas[i].mac[5], strAp);
+        #else
+            printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (gravity_stas[i].selected)?"*":" ", gravity_stas[i].index,
+                    gravity_stas[i].strMac, strAp, gravity_stas[i].channel, strTime);
+        #endif
     }    
 
     return ESP_OK;
@@ -461,7 +494,20 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         }
     } else {
         #ifdef CONFIG_DEBUG
-            ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
+            #ifdef CONFIG_FLIPPER
+                char trunc[33];
+                strcpy(trunc, newSSID);
+                if (strlen(trunc) > 16) {
+                    if (trunc[13] == ' ') {
+                        memcpy(&trunc[13], "...\0", 4);
+                    } else {
+                        memcpy(&trunc[14], "..\0", 3);
+                    }
+                }
+                printf("AP: %s\n", trunc);
+            #else
+                ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
+            #endif
         #endif
         /* AP is a new device */
         ScanResultAP *newAPs = malloc(sizeof(ScanResultAP) * (gravity_ap_count + 1));
@@ -530,7 +576,11 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, strNewSTA));
 
         #ifdef CONFIG_DEBUG
-            ESP_LOGI(SCAN_TAG, "Found new STA %s", strNewSTA);
+            #ifdef CONFIG_FLIPPER
+                printf("ST:%s\n", strNewSTA);
+            #else
+                ESP_LOGI(SCAN_TAG, "Found new STA %s", strNewSTA);
+            #endif
         #endif
 
         ScanResultSTA *newSTAs = malloc(sizeof(ScanResultSTA) * (gravity_sta_count + 1));
@@ -606,8 +656,8 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
         return ESP_ERR_INVALID_ARG;
     }
     specAP = &gravity_aps[idxAp];
-char strMacAP[18];
-mac_bytes_to_string(specAP->espRecord.bssid, strMacAP);
+    char strMacAP[18];
+    mac_bytes_to_string(specAP->espRecord.bssid, strMacAP);
 
     /* Is the STA already associated with an AP? */
     if (specSTA->ap != NULL) {
@@ -617,8 +667,8 @@ mac_bytes_to_string(specAP->espRecord.bssid, strMacAP);
             /* The STA is already associated with the AP */
             return ESP_OK;
         } else {
-char strOldAp[18];
-mac_bytes_to_string(specSTA->apMac, strOldAp);
+            char strOldAp[18];
+            mac_bytes_to_string(specSTA->apMac, strOldAp);
             /* STA has moved from one AP to another */
             /* First shrink specSTA->ap->stations */
             ScanResultSTA **oldSTA = (ScanResultSTA **)specSTA->ap->stations;
