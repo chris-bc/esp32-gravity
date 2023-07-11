@@ -530,14 +530,6 @@ int cmd_deauth(int argc, char **argv) {
         ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning.", (attack_status[ATTACK_DEAUTH])?"":"not ");
         return ESP_OK;
     }
-    /* Start hopping task loop if hopping is on by default */
-    char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_DEAUTH]) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    }
 
     /* Extract parameters */
     long delay = DEAUTH_MILLIS_DEFAULT;
@@ -595,12 +587,17 @@ int cmd_deauth(int argc, char **argv) {
     default:
         /* Unreachable */
     }
-    /* Disable channel hopping if we're stopping */
-    if (dMode == DEAUTH_MODE_OFF) {
+    attack_status[ATTACK_DEAUTH] = (dMode != DEAUTH_MODE_OFF);
+
+    /* Start/Stop channel hopping as required */
+    hop_enabled = isHopEnabled();
+    char *args[] = {"hop","on"};
+    if (hop_enabled) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
         args[1] = "off";
         ESP_ERROR_CHECK(cmd_hop(2, args));
     }
-    attack_status[ATTACK_DEAUTH] = (dMode != DEAUTH_MODE_OFF);
     return deauth_start(dMode, setMAC, delay);
 }
 
@@ -635,14 +632,8 @@ int cmd_mana(int argc, char **argv) {
         ESP_LOGE(TAG, "%s", USAGE_MANA);
         return ESP_ERR_INVALID_ARG;
     }
-    /* Start hopping task loop if hopping is on by default */
-    char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_MANA]) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    }
+
+    bool launchMana = false; /* Not a very elegant way to restructure channel hopping... */
 
     if (argc == 1) {
         ESP_LOGI(MANA_TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
@@ -685,10 +676,7 @@ int cmd_mana(int argc, char **argv) {
 
             if (!attack_status[ATTACK_MANA]) {
                 /* Mana isn't running - Start it */
-                ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
-                char *manaArgs[2] = { "mana", "ON" };
-                attack_status[ATTACK_MANA] = true;
-                cmd_mana(2, manaArgs);
+                launchMana = true;
             }
         } else {
             ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
@@ -707,11 +695,26 @@ int cmd_mana(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    /* Disable channel hopping if we enabled it */
-    if (!attack_status[ATTACK_MANA]) {
+    /* Now that attack_status has been set correctly,
+       start or stop channel hopping as needed
+    */
+    hop_enabled = isHopEnabled();
+    char *args[] = {"hop","on"};
+    if (hop_enabled) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
         args[1] = "off";
-        cmd_hop(2, args);
+        ESP_ERROR_CHECK(cmd_hop(2, args));
     }
+
+    /* Now that channel hopping has been set appropriately,
+       launch Mana if needed
+    */
+    ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
+    char *manaArgs[2] = { "mana", "ON" };
+    attack_status[ATTACK_MANA] = true;
+    cmd_mana(2, manaArgs);
+
     return ESP_OK;
 }
 
@@ -721,9 +724,12 @@ int cmd_stalk(int argc, char **argv) {
 }
 
 int cmd_ap_dos(int argc, char **argv) {
+    /* TODO: Update attack_status[] */
+
     /* Start hopping task loop if hopping is on by default */
+    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_AP_DOS]) {
+    if (hop_enabled) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -734,9 +740,12 @@ int cmd_ap_dos(int argc, char **argv) {
 }
 
 int cmd_ap_clone(int argc, char **argv) {
+    /* TODO: Update attack_status[] */
+
     /* Start hopping task loop if hopping is on by default */
+    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_AP_CLONE]) {
+    if (hop_enabled) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
@@ -752,14 +761,6 @@ int cmd_scan(int argc, char **argv) {
             (argc == 3 && strlen(argv[1]) > 32)) {
         ESP_LOGE(TAG, "%s", USAGE_SCAN);
         return ESP_ERR_INVALID_ARG;
-    }
-    /* Start hopping task loop if hopping is on by default */
-    char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_SCAN]) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
     if (argc == 1) {
@@ -808,6 +809,16 @@ int cmd_scan(int argc, char **argv) {
     }
     ESP_LOGI(SCAN_TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"ON":"OFF");
 
+    /* Start/stop hopping task loop as needed */
+    hop_enabled = isHopEnabled();
+    char *args[] = {"hop","on"};
+    if (hop_enabled) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
+
     return ESP_OK;
 }
 
@@ -818,6 +829,7 @@ int cmd_scan(int argc, char **argv) {
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
       MAC, ATTACK_PKTS, ATTACK_MILLIS */
+/* Channel hopping is not catered for in this feature */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         ESP_LOGE(TAG, "%s", USAGE_SET);
@@ -911,6 +923,7 @@ int cmd_set(int argc, char **argv) {
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
       MAC, ATTACK_PKTS, ATTACK_MILLIS */
+/* Channel hopping is not catered for in this feature */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         ESP_LOGE(TAG, "%s", USAGE_GET);
@@ -983,6 +996,7 @@ int cmd_get(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Channel hopping is not catered for in this feature */
 int cmd_view(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
         ESP_LOGE(TAG, "%s", USAGE_VIEW);
@@ -1005,6 +1019,7 @@ int cmd_view(int argc, char **argv) {
     return ESP_ERR_NO_MEM;
 }
 
+/* Channel hopping is not catered for in this feature */
 int cmd_select(int argc, char **argv) {
     if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
         ESP_LOGE(TAG, "%s", USAGE_SELECT);
@@ -1026,6 +1041,7 @@ int cmd_select(int argc, char **argv) {
     return err;
 }
 
+/* Channel hopping is not catered for in this feature */
 int cmd_clear(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
         ESP_LOGE(TAG, "%s", USAGE_CLEAR);
@@ -1047,9 +1063,12 @@ int cmd_clear(int argc, char **argv) {
 }
 
 int cmd_handshake(int argc, char **argv) {
+    /* TODO: Set attack_status appropriately */
+
     /* Start hopping task loop if hopping is on by default */
+    hop_enabled = isHopEnabled();
     char *args[] = {"hop","on"};
-    if (hop_defaults[ATTACK_HANDSHAKE]) {
+    if (hop_enabled) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     } else {
         args[1] = "off";
