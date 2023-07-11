@@ -8,7 +8,7 @@
 /* #define DEBUG_VERBOSE */
 
 /* Squash console output to be useable on the Flipper Zero's 20x5 display */
-/* #define FLIPPER */
+#define FLIPPER
 
 /* Default channel hopping durations for different classes of operation */
 #define DEFAULT_HOP_MILLIS 500
