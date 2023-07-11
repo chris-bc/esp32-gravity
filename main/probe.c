@@ -63,9 +63,10 @@ void probeCallback(void *pvParameter) {
     /* Move the packet off the heap */
     uint8_t *probeBuffer;
 
-    ESP_LOGI(PROBE_TAG, "Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
     #ifdef CONFIG_FLIPPER
         printf("Random MAC: %s\n", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
+    #else
+        ESP_LOGI(PROBE_TAG, "Randomise MAC is %s\n",(attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
     #endif
 
     while (true) {
@@ -154,9 +155,10 @@ int probe_stop() {
         ESP_LOGI(PROBE_TAG, "Trace: probe_stop()");
     #endif
     if (probeTask != NULL) {
-        ESP_LOGI(PROBE_TAG, "Found a probe task, killing %p", probeTask);
         #ifdef CONFIG_FLIPPER
             printf("Killing old probe...\n");
+        #else
+            ESP_LOGI(PROBE_TAG, "Found a probe task, killing %p", probeTask);
         #endif
         vTaskDelete(probeTask);
         probeTask = NULL;
@@ -170,9 +172,10 @@ int probe_start(probe_attack_t type) {
 
     // Stop the existing probe attack if there is one
     if (attackType != ATTACK_PROBE_NONE) {
-        ESP_LOGI(PROBE_TAG, "Halting existing %sdirected probe...", (attackType==ATTACK_PROBE_UNDIRECTED)?"un-":"");
         #ifdef CONFIG_FLIPPER
             printf("End %sdirected probe\n", (attackType == ATTACK_PROBE_UNDIRECTED)?"un":"");
+        #else
+            ESP_LOGI(PROBE_TAG, "Halting existing %sdirected probe...", (attackType==ATTACK_PROBE_UNDIRECTED)?"un-":"");
         #endif
         probe_stop();
     }

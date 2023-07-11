@@ -766,7 +766,6 @@ int parseChannel(uint8_t *payload) {
             thisIndex += 2 + payload[thisIndex + 1];
         }
     }
-
     return ch;
 }
 
@@ -1009,11 +1008,19 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         return parse_beacon(payload);
         break;
     case 0xB4:
-        ESP_LOGI(SCAN_TAG, "Received RTS frame");
+        #ifdef CONFIG_FLIPPER
+            printf("Received RTS frame\n");
+        #else
+            ESP_LOGI(SCAN_TAG, "Received RTS frame");
+        #endif
         return parse_rts(payload);
         break;
     case 0xC4:
-        ESP_LOGI(SCAN_TAG, "Received CTS frame");
+        #ifdef CONFIG_FLIPPER
+            printf("Received CTS frame\n");
+        #else
+            ESP_LOGI(SCAN_TAG, "Received CTS frame");
+        #endif
         return parse_cts(payload);
         break;
     case 0x88:

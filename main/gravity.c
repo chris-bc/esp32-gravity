@@ -253,9 +253,10 @@ int rmSsid(char *ssid) {
 */
 int cmd_hop(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(HOP_TAG, "%s", USAGE_HOP);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_HOP);
+        #else
+            ESP_LOGE(HOP_TAG, "%s", USAGE_HOP);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -285,11 +286,12 @@ int cmd_hop(int argc, char **argv) {
         #endif
             break;
         }
-        ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
         #ifdef CONFIG_FLIPPER
             char hopStr[21];
             sprintf(hopStr, "Dwell time %ldms", hop_millis);
             printf("Ch. hop %s\n%20s\n", hopMsg, hopStr);
+        #else
+            ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
         #endif
     } else {
         /* argv[1] could be a duration, "on" or "off" */
@@ -297,9 +299,10 @@ int cmd_hop(int argc, char **argv) {
         long duration = atol(argv[1]);
         if (duration > 0) {
             hop_millis = duration;
-            ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
             #ifdef CONFIG_FLIPPER
                 printf("Dwell time: %ldms\n", duration);
+            #else
+                ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
             #endif
         } else if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
             hopStatus = HOP_STATUS_ON;
@@ -314,9 +317,10 @@ int cmd_hop(int argc, char **argv) {
             strcat(strOutput, working);
             sprintf(working, "%ld milliseconds.", hop_millis);
             strcat(strOutput, working);
-            ESP_LOGI(HOP_TAG, "%s", strOutput);
             #ifdef CONFIG_FLIPPER
                 sprintf(strOutput, "Hop on; %ld ms", hop_millis);
+            #else
+                ESP_LOGI(HOP_TAG, "%s", strOutput);
             #endif
             if (channelHopTask == NULL) {
                 ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
@@ -324,9 +328,10 @@ int cmd_hop(int argc, char **argv) {
             }
         } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
             hopStatus = HOP_STATUS_OFF;
-            ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
             #ifdef CONFIG_FLIPPER
                 printf("Ch. hop OFF\n");
+            #else
+                ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
             #endif
         } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
             hopStatus = HOP_STATUS_OFF;
@@ -334,9 +339,10 @@ int cmd_hop(int argc, char **argv) {
                 ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
                 return ESP_ERR_INVALID_ARG;
             } else {
-                ESP_LOGI(HOP_TAG, "Killing WiFi channel hopping event task %p...", &channelHopTask);
                 #ifdef CONFIG_FLIPPER
                     printf("Killing hop task\n");
+                #else
+                    ESP_LOGI(HOP_TAG, "Killing WiFi channel hopping event task %p...", &channelHopTask);
                 #endif
                 vTaskDelete(channelHopTask);
                 channelHopTask = NULL;
@@ -344,9 +350,10 @@ int cmd_hop(int argc, char **argv) {
         } else if (!strcasecmp(argv[1], "DEFAULT") || (argc == 3 && !strcasecmp(argv[2], "DEFAULT"))) {
             hopStatus = HOP_STATUS_DEFAULT;
             hop_millis = dwellForCurrentFeatures();
-            ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
             #ifdef CONFIG_FLIPPER
                 printf("Ch. hop DEFAULT\n");
+            #else
+                ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
             #endif
         } else {
             /* Invalid argument */
@@ -380,9 +387,10 @@ int cmd_beacon(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
-        ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
         #ifdef CONFIG_FLIPPER
             printf("Beacon %s\n", (attack_status[ATTACK_BEACON])?"Running":"Not Running");
+        #else
+            ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
         #endif
         return ESP_OK;
     }
@@ -442,9 +450,10 @@ int cmd_target_ssids(int argc, char **argv) {
     // Must have no args (return current value) or two (add/remove SSID)
     if ((argc != 1 && argc != 3) || (argc == 1 && ssidCount == 0)) {
         if (ssidCount == 0) {
-            ESP_LOGI(TAG, "target-ssids has no elements.");
             #ifdef CONFIG_FLIPPER
                 printf("target-ssids: {}\n");
+            #else
+                ESP_LOGI(TAG, "target-ssids has no elements.");
             #endif
         } else {
             ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
@@ -490,14 +499,19 @@ int cmd_target_ssids(int argc, char **argv) {
 int cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY | SSIDS | OFF ]
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGW(PROBE_TAG, "%s", USAGE_PROBE);
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", USAGE_PROBE);
+        #else
+            ESP_LOGW(PROBE_TAG, "%s", USAGE_PROBE);
+        #endif
         return ESP_ERR_INVALID_ARG;
     }
 
     if (argc == 1) {
-        ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
         #ifdef CONFIG_FLIPPER
             printf("Probe %s\n", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
+        #else
+            ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
         #endif
         return ESP_OK;
     }
@@ -518,9 +532,10 @@ int cmd_probe(int argc, char **argv) {
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
 
     if (!strcasecmp(argv[1], "OFF")) {
-        ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
         #ifdef CONFIG_FLIPPER
             printf("Stopping probes\n");
+        #else
+            ESP_LOGI(PROBE_TAG, "Stopping Probe Flood ...");
         #endif
         probe_stop();
     } else {
@@ -537,9 +552,10 @@ int cmd_probe(int argc, char **argv) {
             strcat(probeNote, suffix);
         }
 
-        ESP_LOGI(PROBE_TAG, "%s", probeNote);
         #ifdef CONFIG_FLIPPER
             printf("%s probes\n", (probeType == ATTACK_PROBE_UNDIRECTED)?"Broadcast":"Directed");
+        #else
+            ESP_LOGI(PROBE_TAG, "%s", probeNote);
         #endif
         probe_start(probeType);
     }
@@ -549,17 +565,19 @@ int cmd_probe(int argc, char **argv) {
 int cmd_sniff(int argc, char **argv) {
     // Usage: sniff [ ON | OFF ]
     if (argc > 2) {
-        ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_SNIFF);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
 
     if (argc == 1) {
-        ESP_LOGI(TAG, "Sniffing is %s", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
         #ifdef CONFIG_FLIPPER
             printf("Sniffing %s\n", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
+        #else
+            ESP_LOGI(TAG, "Sniffing is %s", (attack_status[ATTACK_SNIFF])?"enabled":"disabled");
         #endif
         return ESP_OK;
     }
@@ -569,9 +587,10 @@ int cmd_sniff(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "off")) {
         attack_status[ATTACK_SNIFF] = false;
     } else {
-        ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_SNIFF);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -600,16 +619,18 @@ int cmd_deauth(int argc, char **argv) {
             strcasecmp(argv[1], "FRAME") && strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
             (argc == 2 && strcasecmp(argv[1], "STA") &&
             strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF"))) {
-        ESP_LOGE(TAG, "%s", USAGE_DEAUTH);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_DEAUTH);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_DEAUTH);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
-        ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning.", (attack_status[ATTACK_DEAUTH])?"":"not ");
         #ifdef CONFIG_FLIPPER
             printf("Deauth %s\n", (attack_status[ATTACK_DEAUTH])?"Running":"Stopped");
+        #else
+            ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning.", (attack_status[ATTACK_DEAUTH])?"":"not ");
         #endif
         return ESP_OK;
     }
@@ -712,27 +733,37 @@ int cmd_deauth(int argc, char **argv) {
  */
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
-        ESP_LOGE(TAG, "%s", USAGE_MANA);
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", USAGE_MANA);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_MANA);
+        #endif
         return ESP_ERR_INVALID_ARG;
     }
 
     bool launchMana = false; /* Not a very elegant way to restructure channel hopping... */
 
     if (argc == 1) {
-        ESP_LOGI(MANA_TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
         #ifdef CONFIG_FLIPPER
             printf("Mana is %s\n", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
+        #else
+            ESP_LOGI(MANA_TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
         #endif
     } else if (!strcasecmp(argv[1], "VERBOSE")) {
         if (argc == 2) {
-            ESP_LOGI(MANA_TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
             #ifdef CONFIG_FLIPPER
                 printf("Mana verbose %s\n", (attack_status[ATTACK_MANA])?"ON":"OFF");
+            #else
+                ESP_LOGI(MANA_TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
             #endif
         } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
-            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", USAGE_MANA);
+            #else
+                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
+            #endif
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
@@ -740,9 +771,10 @@ int cmd_mana(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "AUTH")) {
         if (argc == 2) {
             // return mana_auth
-            ESP_LOGI(MANA_TAG, "Mana authentication method: %s", (mana_auth==AUTH_TYPE_NONE)?"Open Authentication":(mana_auth==AUTH_TYPE_WEP)?"Wireless Equivalent Privacy":"Wi-Fi Protected Access");
             #ifdef CONFIG_FLIPPER
                 printf("Mana Auth: %s\n", (mana_auth == AUTH_TYPE_NONE)?"OPEN":(mana_auth == AUTH_TYPE_WEP)?"WEP":"WPA");
+            #else
+                ESP_LOGI(MANA_TAG, "Mana authentication method: %s", (mana_auth==AUTH_TYPE_NONE)?"Open Authentication":(mana_auth==AUTH_TYPE_WEP)?"Wireless Equivalent Privacy":"Wi-Fi Protected Access");
             #endif
             return ESP_OK;
         } else if (argc == 3 && !(strcasecmp(argv[2], "NONE") && strcasecmp(argv[2], "WEP") && strcasecmp(argv[2], "WPA"))) {
@@ -755,14 +787,19 @@ int cmd_mana(int argc, char **argv) {
                 mana_auth = AUTH_TYPE_WPA;
             }
         } else {
-            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", USAGE_MANA);
+            #else
+                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
+            #endif
             return ESP_ERR_INVALID_ARG;
         }
     } else if (!strcasecmp(argv[1], "LOUD")) {
         if (argc == 2) {
-            ESP_LOGI(MANA_TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
             #ifdef CONFIG_FLIPPER
                 printf("Mana %s; Loud %s\n", (attack_status[ATTACK_MANA])?"ON":"OFF", (attack_status[ATTACK_MANA_LOUD])?"ON":"OFF");
+            #else
+                ESP_LOGI(MANA_TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
             #endif
             return ESP_OK;
         }
@@ -774,9 +811,10 @@ int cmd_mana(int argc, char **argv) {
                 launchMana = true;
             }
         } else {
-            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", USAGE_MANA);
+            #else
+                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             #endif
             return ESP_ERR_INVALID_ARG;
         }
@@ -789,9 +827,10 @@ int cmd_mana(int argc, char **argv) {
         }
         free(networkList);
     } else {
-        ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_MANA);
+        #else
+            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -812,9 +851,10 @@ int cmd_mana(int argc, char **argv) {
        launch Mana if needed
     */
     if (launchMana) {
-        ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
         #ifdef CONFIG_FLIPPER
             printf("Starting Mana...\n");
+        #else
+            ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
         #endif
         char *manaArgs[2] = { "mana", "ON" };
         attack_status[ATTACK_MANA] = true;
@@ -865,9 +905,10 @@ int cmd_scan(int argc, char **argv) {
     if (argc > 3 || (argc == 3 && strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF")) ||
             (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
             (argc == 3 && strlen(argv[1]) > 32)) {
-        ESP_LOGE(TAG, "%s", USAGE_SCAN);
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_SCAN);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_SCAN);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -949,7 +990,6 @@ int cmd_scan(int argc, char **argv) {
         args[1] = "off";
         ESP_ERROR_CHECK(cmd_hop(2, args));
     }
-
     return ESP_OK;
 }
 

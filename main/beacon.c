@@ -182,23 +182,26 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 	if (attackType == ATTACK_BEACON_RICKROLL) {
 		SSID_COUNT = RICK_SSID_COUNT;
 		attack_ssids = rick_ssids;
-		ESP_LOGI(BEACON_TAG, "Starting RickRoll: %d SSIDs", SSID_COUNT);
 		#ifdef CONFIG_FLIPPER
 			printf("RickRoll: %d SSIDs\n", SSID_COUNT);
+		#else
+			ESP_LOGI(BEACON_TAG, "Starting RickRoll: %d SSIDs", SSID_COUNT);
 		#endif
 	} else if (attackType == ATTACK_BEACON_RANDOM) {
 		SSID_COUNT = (ssidCount>0)?ssidCount:DEFAULT_SSID_COUNT;
 		attack_ssids = generate_random_ssids();
-		ESP_LOGI(BEACON_TAG, "Starting %d random SSIDs", SSID_COUNT);
 		#ifdef CONFIG_FLIPPER
 			printf("%d random SSIDs\n", SSID_COUNT);
+		#else
+			ESP_LOGI(BEACON_TAG, "Starting %d random SSIDs", SSID_COUNT);
 		#endif
 	} else if (attackType == ATTACK_BEACON_USER) {
 		SSID_COUNT = user_ssid_count;
 		attack_ssids = user_ssids;
-		ESP_LOGI(BEACON_TAG, "Starting %d SSIDs", SSID_COUNT);
 		#ifdef CONFIG_FLIPPER
 			printf("%d User SSIDs\n", SSID_COUNT);
+		#else
+			ESP_LOGI(BEACON_TAG, "Starting %d SSIDs", SSID_COUNT);
 		#endif
 	} else if (attackType == ATTACK_BEACON_INFINITE) {
 		SSID_COUNT = 1;
@@ -207,9 +210,10 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 			ESP_LOGE(BEACON_TAG, "Failed to allocate memory to initialise infinite beacon spam attack. PANIC!");
 			return ESP_ERR_NO_MEM;
 		}
-		ESP_LOGI(BEACON_TAG, "Starting infinite SSIDs. Good luck!");
 		#ifdef CONFIG_FLIPPER
 			printf("Infinite SSIDs. Fun!\n");
+		#else
+			ESP_LOGI(BEACON_TAG, "Starting infinite SSIDs. Good luck!");
 		#endif
 	}
     
