@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <esp_wifi.h>
-#include "esp_flip_common.h"
+#include "esp_flip_struct.h"
+#include "esp_flip_const.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;

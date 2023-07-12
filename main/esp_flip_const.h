@@ -1,22 +1,4 @@
-/*  Globals to track module status information */
-enum AttackMode {
-    ATTACK_BEACON,
-    ATTACK_PROBE,
-    ATTACK_SNIFF,
-    ATTACK_DEAUTH,
-    ATTACK_MANA,
-    ATTACK_MANA_VERBOSE,
-    ATTACK_MANA_LOUD,
-    ATTACK_AP_DOS,
-    ATTACK_AP_CLONE,
-    ATTACK_SCAN,
-    ATTACK_HANDSHAKE,
-    ATTACK_RANDOMISE_MAC, // True
-    ATTACKS_COUNT
-};
-typedef enum AttackMode AttackMode;
-
-/* Command usage strings */
+/* Command usage string - SHORT_* is compressed help text for Flipper */
 const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]";
 const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
 const char USAGE_PROBE[] = "Probe flood attack. Usage: probe [ ANY | SSIDS | OFF ]";
@@ -25,7 +7,7 @@ const char USAGE_DEAUTH[] = "Deauth attack. Usage: deauth [ <millis> ] [ FRAME |
 const char USAGE_MANA[] = "Mana attack. Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )";
 const char USAGE_STALK[] = "Toggle target tracking/homing. Usage: stalk";
 const char USAGE_AP_DOS[] = "802.11 denial-of-service attack. Usage: ap-dos [ ON | OFF ]";
-const char USAGE_AP_CLONE[] = "Clone and attempt takeover of the specified AP. Usage: ap-clone [ <AP MAC> | OFF ]";
+const char USAGE_AP_CLONE[] = "Clone and attempt takeover of the specified AP. Usage: ap-clone [ <AP MAC> | APs | OFF ]";
 const char USAGE_SCAN[] = "Scan for wireless devices. Usage: scan [ <ssid> | ON | OFF ]";
 const char USAGE_HOP[] = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | DEFAULT | KILL ]";
 const char USAGE_SET[] = "Set a variable. Usage: set <variable> <value>";
@@ -35,3 +17,22 @@ const char USAGE_SELECT[] = "Select an element. Usage: select ( AP | STA ) <elem
 const char USAGE_CLEAR[] = "Clear stored APs or STAs. Usage: clear ( AP | STA | ALL )";
 const char USAGE_HANDSHAKE[] = "Toggle monitoring for encryption material. Usage handshake [ ON | OFF ]";
 const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
+
+const char SHORT_BEACON[] = "beacon RANDOM <count>";
+const char SHORT_TARGET_SSIDS[] = "(ADD|REMOVE) <apName>";
+const char SHORT_PROBE[] = "probe ANY | SSIDS | OFF";
+const char SHORT_SNIFF[] = "sniff [ ON | OFF ]";
+const char SHORT_DEAUTH[] = "deauth <millis>";
+const char SHORT_MANA[] = "Mana attack";
+const char SHORT_STALK[] = "Track RSSI";
+const char SHORT_AP_DOS[] = "ap-dos [ ON | OFF ]";
+const char SHORT_AP_CLONE[] = "ap-clone <AP MAC>";
+const char SHORT_SCAN[] = "scan <SSID Name>";
+const char SHORT_HOP[] = "hop <millis>";
+const char SHORT_SET[] = "set <variable> <value>";
+const char SHORT_GET[] = "get <variable>";
+const char SHORT_VIEW[] = "VIEW ( AP | STA )+";
+const char SHORT_SELECT[] = "select ( AP | STA ) <id>+";
+const char SHORT_CLEAR[] = "clear ( AP | STA | ALL )";
+const char SHORT_HANDSHAKE[] = "handshake [ ON | OFF ]";
+const char SHORT_COMMANDS[] = "Brief command summary";
