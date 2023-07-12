@@ -17,24 +17,24 @@
 #include <stdint.h>
 
 /* Command usage strings */
-static const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]";
-static const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
-static const char USAGE_PROBE[] = "Probe flood attack. Usage: probe [ ANY | SSIDS | OFF ]";
-static const char USAGE_SNIFF[] = "Display interesting packets. Usage: sniff [ ON | OFF ]";
-static const char USAGE_DEAUTH[] = "Deauth attack. Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ]";
-static const char USAGE_MANA[] = "Mana attack. Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )";
-static const char USAGE_STALK[] = "Toggle target tracking/homing. Usage: stalk";
-static const char USAGE_AP_DOS[] = "802.11 denial-of-service attack. Usage: ap-dos [ ON | OFF ]";
-static const char USAGE_AP_CLONE[] = "Clone and attempt takeover of the specified AP. Usage: ap-clone [ <AP MAC> | OFF ]";
-static const char USAGE_SCAN[] = "Scan for wireless devices. Usage: scan [ <ssid> | ON | OFF ]";
-static const char USAGE_HOP[] = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | DEFAULT | KILL ]";
-static const char USAGE_SET[] = "Set a variable. Usage: set <variable> <value>";
-static const char USAGE_GET[] = "Get a variable. Usage: get <variable>";
-static const char USAGE_VIEW[] = "List available targets. Usage: view ( AP | STA )+";
-static const char USAGE_SELECT[] = "Select an element. Usage: select ( AP | STA ) <elementId>+";
-static const char USAGE_CLEAR[] = "Clear stored APs or STAs. Usage: clear ( AP | STA | ALL )";
-static const char USAGE_HANDSHAKE[] = "Toggle monitoring for encryption material. Usage handshake [ ON | OFF ]";
-static const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
+extern const char USAGE_BEACON[];
+extern const char USAGE_TARGET_SSIDS[];
+extern const char USAGE_PROBE[];
+extern const char USAGE_SNIFF[];
+extern const char USAGE_DEAUTH[];
+extern const char USAGE_MANA[];
+extern const char USAGE_STALK[];
+extern const char USAGE_AP_DOS[];
+extern const char USAGE_AP_CLONE[];
+extern const char USAGE_SCAN[];
+extern const char USAGE_HOP[];
+extern const char USAGE_SET[];
+extern const char USAGE_GET[];
+extern const char USAGE_VIEW[];
+extern const char USAGE_SELECT[];
+extern const char USAGE_CLEAR[];
+extern const char USAGE_HANDSHAKE[];
+extern const char USAGE_COMMANDS[];
 
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);
