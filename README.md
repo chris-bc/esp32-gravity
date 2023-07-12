@@ -9,10 +9,11 @@ Initial development will be focused on implementing a core set of 802.11 explora
 
 ## Configuration
 
-global build settings in common.h:
-* #define DEBUG: Enable additional logging to isolate issues
-* #define DEBUG_VERBOSE: Enable way too much logging
-* #define FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display (Coming soon)
+Use idf.py menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
+
+* DEBUG: Enable additional logging to isolate issues
+* DEBUG_VERBOSE: Enable way too much logging
+* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display (Coming soon)
 
 ## Building & running
 
@@ -21,7 +22,17 @@ global build settings in common.h:
 * idf.py menuconfig
 * idf.py build flash monitor
 
-Note: Gravity is (at this stage) primarily a command-line application intended to be used over a UART console (such as ESP-IDF's inbuilt monitor).
+### Using Gravity
+
+To provide a nice, large output screen Gravity was first designed to run as a command-line application. Simply connect your favourite console
+- screen, minicom, netcat, putty - to the device's COM port on your computer and explore away!
+
+A Flipper Zero application for Gravity has also been developed, providing a more portable and discreet - if teensy-screened - way of using Gravity.
+ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
+don't lose any functionality on Flipper.
+(https://github.com/chris-bc/Flipper-Gravity|https://github.com/chris-bc/Flipper-Gravity)
+
+To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
 # Feature List
 
