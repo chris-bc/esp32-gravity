@@ -27,14 +27,14 @@ char *DEAUTH_TAG = "deauth@GRAVITY";
 
 static DeauthMode mode = DEAUTH_MODE_OFF;
 static DeauthMAC deauthMAC = DEAUTH_MAC_FRAME;
-static long delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
+static long deauth_delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
 static TaskHandle_t deauthTask = NULL;
 
 void deauthLoop(void *pvParameter) {
     //
     while (true) {
         /* Need to delay at least one tick to satisfy the watchdog */
-        vTaskDelay((delay / portTICK_PERIOD_MS) + 1); /* Delay <delay>ms plus a smidge */
+        vTaskDelay((deauth_delay / portTICK_PERIOD_MS) + 1); /* Delay <delay>ms plus a smidge */
 
         ScanResultSTA **targetSTA = NULL;
         int targetCount = 0;
@@ -145,7 +145,7 @@ esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis) {
     }
     mode = dMode;
     deauthMAC = setMAC;
-    delay = millis;
+    deauth_delay = millis;
     if (mode == DEAUTH_MODE_OFF) {
         return ESP_OK;
     }
@@ -163,4 +163,13 @@ esp_err_t deauth_stop() {
     }
 
     return ESP_OK;
+}
+
+esp_err_t deauth_setDelay(long millis) {
+    deauth_delay = millis;
+    return ESP_OK;
+}
+
+long deauth_getDelay() {
+    return deauth_delay;
 }

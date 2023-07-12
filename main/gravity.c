@@ -469,7 +469,7 @@ int cmd_target_ssids(int argc, char **argv) {
             #endif
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_BEACON);
+                printf("%s\n", USAGE_TARGET_SSIDS);
             #else
                 ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
             #endif
@@ -634,7 +634,7 @@ int cmd_deauth(int argc, char **argv) {
             strcasecmp(argv[2], "OFF")) || (argc == 3 && atol(argv[1]) == 0 &&
             strcasecmp(argv[1], "FRAME") && strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
             (argc == 2 && strcasecmp(argv[1], "STA") &&
-            strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF"))) {
+            strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF") && (atol(argv[1]) <= 0))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_DEAUTH);
         #else
@@ -644,9 +644,10 @@ int cmd_deauth(int argc, char **argv) {
     }
     if (argc == 1) {
         #ifdef CONFIG_FLIPPER
-            printf("Deauth %s\n", (attack_status[ATTACK_DEAUTH])?"Running":"Stopped");
+            printf("Deauth %s Delay %ldms\n", (attack_status[ATTACK_DEAUTH])?"ON":"OFF", deauth_getDelay());
         #else
-            ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning.", (attack_status[ATTACK_DEAUTH])?"":"not ");
+            ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning. Waiting %ldms between packets.",
+                    (attack_status[ATTACK_DEAUTH])?"":"not ", deauth_getDelay());
         #endif
         return ESP_OK;
     }
@@ -702,6 +703,9 @@ int cmd_deauth(int argc, char **argv) {
             dMode = DEAUTH_MODE_BROADCAST;
         } else if (!strcasecmp(argv[1], "OFF")) {
             dMode = DEAUTH_MODE_OFF;
+        } else {
+            /* Set the time between deauth packets without any other changes */
+            return deauth_setDelay(atol(argv[1]));
         }
         break;
     default:
@@ -918,9 +922,7 @@ int cmd_ap_clone(int argc, char **argv) {
 }
 
 int cmd_scan(int argc, char **argv) {
-    if (argc > 3 || (argc == 3 && strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF")) ||
-            (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
-            (argc == 3 && strlen(argv[1]) > 32)) {
+    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32)) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", USAGE_SCAN);
         #else
@@ -959,42 +961,56 @@ int cmd_scan(int argc, char **argv) {
         return ESP_OK;
     }
 
-    if (argc == 3) {
-        /* Copying NULLs might be a *bit* excessive ... */
-        memset(scan_filter_ssid, '\0', 33);
-        memset(scan_filter_ssid_bssid, 0x00, 6);
-        strcpy(scan_filter_ssid, argv[1]);
+    /* Zero out SSID filter */
+    memset(scan_filter_ssid, '\0', 33);
+    memset(scan_filter_ssid_bssid, 0x00, 6);
 
+    if (!strcasecmp(argv[1], "ON")) {
+        attack_status[ATTACK_SCAN] = true;
+    } else if (!strcasecmp(argv[1], "OFF")) {
+        attack_status[ATTACK_SCAN] = false;
+    } else {
+        attack_status[ATTACK_SCAN] = true;
+        /* Use argv[1] as an SSID filter */
+        strncpy(scan_filter_ssid, argv[1], 32); /* SSID max 32 chars */
         /* See if we've already seen the AP */
         int i;
-        for (i = 0; i < gravity_ap_count && strcmp(scan_filter_ssid,
+        for (i = 0; i < gravity_ap_count && strcasecmp(scan_filter_ssid,
                                 (char *)gravity_aps[i].espRecord.ssid); ++i) { }
         if (i < gravity_ap_count) {
+            /* Found the SSID in cached scan results */
             #ifdef CONFIG_DEBUG
                 char strMac[18] = "\0";
                 ESP_ERROR_CHECK(mac_bytes_to_string(scan_filter_ssid_bssid, strMac));
                 #ifndef CONFIG_FLIPPER
-                    printf("Had already seen BSSID %s for AP \"%s\"\n", strMac, scan_filter_ssid);
+                    ESP_LOGI(SCAN_TAG, "Have already seen BSSID %s for AP \"%s\"", strMac, scan_filter_ssid);
                 #endif
             #endif
-            memcpy(scan_filter_ssid_bssid, gravity_aps[i].espRecord.bssid, 6);
         }
     }
 
-    if (argc == 2) {
-        memset(scan_filter_ssid, '\0', 33);
-        memset(scan_filter_ssid_bssid, 0x00, 6);
-    }
-
-    if ((argc == 2 && !strcasecmp(argv[1], "ON")) || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
-        attack_status[ATTACK_SCAN] = true;
-    } else {
-        attack_status[ATTACK_SCAN] = false;
-    }
     #ifdef CONFIG_FLIPPER
         printf("Scanning %s\n", (attack_status[ATTACK_SCAN])?"ON":"OFF");
+        if (strlen(scan_filter_ssid) > 0) {
+            char truncSsid[33];
+            strcpy(truncSsid, scan_filter_ssid);
+            if (strlen(truncSsid) > 23) {
+                if (truncSsid[20] == ' ') {
+                    memcpy(&truncSsid[20], "...\0", 4);
+                } else {
+                    memcpy(&truncSsid[21], "..\0", 3);
+                }
+            }
+            printf("> %25s\n",truncSsid);
+        }
     #else
-        ESP_LOGI(SCAN_TAG, "Scanning is %s", (attack_status[ATTACK_SCAN])?"ON":"OFF");
+        char strMsg[16];
+        char ssidMsg[43] = "\0";
+        sprintf(strMsg, "Scanning is %s", (attack_status[ATTACK_SCAN])?"ON":"OFF");
+        if (strlen(scan_filter_ssid) > 0) {
+            sprintf(ssidMsg, " for SSID %s", scan_filter_ssid);
+        }
+            ESP_LOGI(SCAN_TAG, "%s%s\n", strMsg, ssidMsg);
     #endif
 
     /* Start/stop hopping task loop as needed */
@@ -1142,7 +1158,7 @@ int cmd_set(int argc, char **argv) {
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1261,7 +1277,7 @@ int cmd_get(int argc, char **argv) {
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
         #endif
         return ESP_ERR_INVALID_ARG;
     }

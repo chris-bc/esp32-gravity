@@ -17,5 +17,7 @@ typedef enum DeauthMAC DeauthMAC;
 
 esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis);
 esp_err_t deauth_stop();
+esp_err_t deauth_setDelay(long millis);
+long deauth_getDelay();
 
 extern char *DEAUTH_TAG;
