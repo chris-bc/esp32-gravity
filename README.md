@@ -13,7 +13,7 @@ Use idf.py menuconfig to configure global options. The section 'Gravity Configur
 
 * DEBUG: Enable additional logging to isolate issues
 * DEBUG_VERBOSE: Enable way too much logging
-* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display (Coming soon)
+* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display
 
 ## Building & running
 
@@ -24,8 +24,8 @@ Use idf.py menuconfig to configure global options. The section 'Gravity Configur
 
 ### Using Gravity
 
-To provide a nice, large output screen Gravity was first designed to run as a command-line application. Simply connect your favourite console
-- screen, minicom, netcat, putty - to the device's COM port on your computer and explore away!
+To provide a nice, large output screen Gravity was first designed to run as a command-line application. Simply connect your favourite console -
+screen, minicom, netcat, putty - to the device's COM port on your computer and explore away!
 
 A Flipper Zero application for Gravity has also been developed, providing a more portable and discreet - if teensy-screened - way of using Gravity.
 ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
@@ -34,52 +34,55 @@ don't lose any functionality on Flipper.
 
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
-# Feature List
+## Features Done
 
-* **DONE** Soft AP
+* Soft AP
+* Command line interface with commands:
+    * scan [ ON | OFF ]
+      * Scan APs - Fast (API)
+      * Scan APs - Continual (SSID + lastSeen when beacons seen)
+      * Commands to select/view/remove APs/STAs in scope
+      *  Scan STAs - Only include clients of selected AP(s), or all 
+      * Fix bug with hidden SSIDs being included in network scan and getting garbled names
+      * Update client count when new STAs are found
+      * Format timestamps for display
+    * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
+      * Options to get/set MAC hopping between frames
+    * view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
+    * select: select ( SSID | STA ) <specifier>+ - Select/deselect targets for the included tools.
+    * beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
+      * Beacon spam - Rickroll
+      * Beacon spam - User-specified SSIDs
+      * Beacon spam - Fuzzing (Random strings)
+      * Beacon spam - Infinite (Random strings)
+    * probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
+    * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
+    * mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
+      verbose output, and set the authentication type it indicates. If not specified returns the current status. 
+      * Mana attack - Respond to all probes
+      * Loud Mana - Respond with SSIDs from all STAs
+* **ONGOING** Receive and parse 802.11 frames
+
+## Features TODO
+
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
-* **DONE** Command line interface with commands:
-    * **DONE** scan [ ON | OFF ]
-      * **NOT DOING**Scan APs - Fast (API)
-      * **DONE**Scan APs - Continual (SSID + lastSeen when beacons seen)
-      * **DONE**Commands to select/view/remove APs/STAs in scope
-      * **DONE** Scan STAs - Only include clients of selected AP(s), or all 
-      * TODO: additional option to show hidden SSIDs
-      * **DONE** Fix bug with hidden SSIDs being included in network scan and getting garbled names
-      * **DONE** Update client count when new STAs are found
-      * **DONE** Format timestamps for display
-    * **DONE** set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
-      * **DONE** Options to get/set MAC hopping between frames
-    * **DONE**view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
-    * **DONE**select: select ( SSID | STA ) <specifier>+ - Select/deselect targets for the included tools.
-    * handshake
-    * **DONE** beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
-      * **DONE** Beacon spam - Rickroll
-      * **DONE** Beacon spam - User-specified SSIDs
-      * **DONE** Beacon spam - Fuzzing (Random strings)
-      * **DONE** Beacon spam - Infinite (Random strings)
-    * **DONE** probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
-    * **DONE** deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
-    * **DONE** mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
-      verbose output, and set the authentication type it indicates. If not specified returns the current status. 
-      * **DONE** Mana attack - Respond to all probes
-      * **DONE** Loud Mana - Respond with SSIDs from all STAs
-    * stalk
-      * Homing attack (Focus on RSSI for selected STA(s) or AP)
-    * ap-dos
-      * DOS AP
-      * Use target's MAC
-      * Respond to frames directed at AP with a deauth packet
-    * ap-clone
-      * Clone AP
-      * Use target's MAC
-      * Respond to probe requests with forged beacon frames
-      * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
-      * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
-    * CLI commands to analyse captured data - stations(ap), ap(station), stations/aps(channel), etc
-* **ONGOING** Receive and parse 802.11 frames
+* TODO: additional option to show hidden SSIDs
+* stalk
+  * Homing attack (Focus on RSSI for selected STA(s) or AP)
+* ap-dos
+  * DOS AP
+  * Use target's MAC
+  * Respond to frames directed at AP with a deauth packet
+* ap-clone
+  * Clone AP
+  * Use target's MAC
+  * Respond to probe requests with forged beacon frames
+  * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
+  * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
+* CLI commands to analyse captured data - stations(ap), ap(station), stations/aps(channel), etc
+* handshake
 * Capture authentication frames for cracking
 * Scan 802.15.1 (BLE/BT) devices and types
 * Incorporate BLE/BT devices into homing attack
