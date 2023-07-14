@@ -113,26 +113,6 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 	return resPassOne;
 }
 
-/* Extract and return SSIDs from the specified ScanResultAP array */
-char **apListToStrings(ScanResultAP **aps, int apsCount) {
-	char **res = malloc(sizeof(char *) * apsCount);
-	if (res == NULL) {
-		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to extract AP names");
-		return NULL;
-	}
-
-	for (int i = 0; i < apsCount; ++i) {
-		res[i] = malloc(sizeof(char) * 33);
-		if (res[i] == NULL) {
-			ESP_LOGE(BEACON_TAG, "Unable to allocate memory to hold AP %d", i);
-			free(res);
-			return NULL;
-		}
-		strcpy(res[i], (char *)aps[i]->espRecord.ssid);
-	}
-	return res;
-}
-
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;
 

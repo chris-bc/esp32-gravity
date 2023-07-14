@@ -1,3 +1,6 @@
+#ifndef GRAVITY_COMMON_H
+#define GRAVITY_COMMON_H
+
 #include <stdbool.h>
 #include <esp_wifi.h>
 #include "esp_flip_struct.h"
@@ -40,3 +43,7 @@ extern ScanResultAP *gravity_aps;
 extern ScanResultSTA *gravity_stas;
 extern ScanResultAP **gravity_selected_aps;
 extern ScanResultSTA **gravity_selected_stas;
+
+extern char **apListToStrings(ScanResultAP **aps, int apsCount);
+
+#endif

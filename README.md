@@ -69,7 +69,7 @@ TODO
       * Beacon spam - Infinite (Random strings)
       * Beacon spam - Selected APs
         * Current implementation will include STAs who probed but did not connect to a specified AP. I think that's a good thing?
-    * probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
+    * probe: probe [ ANY | SSIDS | AP | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users. SSIDs sourced either from user-specified target-ssids or selected APs from scan results.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
       verbose output, and set the authentication type it indicates. If not specified returns the current status. 
@@ -106,8 +106,6 @@ TODO
 
 * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
 * Scan/probe selected APs
-  * probe - rename ssids to target-ssids
-  * probe - add aps
   * deauth - all clients of a given AP
 * View selected sta/aps
 * Mana "Scream" - Broadcast known APs

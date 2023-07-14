@@ -15,6 +15,7 @@
 #include "cmd_nvs.h"
 #include <stdlib.h>
 #include <stdint.h>
+#include "common.h"
 
 /* Command usage strings */
 extern const char USAGE_BEACON[];
@@ -57,6 +58,7 @@ int cmd_commands(int argc, char **argv);
 int cmd_hop(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+char **apListToStrings(ScanResultAP **aps, int apsCount);
 
 enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_NONE,

@@ -55,6 +55,10 @@ uint8_t probe_raw[] = {
 static probe_attack_t attackType = ATTACK_PROBE_NONE;
 TaskHandle_t probeTask = NULL;
 
+/* Our list of SSIDs */
+char **probeList = NULL;
+int probeListCount = 0;
+
 void probeCallback(void *pvParameter) {
     //
     // For directed probes we need to track which SSID we're up to
@@ -163,6 +167,14 @@ int probe_stop() {
         vTaskDelete(probeTask);
         probeTask = NULL;
     }
+
+    if (attackType == ATTACK_PROBE_DIRECTED_SCAN) {
+        /* Need to clear probeList and its contents */
+        for (int i = 0; i < probeListCount; ++i) {
+            free(probeList[i]);
+        }
+        free(probeList);
+    }
     attackType = ATTACK_PROBE_NONE;
     return ESP_OK;
 }
@@ -180,6 +192,15 @@ int probe_start(probe_attack_t type) {
         probe_stop();
     }
     attackType = type;
+
+    /* Set our list of probes for directed attacks */
+    if (attackType == ATTACK_PROBE_DIRECTED_USER) {
+        probeList = user_ssids;
+        probeListCount = user_ssid_count;
+    } else if (attackType == ATTACK_PROBE_DIRECTED_SCAN) {
+        probeList = apListToStrings(gravity_selected_aps, gravity_sel_ap_count);
+        probeListCount = gravity_sel_ap_count;
+    }
 
     // The two variations on this attack - directed vs. undirected
     //   probes - have so much similarity that the differences will be

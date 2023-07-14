@@ -163,6 +163,26 @@ void channelHopCallback(void *pvParameter) {
     }
 }
 
+/* Extract and return SSIDs from the specified ScanResultAP array */
+char **apListToStrings(ScanResultAP **aps, int apsCount) {
+	char **res = malloc(sizeof(char *) * apsCount);
+	if (res == NULL) {
+		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to extract AP names");
+		return NULL;
+	}
+
+	for (int i = 0; i < apsCount; ++i) {
+		res[i] = malloc(sizeof(char) * 33);
+		if (res[i] == NULL) {
+			ESP_LOGE(BEACON_TAG, "Unable to allocate memory to hold AP %d", i);
+			free(res);
+			return NULL;
+		}
+		strcpy(res[i], (char *)aps[i]->espRecord.ssid);
+	}
+	return res;
+}
+
 /* Functions to manage target-ssids */
 int countSsid() {
 	return user_ssid_count;
@@ -515,8 +535,8 @@ int cmd_target_ssids(int argc, char **argv) {
 }
 
 int cmd_probe(int argc, char **argv) {
-    // Syntax: PROBE [ ANY | SSIDS | OFF ]
-    if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
+    // Syntax: PROBE [ ANY | TARGET-SSIDs | APs | OFF ]
+    if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "TARGET-SSIDs") && strcasecmp(argv[1], "APs") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_PROBE);
         #else
@@ -558,20 +578,22 @@ int cmd_probe(int argc, char **argv) {
         probe_stop();
     } else {
         // Gather parameters for probe_start()
-        if (!strcasecmp(argv[1], "SSIDS")) {
-            probeType = ATTACK_PROBE_DIRECTED;
+        if (!strcasecmp(argv[1], "TARGET-SSIDS")) {
+            probeType = ATTACK_PROBE_DIRECTED_USER;
+        } else if (!strcasecmp(argv[1], "APS")) {
+            probeType = ATTACK_PROBE_DIRECTED_SCAN;
         }
 
         char probeNote[100];
-        sprintf(probeNote, "Starting a probe flood of %spackets%s", (probeType == ATTACK_PROBE_UNDIRECTED)?"broadcast ":"", (probeType == ATTACK_PROBE_DIRECTED)?" directed to ":"");
-        if (probeType == ATTACK_PROBE_DIRECTED) {
-            char suffix[16];
-            sprintf(suffix, "%d SSIDs", countSsid());
+        sprintf(probeNote, "Starting a probe flood of %spackets%s", (probeType == ATTACK_PROBE_UNDIRECTED)?"broadcast ":"", (probeType == ATTACK_PROBE_DIRECTED_USER || probeType == ATTACK_PROBE_DIRECTED_SCAN)?" directed to ":"");
+        if (probeType == ATTACK_PROBE_DIRECTED_USER || probeType == ATTACK_PROBE_DIRECTED_SCAN) {
+            char suffix[25];
+            sprintf(suffix, "%d %s SSIDs", countSsid(), (probeType == ATTACK_PROBE_DIRECTED_SCAN)?"scanned":"user-specified");
             strcat(probeNote, suffix);
         }
 
         #ifdef CONFIG_FLIPPER
-            printf("%s probes\n", (probeType == ATTACK_PROBE_UNDIRECTED)?"Broadcast":"Directed");
+            printf("%s probes\n", (probeType == ATTACK_PROBE_UNDIRECTED)?"Broadcast":(probeType == ATTACK_PROBE_DIRECTED_USER)?"User-Specified":"Scan Result");
         #else
             ESP_LOGI(PROBE_TAG, "%s", probeNote);
         #endif
