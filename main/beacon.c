@@ -1,5 +1,6 @@
 #include "beacon.h"
 #include "esp_err.h"
+#include "common.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
@@ -44,6 +45,93 @@ static uint8_t beacon_raw[] = {
 
 char *currentSsid = NULL;
 int currentSsidLen = 0;
+
+/* Check whether the specified ScanResultSTA list contains the specified ScanResultSTA */
+bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta) {
+	int i;
+	for (i = 0; i < listLen && memcmp(list[i]->mac, sta->mac, 6); ++i) { }
+	return (i < listLen);
+}
+
+/* For "APs" beacon mode we need a set of all STAs that are clients of the selected APs
+   Here we will use cached data to determine this, to provide us a time sample of data
+   to draw from. This does mean, however, that SCANNING SHOULD BE ENABLED while using
+   this feature. It won't be forced because there are use cases not to.
+   Caller must free the result
+ */
+ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
+	/* Start out by getting an upper bound of the number of results we'll have */
+	int resUpperBound = 0;
+	/* Loop through gravity_selected_aps and sum stationCount */
+	for (int i = 0; i < gravity_sel_ap_count; ++i) {
+		resUpperBound += gravity_selected_aps[i]->stationCount;
+	}
+
+	/* Avoid having to guard every second operation */
+	if (resUpperBound == 0) {
+		return NULL;
+	}
+
+	int resCount = 0;
+	ScanResultSTA **resPassOne = malloc(sizeof(ScanResultSTA *) * resUpperBound);
+	if (resPassOne == NULL) {
+		ESP_LOGE(BEACON_TAG, "Unable to allocate temporary storage for extracting clients of selected APs");
+		return NULL;
+	}
+
+	/* Loop through gravity_selected_aps, looping through ap[i]->stations, adding
+	   all stations exactly once to resPassOne
+	*/
+	for (int i = 0; i < gravity_sel_ap_count; ++i) {
+		for (int j = 0; j < gravity_selected_aps[i]->stationCount; ++j) {
+			/* Does ((ScanResultSTA *)gravity_selected_aps[i]->stations[j]) need
+			   to be added to resPassOne?
+			*/
+			if (!staResultListContainsSTA(resPassOne, resCount, (ScanResultSTA *)gravity_selected_aps[i]->stations[j])) {
+				/* Add it */
+				resPassOne[resCount++] = (ScanResultSTA *)gravity_selected_aps[i]->stations[j];
+			}
+		}
+	}
+
+	/* Before finishing shrink resPassOne to only the length required */
+	if (resCount < resUpperBound) {
+		ScanResultSTA **res = malloc(sizeof(ScanResultSTA *) * resCount);
+		if (res == NULL) {
+			ESP_LOGW(BEACON_TAG, "Unable to allocate memory to reduce space occupied by Beacon STA list. Sorry.");
+		} else {
+			/* Copy resPassOne into res */
+			for (int i = 0; i < resCount; ++i) {
+				res[i] = resPassOne[i];
+			}
+			free(resPassOne);
+			resPassOne = res;
+		}
+	}
+	/* Return length */
+	*staCount = resCount;
+	return resPassOne;
+}
+
+/* Extract and return SSIDs from the specified ScanResultAP array */
+char **apListToStrings(ScanResultAP **aps, int apsCount) {
+	char **res = malloc(sizeof(char *) * apsCount);
+	if (res == NULL) {
+		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to extract AP names");
+		return NULL;
+	}
+
+	for (int i = 0; i < apsCount; ++i) {
+		res[i] = malloc(sizeof(char) * 33);
+		if (res[i] == NULL) {
+			ESP_LOGE(BEACON_TAG, "Unable to allocate memory to hold AP %d", i);
+			free(res);
+			return NULL;
+		}
+		strcpy(res[i], (char *)aps[i]->espRecord.ssid);
+	}
+	return res;
+}
 
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;
@@ -154,9 +242,15 @@ int beacon_stop() {
 	}
 
 	/* Clean up generated SSIDs */
+	/* For AP free the individual strings */
+	if (attackType == ATTACK_BEACON_AP) {
+		for (int i = 0; i < SSID_COUNT; ++i) {
+			free(attack_ssids[i]);
+		}
+	}
 	if (attackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
 		free(currentSsid);
-	} else if (attackType == ATTACK_BEACON_RANDOM) {
+	} else if (attackType == ATTACK_BEACON_RANDOM || attackType == ATTACK_BEACON_AP) {
 		free(attack_ssids);
 	}
 	attackType = ATTACK_BEACON_NONE;
@@ -202,6 +296,14 @@ int beacon_start(beacon_attack_t type, int ssidCount) {
 			printf("%d User SSIDs\n", SSID_COUNT);
 		#else
 			ESP_LOGI(BEACON_TAG, "Starting %d SSIDs", SSID_COUNT);
+		#endif
+	} else if (attackType == ATTACK_BEACON_AP) {
+		attack_ssids = apListToStrings(gravity_selected_aps, gravity_sel_ap_count);
+		SSID_COUNT = gravity_sel_ap_count;
+		#ifdef CONFIG_FLIPPER
+			printf("%d scanned SSIDs\n", SSID_COUNT);
+		#else
+			ESP_LOGI(BEACON_TAG, "Starting %d scanned SSIDs", SSID_COUNT);
 		#endif
 	} else if (attackType == ATTACK_BEACON_INFINITE) {
 		SSID_COUNT = 1;

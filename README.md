@@ -17,9 +17,11 @@ Use idf.py menuconfig to configure global options. The section 'Gravity Configur
 
 ## Building & running
 
+All you need to do to build, flash and run Gravity is:
 * Install ESP-IDF
 * idf.py set-target <chipset>
 * idf.py menuconfig
+  * Pay particular attention to the section 'Gravity Configuration'
 * idf.py build flash monitor
 
 ### Using Gravity
@@ -30,9 +32,19 @@ screen, minicom, netcat, putty - to the device's COM port on your computer and e
 A Flipper Zero application for Gravity has also been developed, providing a more portable and discreet - if teensy-screened - way of using Gravity.
 ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
 don't lose any functionality on Flipper.
-(https://github.com/chris-bc/Flipper-Gravity|https://github.com/chris-bc/Flipper-Gravity)
+https://github.com/chris-bc/Flipper-Gravity
 
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
+
+## Using Gravity on a console
+
+TODO
+
+
+## Using Gravity on a Flipper Zero
+
+TODO
+
 
 ## Features Done
 
@@ -55,6 +67,8 @@ To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, 
       * Beacon spam - User-specified SSIDs
       * Beacon spam - Fuzzing (Random strings)
       * Beacon spam - Infinite (Random strings)
+      * Beacon spam - Selected APs
+        * Current implementation will include STAs who probed but did not connect to a specified AP. I think that's a good thing?
     * probe: probe [ ANY | SSIDS | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users.
     * deauth: deauth [ STA | BROADCAST | OFF ] - Send deauthentication packets to broadcast if STA is not specified, or to selected STAs if it has been specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
@@ -90,7 +104,12 @@ To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, 
 
 ## Bugs / Todo
 
-* Scan selected APs
+* beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
+* Scan/probe selected APs
+  * probe - rename ssids to target-ssids
+  * probe - add aps
+  * deauth - all clients of a given AP
+* View selected sta/aps
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
@@ -161,150 +180,3 @@ Finding the serial port used by Gravity varies depending on operating system:
 * On Linux, run ls /dev/tty* before plugging the device in, and again with the device connected. The new file is the serial port in use, and will typically be named ttyUSB0 or ttyACM0.
 
 
-# Basic Console Example (`esp_console_repl`)
-
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
-
-This example illustrates the usage of the REPL (Read-Eval-Print Loop) APIs of the [Console Component](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/system/console.html#console) to create an interactive shell on the ESP chip. The interactive shell running on the ESP chip can then be controlled/interacted with over a serial interface. This example supports UART and USB interfaces.
-
-The interactive shell implemented in this example contains a wide variety of commands, and can act as a basis for applications that require a command-line interface (CLI).
-
-Compared to the [advanced console example](../advanced), this example requires less code to initialize and run the console. `esp_console_repl` API handles most of the details. If you'd like to customize the way console works (for example, process console commands in an existing task), please check the advanced console example.
-
-## How to use example
-
-This example can be used on boards with UART and USB interfaces. The sections below explain how to set up the board and configure the example.
-
-### Using with UART
-
-When UART interface is used, this example should run on any commonly available Espressif development board. UART interface is enabled by default (`CONFIG_ESP_CONSOLE_UART_DEFAULT` option in menuconfig). No extra configuration is required.
-
-### Using with USB_SERIAL_JTAG
-
-On chips with USB_SERIAL_JTAG peripheral, console example can be used over the USB serial port.
-
-* First, connect the USB cable to the USB_SERIAL_JTAG interface.
-* Second, run `idf.py menuconfig` and enable `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` option.
-
-For more details about connecting and configuring USB_SERIAL_JTAG (including pin numbers), see the IDF Programming Guide:
-* [ESP32-C3 USB_SERIAL_JTAG](https://docs.espressif.com/projects/esp-idf/en/stable/esp32c3/api-guides/usb-serial-jtag-console.html)
-* [ESP32-S3 USB_SERIAL_JTAG](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/usb-serial-jtag-console.html)
-
-### Using with USB CDC (USB_OTG peripheral)
-
-USB_OTG peripheral can also provide a USB serial port which works with this example.
-
-* First, connect the USB cable to the USB_OTG peripheral interface.
-* Second, run `idf.py menuconfig` and enable `CONFIG_ESP_CONSOLE_USB_CDC` option.
-
-For more details about connecting and configuring USB_OTG (including pin numbers), see the IDF Programming Guide:
-* [ESP32-S2 USB_OTG](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s2/api-guides/usb-otg-console.html)
-* [ESP32-S3 USB_OTG](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/usb-otg-console.html)
-
-### Other configuration options
-
-This example has an option to store the command history in Flash. This option is enabled by default.
-
-To disable this, run `idf.py menuconfig` and disable `CONFIG_CONSOLE_STORE_HISTORY` option.
-
-### Build and Flash
-
-Build the project and flash it to the board, then run monitor tool to view serial output:
-
-```
-idf.py -p PORT flash monitor
-```
-
-(Replace PORT with the name of the serial port to use.)
-
-(To exit the serial monitor, type ``Ctrl-]``.)
-
-See the Getting Started Guide for full steps to configure and use ESP-IDF to build projects.
-
-## Example Output
-
-Enter the `help` command get a full list of all available commands. The following is a sample session of the Console Example where a variety of commands provided by the Console Example are used.
-
-On ESP32, GPIO15 may be connected to GND to remove the boot log output.
-
-```
-This is an example of ESP-IDF console component.
-Type 'help' to get the list of commands.
-Use UP/DOWN arrows to navigate through command history.
-Press TAB when typing command name to auto-complete.
-[esp32]> help
-help
-  Print the list of registered commands
-
-free
-  Get the total size of heap memory available
-
-restart
-  Restart the program
-
-deep_sleep  [-t <t>] [--io=<n>] [--io_level=<0|1>]
-  Enter deep sleep mode. Two wakeup modes are supported: timer and GPIO. If no
-  wakeup option is specified, will sleep indefinitely.
-  -t, --time=<t>  Wake up time, ms
-      --io=<n>  If specified, wakeup using GPIO with given number
-  --io_level=<0|1>  GPIO level to trigger wakeup
-
-join  [--timeout=<t>] <ssid> [<pass>]
-  Join WiFi AP as a station
-  --timeout=<t>  Connection timeout, ms
-        <ssid>  SSID of AP
-        <pass>  PSK of AP
-
-[esp32]> free
-257200
-[esp32]> deep_sleep -t 1000
-I (146929) deep_sleep: Enabling timer wakeup, timeout=1000000us
-I (619) heap_init: Initializing. RAM available for dynamic allocation:
-I (620) heap_init: At 3FFAE2A0 len 00001D60 (7 KiB): DRAM
-I (626) heap_init: At 3FFB7EA0 len 00028160 (160 KiB): DRAM
-I (645) heap_init: At 3FFE0440 len 00003BC0 (14 KiB): D/IRAM
-I (664) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
-I (684) heap_init: At 40093EA8 len 0000C158 (48 KiB): IRAM
-
-This is an example of ESP-IDF console component.
-Type 'help' to get the list of commands.
-Use UP/DOWN arrows to navigate through command history.
-Press TAB when typing command name to auto-complete.
-[esp32]> join --timeout 10000 test_ap test_password
-I (182639) connect: Connecting to 'test_ap'
-I (184619) connect: Connected
-[esp32]> free
-212328
-[esp32]> restart
-I (205639) restart: Restarting
-I (616) heap_init: Initializing. RAM available for dynamic allocation:
-I (617) heap_init: At 3FFAE2A0 len 00001D60 (7 KiB): DRAM
-I (623) heap_init: At 3FFB7EA0 len 00028160 (160 KiB): DRAM
-I (642) heap_init: At 3FFE0440 len 00003BC0 (14 KiB): D/IRAM
-I (661) heap_init: At 3FFE4350 len 0001BCB0 (111 KiB): D/IRAM
-I (681) heap_init: At 40093EA8 len 0000C158 (48 KiB): IRAM
-
-This is an example of ESP-IDF console component.
-Type 'help' to get the list of commands.
-Use UP/DOWN arrows to navigate through command history.
-Press TAB when typing command name to auto-complete.
-[esp32]>
-
-```
-
-## Troubleshooting
-
-### Line Endings
-
-The line endings in the Console Example are configured to match particular serial monitors. Therefore, if the following log output appears, consider using a different serial monitor (e.g. Putty for Windows) or modify the example's [UART configuration](#Configuring-UART-and-VFS).
-
-```
-This is an example of ESP-IDF console component.
-Type 'help' to get the list of commands.
-Use UP/DOWN arrows to navigate through command history.
-Press TAB when typing command name to auto-complete.
-Your terminal application does not support escape sequences.
-Line editing and history features are disabled.
-On Windows, try using Putty instead.
-esp32>
-```

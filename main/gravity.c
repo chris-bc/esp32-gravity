@@ -254,7 +254,7 @@ int rmSsid(char *ssid) {
 int cmd_hop(int argc, char **argv) {
     if (argc > 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_HOP);
+            printf("%s\n", SHORT_HOP);
         #else
             ESP_LOGE(HOP_TAG, "%s", USAGE_HOP);
         #endif
@@ -358,7 +358,7 @@ int cmd_hop(int argc, char **argv) {
         } else {
             /* Invalid argument */
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_HOP);
+                printf("%s\n", SHORT_HOP);
             #else
                 ESP_LOGE(HOP_TAG, "Invalid arguments provided: %s", USAGE_HOP);
             #endif
@@ -383,12 +383,12 @@ int cmd_commands(int argc, char **argv) {
 }
 
 int cmd_beacon(int argc, char **argv) {
-    /* rickroll | random | user | off | status */
+    /* rickroll | random | target-ssids | ap | off | status */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
     /* argc must be 1 or 2 - no arguments, or rickroll/random/user/infinite/off */
     if (argc < 1 || argc > 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_BEACON);
+            printf("%s\n", SHORT_BEACON);
         #else
             ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
         #endif
@@ -439,15 +439,17 @@ int cmd_beacon(int argc, char **argv) {
             }
         }
         ret = beacon_start(ATTACK_BEACON_RANDOM, ssidCount);
-    } else if (!strcasecmp(argv[1], "user")) {
+    } else if (!strcasecmp(argv[1], "target-ssids")) {
         ret = beacon_start(ATTACK_BEACON_USER, 0);
+    } else if (!strcasecmp(argv[1], "aps")) {
+        ret = beacon_start(ATTACK_BEACON_AP, 0);
     } else if (!strcasecmp(argv[1], "infinite")) {
         ret = beacon_start(ATTACK_BEACON_INFINITE, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_BEACON);
+            printf("%s\n", SHORT_BEACON);
         #else
             ESP_LOGE(TAG, "Invalid argument provided to BEACON: \"%s\"", argv[1]);
         #endif
@@ -469,7 +471,7 @@ int cmd_target_ssids(int argc, char **argv) {
             #endif
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_TARGET_SSIDS);
+                printf("%s\n", SHORT_TARGET_SSIDS);
             #else
                 ESP_LOGE(TAG, "target-ssids must have either no arguments, to return its current value, or two arguments: ADD/REMOVE <ssid>");
             #endif
@@ -516,7 +518,7 @@ int cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY | SSIDS | OFF ]
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "SSIDS") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_PROBE);
+            printf("%s\n", SHORT_PROBE);
         #else
             ESP_LOGW(PROBE_TAG, "%s", USAGE_PROBE);
         #endif
@@ -582,7 +584,7 @@ int cmd_sniff(int argc, char **argv) {
     // Usage: sniff [ ON | OFF ]
     if (argc > 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_SNIFF);
+            printf("%s\n", SHORT_SNIFF);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #endif
@@ -604,7 +606,7 @@ int cmd_sniff(int argc, char **argv) {
         attack_status[ATTACK_SNIFF] = false;
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_SNIFF);
+            printf("%s\n", SHORT_SNIFF);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SNIFF);
         #endif
@@ -636,7 +638,7 @@ int cmd_deauth(int argc, char **argv) {
             (argc == 2 && strcasecmp(argv[1], "STA") &&
             strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF") && (atol(argv[1]) <= 0))) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_DEAUTH);
+            printf("%s\n", SHORT_DEAUTH);
         #else
             ESP_LOGE(TAG, "%s", USAGE_DEAUTH);
         #endif
@@ -754,7 +756,7 @@ int cmd_deauth(int argc, char **argv) {
 int cmd_mana(int argc, char **argv) {
     if (argc > 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_MANA);
+            printf("%s\n", SHORT_MANA);
         #else
             ESP_LOGE(TAG, "%s", USAGE_MANA);
         #endif
@@ -780,7 +782,7 @@ int cmd_mana(int argc, char **argv) {
             attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_MANA);
+                printf("%s\n", SHORT_MANA);
             #else
                 ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             #endif
@@ -808,7 +810,7 @@ int cmd_mana(int argc, char **argv) {
             }
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_MANA);
+                printf("%s\n", SHORT_MANA);
             #else
                 ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             #endif
@@ -832,7 +834,7 @@ int cmd_mana(int argc, char **argv) {
             }
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_MANA);
+                printf("%s\n", SHORT_MANA);
             #else
                 ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
             #endif
@@ -848,7 +850,7 @@ int cmd_mana(int argc, char **argv) {
         free(networkList);
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_MANA);
+            printf("%s\n", SHORT_MANA);
         #else
             ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
         #endif
@@ -924,7 +926,7 @@ int cmd_ap_clone(int argc, char **argv) {
 int cmd_scan(int argc, char **argv) {
     if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32)) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_SCAN);
+            printf("%s\n", SHORT_SCAN);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SCAN);
         #endif
@@ -1036,7 +1038,7 @@ int cmd_scan(int argc, char **argv) {
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", USAGE_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
@@ -1154,7 +1156,7 @@ int cmd_set(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", USAGE_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
@@ -1175,7 +1177,7 @@ int cmd_set(int argc, char **argv) {
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", USAGE_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
@@ -1273,7 +1275,7 @@ int cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", USAGE_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
@@ -1289,7 +1291,7 @@ int cmd_get(int argc, char **argv) {
 int cmd_view(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_VIEW);
+            printf("%s\n", SHORT_VIEW);
         #else
             ESP_LOGE(TAG, "%s", USAGE_VIEW);
         #endif
@@ -1303,7 +1305,7 @@ int cmd_view(int argc, char **argv) {
             success = (success && gravity_list_sta() == ESP_OK);
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_VIEW);
+                printf("%s\n", SHORT_VIEW);
             #else
                 ESP_LOGE(TAG, "%s", USAGE_VIEW);
             #endif
@@ -1320,7 +1322,7 @@ int cmd_view(int argc, char **argv) {
 int cmd_select(int argc, char **argv) {
     if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_SELECT);
+            printf("%s\n", SHORT_SELECT);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SELECT);
         #endif
@@ -1354,7 +1356,7 @@ int cmd_select(int argc, char **argv) {
 int cmd_clear(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", USAGE_CLEAR);
+            printf("%s\n", SHORT_CLEAR);
         #else
             ESP_LOGE(TAG, "%s", USAGE_CLEAR);
         #endif
@@ -1363,7 +1365,7 @@ int cmd_clear(int argc, char **argv) {
     for (int i=1; i < argc; ++i) {
         if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL")) {
             #ifdef CONFIG_FLIPPER
-                printf("%s\n", USAGE_CLEAR);
+                printf("%s\n", SHORT_CLEAR);
             #else
                 ESP_LOGE(TAG, "%s", USAGE_CLEAR);
             #endif

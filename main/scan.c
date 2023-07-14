@@ -496,7 +496,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         #ifdef CONFIG_DEBUG
             #ifdef CONFIG_FLIPPER
                 char trunc[33];
-                strcpy(trunc, newSSID);
+                strncpy(trunc, newSSID, 32);
                 if (strlen(trunc) > 16) {
                     if (trunc[13] == ' ') {
                         memcpy(&trunc[13], "...\0", 4);

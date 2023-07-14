@@ -117,7 +117,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
         .hint = USAGE_BEACON,
-        .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. USER will generate SSIDs as specified in target-ssids. INIFINITE will continuously broadcast random APs until it is stopped.",
+        .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. TARGET-SSIDs will generate SSIDs as specified in target-ssids. APs will generate SSIDs based on selected scan results. It is STRONGLY RECOMMENDED that scanning remain active while in this mode.  INIFINITE will continuously broadcast random APs until it is stopped.",
         .func = cmd_beacon
     }, {
         .command = "target-ssids",
@@ -137,7 +137,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "deauth",
         .hint = USAGE_DEAUTH,
-        .help = "Arguments:   <millis>: Time to wait between packets.  FRAME | DEVICE | SPOOF : Deauth packet is sent with the AP's source address, the device's source address, or the device's MAC is changed to match AP.  STA: Send deauthentication packets to selected stations.   BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
+        .help = "Arguments:   <millis>: Time to wait between packets.  FRAME | DEVICE | SPOOF : Deauth packet is sent with the AP's source address, the device's source address, or the device's MAC is changed to match AP.  STA: Send deauthentication packets to selected stations.   AP: Send deauthentication packets to clients of selected APs.  BROADCAST: Send broadcast deauthentication packets.   OFF: Disable a running deauthentication attack.   No argument: Return the current status of the module.   Deauthentication frames are intended to be issued by an AP to instruct connected STAs to disconnect before the AP makes a change that could affect the connection. This obviously makes it trivial to observe a 4-way handshake and obtain key material, and as a consequence of this many - perhaps even the majority of - wireless devices will disregard a broadcast deauthentication packet. This attack will be much more effective if specific stations are selected as targets. Success will be greater still if you adopt the MAC of the Access Point you are attempting to deauthenticate stations from.",
         .func = cmd_deauth
     } , {
         .command = "mana",
