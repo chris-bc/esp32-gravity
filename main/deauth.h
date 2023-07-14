@@ -4,7 +4,8 @@
 enum DeauthMode {
     DEAUTH_MODE_OFF,
     DEAUTH_MODE_STA,
-    DEAUTH_MODE_BROADCAST
+    DEAUTH_MODE_BROADCAST,
+    DEAUTH_MODE_AP
 };
 typedef enum DeauthMode DeauthMode;
 

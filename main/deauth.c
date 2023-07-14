@@ -30,14 +30,15 @@ static DeauthMAC deauthMAC = DEAUTH_MAC_FRAME;
 static long deauth_delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
 static TaskHandle_t deauthTask = NULL;
 
+ScanResultSTA **targetSTA = NULL;
+int targetCount = 0;
+
 void deauthLoop(void *pvParameter) {
     //
     while (true) {
         /* Need to delay at least one tick to satisfy the watchdog */
         vTaskDelay((deauth_delay / portTICK_PERIOD_MS) + 1); /* Delay <delay>ms plus a smidge */
 
-        ScanResultSTA **targetSTA = NULL;
-        int targetCount = 0;
         switch (mode) {
             case DEAUTH_MODE_BROADCAST:
                 /* Put a single object in targetSTA representing broadcast */
@@ -72,6 +73,11 @@ void deauthLoop(void *pvParameter) {
                     printf("\n");
                 #endif
                 break;
+            case DEAUTH_MODE_AP:
+                targetSTA = collateClientsOfSelectedAPs(&targetCount);
+                #ifdef CONFIG_DEBUG_VERBOSE
+                    printf("DEAUTH AP mode. targeting %d STAs of %d APs\n", targetCount, gravity_sel_ap_count);
+                #endif
             default:
                 /* NOOP */
         }
@@ -154,7 +160,9 @@ esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis) {
 }
 
 esp_err_t deauth_stop() {
-    // TODO: COther things
+    if (mode == DEAUTH_MODE_AP) {
+        free(targetSTA);
+    }
     if (deauthTask != NULL) {
         vTaskDelete(deauthTask);
         deauthTask = NULL;

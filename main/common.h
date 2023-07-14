@@ -45,5 +45,7 @@ extern ScanResultAP **gravity_selected_aps;
 extern ScanResultSTA **gravity_selected_stas;
 
 extern char **apListToStrings(ScanResultAP **aps, int apsCount);
+extern ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
+extern bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
 
 #endif

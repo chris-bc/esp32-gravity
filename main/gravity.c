@@ -163,6 +163,74 @@ void channelHopCallback(void *pvParameter) {
     }
 }
 
+/* Check whether the specified ScanResultSTA list contains the specified ScanResultSTA */
+bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta) {
+	int i;
+	for (i = 0; i < listLen && memcmp(list[i]->mac, sta->mac, 6); ++i) { }
+	return (i < listLen);
+}
+
+/* For "APs" beacon mode we need a set of all STAs that are clients of the selected APs
+   Here we will use cached data to determine this, to provide us a time sample of data
+   to draw from. This does mean, however, that SCANNING SHOULD BE ENABLED while using
+   this feature. It won't be forced because there are use cases not to.
+   Caller must free the result
+ */
+ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
+	/* Start out by getting an upper bound of the number of results we'll have */
+	int resUpperBound = 0;
+	/* Loop through gravity_selected_aps and sum stationCount */
+	for (int i = 0; i < gravity_sel_ap_count; ++i) {
+		resUpperBound += gravity_selected_aps[i]->stationCount;
+	}
+
+	/* Avoid having to guard every second operation */
+	if (resUpperBound == 0) {
+		return NULL;
+	}
+
+	int resCount = 0;
+	ScanResultSTA **resPassOne = malloc(sizeof(ScanResultSTA *) * resUpperBound);
+	if (resPassOne == NULL) {
+		ESP_LOGE(BEACON_TAG, "Unable to allocate temporary storage for extracting clients of selected APs");
+		return NULL;
+	}
+
+	/* Loop through gravity_selected_aps, looping through ap[i]->stations, adding
+	   all stations exactly once to resPassOne
+	*/
+	for (int i = 0; i < gravity_sel_ap_count; ++i) {
+		for (int j = 0; j < gravity_selected_aps[i]->stationCount; ++j) {
+			/* Does ((ScanResultSTA *)gravity_selected_aps[i]->stations[j]) need
+			   to be added to resPassOne?
+			*/
+			if (!staResultListContainsSTA(resPassOne, resCount, (ScanResultSTA *)gravity_selected_aps[i]->stations[j])) {
+				/* Add it */
+				resPassOne[resCount++] = (ScanResultSTA *)gravity_selected_aps[i]->stations[j];
+			}
+		}
+	}
+
+	/* Before finishing shrink resPassOne to only the length required */
+	if (resCount < resUpperBound) {
+		ScanResultSTA **res = malloc(sizeof(ScanResultSTA *) * resCount);
+		if (res == NULL) {
+			ESP_LOGW(BEACON_TAG, "Unable to allocate memory to reduce space occupied by Beacon STA list. Sorry.");
+		} else {
+			/* Copy resPassOne into res */
+			for (int i = 0; i < resCount; ++i) {
+				res[i] = resPassOne[i];
+			}
+			free(resPassOne);
+			resPassOne = res;
+		}
+	}
+	/* Return length */
+	*staCount = resCount;
+	return resPassOne;
+}
+
+
 /* Extract and return SSIDs from the specified ScanResultAP array */
 char **apListToStrings(ScanResultAP **aps, int apsCount) {
 	char **res = malloc(sizeof(char *) * apsCount);
@@ -648,17 +716,19 @@ int cmd_sniff(int argc, char **argv) {
 }
 
 int cmd_deauth(int argc, char **argv) {
-    /* Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | BROADCAST | OFF ] */
+    /* Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | AP | BROADCAST | OFF ] */
     if (argc > 4 || (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "BROADCAST") &&
-            strcasecmp(argv[3], "OFF")) || (argc == 4 && atol(argv[1]) == 0 && atol(argv[2]) == 0) ||
+                strcasecmp(argv[3], "AP") && strcasecmp(argv[3], "OFF")) || 
+            (argc == 4 && atol(argv[1]) == 0 && atol(argv[2]) == 0) ||
             (argc == 4 && strcasecmp(argv[1], "FRAME") && strcasecmp(argv[2], "FRAME") &&
-            strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[2], "DEVICE") &&
-            strcasecmp(argv[1], "SPOOF") && strcasecmp(argv[2], "SPOOF")) ||
+                strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[2], "DEVICE") &&
+                strcasecmp(argv[1], "SPOOF") && strcasecmp(argv[2], "SPOOF")) ||
             (argc == 3 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "BROADCAST") &&
-            strcasecmp(argv[2], "OFF")) || (argc == 3 && atol(argv[1]) == 0 &&
-            strcasecmp(argv[1], "FRAME") && strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
-            (argc == 2 && strcasecmp(argv[1], "STA") &&
-            strcasecmp(argv[1], "BROADCAST") && strcasecmp(argv[1], "OFF") && (atol(argv[1]) <= 0))) {
+                strcasecmp(argv[2], "AP") && strcasecmp(argv[2], "OFF")) ||
+            (argc == 3 && atol(argv[1]) == 0 && strcasecmp(argv[1], "FRAME") &&
+                strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[1], "SPOOF")) ||
+            (argc == 2 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "BROADCAST") &&
+                strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "OFF") && (atol(argv[1]) <= 0))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_DEAUTH);
         #else
@@ -687,6 +757,8 @@ int cmd_deauth(int argc, char **argv) {
             dMode = DEAUTH_MODE_STA;
         } else if (!strcasecmp(argv[3], "BROADCAST")) {
             dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[3], "AP")) {
+            dMode = DEAUTH_MODE_AP;
         } else if (!strcasecmp(argv[3], "OFF")) {
             dMode = DEAUTH_MODE_OFF;
         }
@@ -708,6 +780,8 @@ int cmd_deauth(int argc, char **argv) {
             dMode = DEAUTH_MODE_STA;
         } else if (!strcasecmp(argv[2], "BROADCAST")) {
             dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[2], "AP")) {
+            dMode = DEAUTH_MODE_AP;
         } else if (!strcasecmp(argv[2], "OFF")) {
             dMode = DEAUTH_MODE_OFF;
         }
@@ -725,6 +799,8 @@ int cmd_deauth(int argc, char **argv) {
             dMode = DEAUTH_MODE_STA;
         } else if (!strcasecmp(argv[1], "BROADCAST")) {
             dMode = DEAUTH_MODE_BROADCAST;
+        } else if (!strcasecmp(argv[1], "AP")) {
+            dMode = DEAUTH_MODE_AP;
         } else if (!strcasecmp(argv[1], "OFF")) {
             dMode = DEAUTH_MODE_OFF;
         } else {

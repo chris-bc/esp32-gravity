@@ -59,6 +59,8 @@ int cmd_hop(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 char **apListToStrings(ScanResultAP **aps, int apsCount);
+ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
+bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
 
 enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_NONE,
