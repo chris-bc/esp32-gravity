@@ -1451,6 +1451,36 @@ int cmd_select(int argc, char **argv) {
     return err;
 }
 
+/* Display selected STAs and/or APs. Usage: selected ( AP | STA ). Call with no arguments to display both */
+int cmd_selected(int argc, char **argv) {
+    int retVal = ESP_OK;
+    int retVal2 = ESP_OK;
+
+    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "AP"))) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_SELECTED);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_SELECTED);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Print APs if no args or "AP" */
+    if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "AP"))) {
+        retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count);
+    }
+    if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "STA"))) {
+        retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count);
+    }
+
+    if (retVal != ESP_OK) {
+        return retVal;
+    } else if (retVal2 != ESP_OK) {
+        return retVal2;
+    }
+    return ESP_OK;
+}
+
 /* Channel hopping is not catered for in this feature */
 int cmd_clear(int argc, char **argv) {
     if (argc != 2 && argc != 3) {

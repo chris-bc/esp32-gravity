@@ -52,6 +52,7 @@ int cmd_set(int argc, char **argv);
 int cmd_get(int argc, char **argv);
 int cmd_view(int argc, char **argv);
 int cmd_select(int argc, char **argv);
+int cmd_selected(int argc, char **argv);
 int cmd_clear(int argc, char **argv);
 int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
@@ -117,7 +118,7 @@ extern int PROBE_SEQNUM_OFFSET;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 18
+#define CMD_COUNT 19
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -194,6 +195,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_SELECT,
         .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list. Multiple items can be specified separated by spaces.",
         .func = cmd_select
+    }, {
+        .command = "selected",
+        .hint = USAGE_SELECTED,
+        .help = "View selected STAs and/or APs from scan results. Usage selected ( AP | STA ). Run with no arguments to display both selected APs and selected STAs.",
+        .func = cmd_selected
     }, {
         .command = "clear",
         .hint = USAGE_CLEAR,
