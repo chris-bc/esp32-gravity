@@ -17,7 +17,7 @@ int gravity_sel_ap_count;
 int gravity_sel_sta_count;
 ScanResultAP **gravity_selected_aps;
 ScanResultSTA **gravity_selected_stas;
-float scanResultExpiry = 0; /* Do not expire packets by default */
+double scanResultExpiry = 0; /* Do not expire packets by default */
 
 
 enum GravityScanType {
@@ -271,12 +271,12 @@ esp_err_t gravity_select_sta(int selIndex) {
     return ESP_OK;
 }
 
-esp_err_t gravity_list_all_aps() {
-    return gravity_list_ap(&gravity_aps, gravity_ap_count);
+esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
+    return gravity_list_ap(&gravity_aps, gravity_ap_count, hideExpiredPackets);
 }
 
-esp_err_t gravity_list_al_stas() {
-    return gravity_list_sta(&gravity_stas, gravity_sta_count);
+esp_err_t gravity_list_all_stas(bool hideExpiredPackets) {
+    return gravity_list_sta(&gravity_stas, gravity_sta_count, hideExpiredPackets);
 }
 
 /* Display found APs
@@ -285,7 +285,7 @@ esp_err_t gravity_list_al_stas() {
    Will display: selected (*), index, ssid, bssid, lastseen, primary, wps
    YAGNI: Make display configurable - if not through console then menuconfig! :)
 */
-esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount) {
+esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets) {
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
     #ifdef CONFIG_FLIPPER
@@ -342,7 +342,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount) {
 }
 
 /* Available attributes are selected, index, MAC, channel, lastSeen, assocAP */
-esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount) {
+esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredPackets) {
     char strTime[26];
     unsigned long nowTime;
     unsigned long elapsed;

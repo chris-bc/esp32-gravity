@@ -1241,6 +1241,21 @@ int cmd_set(int argc, char **argv) {
             ESP_LOGI(TAG, "MAC randomisation :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         #endif
         return ESP_OK;
+    } else if (!strcasecmp(argv[1], "EXPIRY")) {
+        /* Parameter check */
+        if (argc != 3 || strtod(argv[2], NULL) == 0) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", SHORT_SET);
+            #else
+                ESP_LOGE(TAG, USAGE_SET);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
+        scanResultExpiry = strtod(argv[2], NULL);
+        /* Display its new status */
+        char *cmd[] = { "GET", "EXPIRY"};
+        cmd_get(2, cmd);
+        return ESP_OK;
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         #ifdef CONFIG_FLIPPER
             printf("Not implemented\n");
@@ -1415,10 +1430,11 @@ int cmd_view(int argc, char **argv) {
     }
     bool success = true;
     for (int i=1; i < argc; ++i) {
+        /* Hide expired packets for display if scanResultExpiry has been set */
         if (!strcasecmp(argv[i], "AP")) {
-            success = (success && gravity_list_ap(&gravity_aps, gravity_ap_count) == ESP_OK);
+            success = (success && gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK);
         } else if (!strcasecmp(argv[i], "STA")) {
-            success = (success && gravity_list_sta(&gravity_stas, gravity_sta_count) == ESP_OK);
+            success = (success && gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK);
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_VIEW);
@@ -1483,11 +1499,12 @@ int cmd_selected(int argc, char **argv) {
     }
 
     /* Print APs if no args or "AP" */
+    /* Hide expired packets only if scanResultExpiry has been set */
     if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "AP"))) {
-        retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count);
+        retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
     }
     if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "STA"))) {
-        retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count);
+        retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
     }
 
     if (retVal != ESP_OK) {
