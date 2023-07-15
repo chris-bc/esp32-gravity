@@ -1132,16 +1132,16 @@ int cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRES */
 /* Channel hopping is not catered for in this feature */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1255,11 +1255,11 @@ int cmd_set(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1271,16 +1271,16 @@ int cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS */
+      MAC, EXPIRES, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS (unused) */
 /* Channel hopping is not catered for in this feature */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1358,6 +1358,23 @@ int cmd_get(int argc, char **argv) {
             ESP_LOGI(TAG, "MAC Randomisation is :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         #endif
         return ESP_OK;
+    } else if (!strcasecmp(argv[1], "EXPIRES")) {
+        /* Check whether expiry is disabled */
+        char resultStr[17] = "";
+        if (scanResultExpiry == 0) {
+            strcpy(resultStr, "Disabled");
+        } else {
+            #ifdef CONFIG_FLIPPER
+                sprintf(resultStr, "%fmin", scanResultExpiry);
+            #else
+                sprintf(resultStr, "%f minutes", scanResultExpiry);
+            #endif
+        }
+        #ifdef CONFIG_FLIPPER
+            printf("Packet Expiry: %s\n", resultStr);
+        #else
+            ESP_LOGI(TAG, "Packet Expiry: %s", resultStr);
+        #endif
     } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
         //
         #ifdef CONFIG_FLIPPER
@@ -1374,11 +1391,11 @@ int cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
         #endif
         return ESP_ERR_INVALID_ARG;
     }

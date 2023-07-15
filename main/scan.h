@@ -5,6 +5,7 @@
 // TODO: If there are problems with SSID filtering, scan_filter_ssid had to be changed from static to get extern working...
 extern char scan_filter_ssid[33];
 extern uint8_t scan_filter_ssid_bssid[6];
+extern float scanResultExpiry;
 
 static const char* SCAN_TAG = "scan@GRAVITY";
 static const uint8_t bBroadcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };

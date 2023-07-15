@@ -105,12 +105,11 @@ TODO
 ## Bugs / Todo
 
 * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
-* View selected sta/aps
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI
-* get/set scan result expiry (lastSeen + x seconds)
+* get/set scan result expiry (lastSeen + x minutes)
 * STA channel issues - can't set channel >= 10 - type/base conversion??
 * Display STA's AP
 * Display STA vs. AP

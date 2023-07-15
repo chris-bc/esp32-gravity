@@ -17,6 +17,7 @@ int gravity_sel_ap_count;
 int gravity_sel_sta_count;
 ScanResultAP **gravity_selected_aps;
 ScanResultSTA **gravity_selected_stas;
+float scanResultExpiry = 0; /* Do not expire packets by default */
 
 
 enum GravityScanType {
