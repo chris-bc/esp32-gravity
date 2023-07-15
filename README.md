@@ -60,7 +60,10 @@ TODO
       * Format timestamps for display
     * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
       * Options to get/set MAC hopping between frames
+      * Options to get/set EXPIRY - When set (value in minutes) Gravity will not use packets of the specified age or older.
     * view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
+      * VIEW AP selectedSTA - View all APs that are associated with the selected STAs
+      * VIEW STA selectedAP - View all STAs that are associated with the selected APs
     * select: select ( SSID | STA ) <specifier>+ - Select/deselect targets for the included tools.
     * beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
       * Beacon spam - Rickroll
@@ -104,15 +107,14 @@ TODO
 
 ## Bugs / Todo
 
+* Expiry only caters for display, should also include features
 * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI
-* get/set scan result expiry (lastSeen + x minutes)
 * STA channel issues - can't set channel >= 10 - type/base conversion??
-* Display STA's AP
-* Display STA vs. AP
+
 
 ## Testing / Packet verification
 

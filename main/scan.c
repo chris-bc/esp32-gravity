@@ -300,6 +300,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
     char strSsid[36];
     unsigned long nowTime;
     unsigned long elapsed;
+    double minutes;
     for (int i=0; i < apCount; ++i) {
         ESP_ERROR_CHECK(mac_bytes_to_string(aps[i]->espRecord.bssid, strBssid));
 
@@ -312,6 +313,12 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
             sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
         } else {
             sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
+        }
+
+        /* Skip the rest of this loop iteration if the packet has expired */
+        minutes = (elapsed / 60.0);
+        if (hideExpiredPackets && scanResultExpiry != 0 && minutes >= scanResultExpiry) {
+            continue;
         }
 
         /* Format SSID for output */

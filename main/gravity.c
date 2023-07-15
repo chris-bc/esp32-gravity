@@ -171,6 +171,56 @@ bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *
 	return (i < listLen);
 }
 
+/* Check whether the specified ScanResultAP list contains the specified ScanResultAP */
+bool apResultListContainsAP(ScanResultAP **list, int listLen, ScanResultAP *ap) {
+    int i;
+    for (i = 0; i < listLen && memcmp(list[i]->espRecord.bssid, ap->espRecord.bssid, 6); ++i) { }
+    return (i < listLen);
+}
+
+/* The reverse side of the below function - collate all APs that are associated
+   with the selected stations.
+   Caller must free the result
+*/
+ScanResultAP **collateAPsOfSelectedSTAs(int *apCount) {
+    /* Loop through selectedSTA, for each STA:
+       - If it has an AP
+       - And the AP isn't in the result set
+       - Add the AP to the result set
+    */
+    /* Use STA count as an upper limit on the AP count */
+    ScanResultAP **resPassOne = malloc(sizeof(ScanResultAP *) * gravity_sel_sta_count);
+    int resCount = 0;
+    if (resPassOne == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for collated APs");
+        return NULL;
+    }
+    for (int i = 0; i < gravity_sel_sta_count; ++i) {
+        if (gravity_selected_stas[i]->ap != NULL && !apResultListContainsAP(resPassOne, resCount, gravity_selected_stas[i]->ap)) {
+            /* Add the current STA to our result set */
+            resPassOne[resCount++] = gravity_selected_stas[i]->ap;
+        }
+    }
+    *apCount = resCount;
+    if (resCount < gravity_sel_sta_count) {
+        /* Shrink resPassOne down to size */
+        ScanResultAP **resPassTwo = malloc(sizeof(ScanResultAP *) * resCount);
+        if (resPassTwo == NULL) {
+            #ifndef CONFIG_FLIPPER
+                ESP_LOGW(TAG, "Unable to allocate memory to shrink AP list. That's OK.");
+            #endif
+        } else {
+            /* Copy elements from resPassOne to resPassTwo */
+            for (int i = 0; i < resCount; ++i) {
+                resPassTwo[i] = resPassOne[i];
+            }
+            free(resPassOne);
+            resPassOne = resPassTwo;
+        }
+    }
+    return resPassOne;
+}
+
 /* For "APs" beacon mode we need a set of all STAs that are clients of the selected APs
    Here we will use cached data to determine this, to provide us a time sample of data
    to draw from. This does mean, however, that SCANNING SHOULD BE ENABLED while using
@@ -1420,7 +1470,7 @@ int cmd_get(int argc, char **argv) {
 
 /* Channel hopping is not catered for in this feature */
 int cmd_view(int argc, char **argv) {
-    if (argc != 2 && argc != 3) {
+    if (argc < 2 || argc > 5) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_VIEW);
         #else
@@ -1432,9 +1482,33 @@ int cmd_view(int argc, char **argv) {
     for (int i=1; i < argc; ++i) {
         /* Hide expired packets for display if scanResultExpiry has been set */
         if (!strcasecmp(argv[i], "AP")) {
-            success = (success && gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK);
+            /* Is this looking for APs, or for APs associated with selected STAs? */
+            if (argc > (i + 1) && !strcasecmp(argv[i + 1], "selectedSTA")) {
+                /* Collate all APs that are associated with the selected STAs */
+                int apCount = 0;
+                ScanResultAP **selectedAPs = collateAPsOfSelectedSTAs(&apCount);
+
+                success = (success && gravity_list_ap(selectedAPs, apCount, (scanResultExpiry != 0)));
+
+                free(selectedAPs);
+                ++i;
+            } else {
+                success = (success && gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK);
+            }
         } else if (!strcasecmp(argv[i], "STA")) {
-            success = (success && gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK);
+            /* Are we looking for all STAs, or STAs associated with select APs? */
+            if (argc > (i + 1) && !strcasecmp(argv[i + 1], "selectedAP")) {
+                /* Collate all STAs that are associated with the selected APs */
+                int staCount = 0;
+                ScanResultSTA **selectedSTAs = collateClientsOfSelectedAPs(&staCount);
+
+                success = (success && gravity_list_sta(selectedSTAs, staCount, (scanResultExpiry != 0)));
+
+                free(selectedSTAs);
+                ++i;
+            } else {
+                success = (success && gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK);
+            }
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_VIEW);

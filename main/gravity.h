@@ -188,7 +188,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "view",
         .hint = USAGE_VIEW,
-        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command using, for example, VIEW STA AP.",
+        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command using, for example, VIEW STA AP or VIEW AP selectedSTA.",
         .func = cmd_view
     }, {
         .command = "select",
