@@ -270,13 +270,21 @@ esp_err_t gravity_select_sta(int selIndex) {
     return ESP_OK;
 }
 
+esp_err_t gravity_list_all_aps() {
+    return gravity_list_ap(&gravity_aps, gravity_ap_count);
+}
+
+esp_err_t gravity_list_al_stas() {
+    return gravity_list_sta(&gravity_stas, gravity_sta_count);
+}
+
 /* Display found APs
    Attributes available for display are:
    authmode, bssid, index, lastSeen, primary, rssi, second, selected, ssid, wps
    Will display: selected (*), index, ssid, bssid, lastseen, primary, wps
    YAGNI: Make display configurable - if not through console then menuconfig! :)
 */
-esp_err_t gravity_list_ap() {
+esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount) {
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
     #ifdef CONFIG_FLIPPER
@@ -291,12 +299,12 @@ esp_err_t gravity_list_ap() {
     char strSsid[36];
     unsigned long nowTime;
     unsigned long elapsed;
-    for (int i=0; i < gravity_ap_count; ++i) {
-        ESP_ERROR_CHECK(mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strBssid));
+    for (int i=0; i < apCount; ++i) {
+        ESP_ERROR_CHECK(mac_bytes_to_string(aps[i]->espRecord.bssid, strBssid));
 
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - gravity_aps[i].lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {
@@ -306,10 +314,10 @@ esp_err_t gravity_list_ap() {
         }
 
         /* Format SSID for output */
-        if (gravity_aps[i].espRecord.ssid[0] == '\0') {
+        if (aps[i]->espRecord.ssid[0] == '\0') {
             strcpy(strSsid, "<hidden>");
         } else {
-            strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
+            strcpy(strSsid, (char *)aps[i]->espRecord.ssid);
         }
 
         #ifdef CONFIG_FLIPPER
@@ -320,12 +328,12 @@ esp_err_t gravity_list_ap() {
                     memcpy(&strSsid[18], "..\0", 3);
                 }
             }
-            printf("%s%2d | %3d |\n%20s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                    gravity_aps[i].stationCount, strSsid);
+            printf("%s%2d | %3d |\n%20s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
+                    aps[i]->stationCount, strSsid);
         #else
-            printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (gravity_aps[i].selected)?"*":" ", gravity_aps[i].index,
-                    strSsid, strBssid, gravity_aps[i].stationCount, strTime,
-                    gravity_aps[i].espRecord.primary, (gravity_aps[i].espRecord.wps<<5 != 0)?"Yes":"No");
+            printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
+                    strSsid, strBssid, aps[i]->stationCount, strTime,
+                    aps[i]->espRecord.primary, (aps[i]->espRecord.wps<<5 != 0)?"Yes":"No");
         #endif
     }
 
@@ -333,7 +341,7 @@ esp_err_t gravity_list_ap() {
 }
 
 /* Available attributes are selected, index, MAC, channel, lastSeen, assocAP */
-esp_err_t gravity_list_sta() {
+esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount) {
     char strTime[26];
     unsigned long nowTime;
     unsigned long elapsed;
@@ -346,10 +354,10 @@ esp_err_t gravity_list_sta() {
         printf("====|===================|===================|====|=========================\n");
     #endif
 
-    for (int i=0; i < gravity_sta_count; ++i) {
+    for (int i=0; i < staCount; ++i) {
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - gravity_stas[i].lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {
@@ -358,19 +366,19 @@ esp_err_t gravity_list_sta() {
             sprintf(strTime, "%d %s ago", (int)elapsed / 3600, (elapsed > 7200)?"hours":"hour");
         }
         char strAp[18] = "";
-        if (gravity_stas[i].ap == NULL) {
+        if (stas[i]->ap == NULL) {
             strcpy(strAp, "Unknown");
         } else {
-            ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[i].apMac, strAp));
+            ESP_ERROR_CHECK(mac_bytes_to_string(stas[i]->apMac, strAp));
         }
         #ifdef CONFIG_FLIPPER
-            printf("%s%2d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (gravity_stas[i].selected)?"*":" ",
-                gravity_stas[i].index, gravity_stas[i].mac[0], gravity_stas[i].mac[1],
-                gravity_stas[i].mac[2], gravity_stas[i].mac[3], gravity_stas[i].mac[4],
-                gravity_stas[i].mac[5], strAp);
+            printf("%s%2d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (stas[i]->selected)?"*":" ",
+                stas[i]->index, stas[i]->mac[0], stas[i]->mac[1],
+                stas[i]->mac[2], stas[i]->mac[3], stas[i]->mac[4],
+                stas[i]->mac[5], strAp);
         #else
-            printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (gravity_stas[i].selected)?"*":" ", gravity_stas[i].index,
-                    gravity_stas[i].strMac, strAp, gravity_stas[i].channel, strTime);
+            printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
+                    stas[i]->strMac, strAp, stas[i]->channel, strTime);
         #endif
     }    
 

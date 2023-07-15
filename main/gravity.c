@@ -8,6 +8,7 @@
 */
 
 #include "gravity.h"
+#include "common.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "beacon.h"
@@ -1398,9 +1399,9 @@ int cmd_view(int argc, char **argv) {
     bool success = true;
     for (int i=1; i < argc; ++i) {
         if (!strcasecmp(argv[i], "AP")) {
-            success = (success && gravity_list_ap() == ESP_OK);
+            success = (success && gravity_list_ap(&gravity_aps, gravity_ap_count) == ESP_OK);
         } else if (!strcasecmp(argv[i], "STA")) {
-            success = (success && gravity_list_sta() == ESP_OK);
+            success = (success && gravity_list_sta(&gravity_stas, gravity_sta_count) == ESP_OK);
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_VIEW);

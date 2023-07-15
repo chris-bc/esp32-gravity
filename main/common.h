@@ -43,6 +43,10 @@ extern ScanResultAP *gravity_aps;
 extern ScanResultSTA *gravity_stas;
 extern ScanResultAP **gravity_selected_aps;
 extern ScanResultSTA **gravity_selected_stas;
+extern esp_err_t gravity_list_all_stas();
+extern esp_err_t gravity_list_all_aps();
+extern esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount);
+extern esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount);
 
 extern char **apListToStrings(ScanResultAP **aps, int apsCount);
 extern ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
