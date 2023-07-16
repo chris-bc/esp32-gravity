@@ -101,7 +101,6 @@ static bool WIFI_INITIALISED = false;
 static const char *TAG = "GRAVITY";
 static const char *MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
-static const char *FUZZ_TAG = "fuzz@GRAVITY";
 
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };

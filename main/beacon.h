@@ -25,12 +25,13 @@ static char *rick_ssids[] = {
 	"07 Never gonna tell a lie",
 	"08 and hurt you"
 };
-#define RICK_SSID_COUNT 8
-#define BEACON_SSID_OFFSET 38
-#define BEACON_PACKET_LEN 57
-#define BEACON_SRCADDR_OFFSET 10
-#define BEACON_BSSID_OFFSET 16
-#define BEACON_SEQNUM_OFFSET 22
+extern int RICK_SSID_COUNT;
+extern int BEACON_SSID_OFFSET;
+extern int BEACON_PACKET_LEN;
+extern int BEACON_SRCADDR_OFFSET;
+extern int BEACON_DESTADDR_OFFSET;
+extern int BEACON_BSSID_OFFSET;
+extern int BEACON_SEQNUM_OFFSET;
 
 typedef enum {
     ATTACK_BEACON_NONE,
@@ -44,7 +45,7 @@ typedef enum {
 extern int DEFAULT_SSID_COUNT;
 extern int SSID_LEN_MIN;
 extern int SSID_LEN_MAX;
-static const char* BEACON_TAG = "beacon@GRAVITY";
+const char* BEACON_TAG = "beacon@GRAVITY";
 
 extern char **user_ssids;
 extern int user_ssid_count;

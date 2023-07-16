@@ -25,6 +25,9 @@ typedef enum FuzzMode {
 
 extern FuzzMode fuzzMode;
 extern FuzzPacketType fuzzPacketType;
+extern int fuzzCounter;
+extern int malformedFrom;
+extern const char *FUZZ_TAG;
 
 /* Function may use up to 38 bytes of memory at the
    location specified by result */
@@ -36,4 +39,6 @@ esp_err_t fuzzModeAsString(char *result);
 esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType);
 /* Clean up, free memory, halt event loop */
 esp_err_t fuzz_stop();
+/* Set the length of the starting SSID for malformed packets */
+esp_err_t setMalformedSsidLength(int newLength);
 #endif

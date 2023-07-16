@@ -1,3 +1,6 @@
+#ifndef PROBE_H
+#define PROBE_H
+
 #include <esp_err.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
@@ -21,6 +24,25 @@ extern int user_ssid_count;
 extern bool *attack_status;
 extern bool *hop_defaults;
 
+extern uint8_t probe_raw[];
+extern uint8_t probe_response_raw[];
+
+extern int PROBE_REQUEST_LEN;
+extern int PROBE_SSID_OFFSET;
+extern int PROBE_SRCADDR_OFFSET;
+extern int PROBE_DESTADDR_OFFSET;
+extern int PROBE_BSSID_OFFSET;
+extern int PROBE_SEQNUM_OFFSET;
+extern int PROBE_RESPONSE_LEN;
+extern int PROBE_RESPONSE_DEST_ADDR_OFFSET;
+extern int PROBE_RESPONSE_SRC_ADDR_OFFSET;
+extern int PROBE_RESPONSE_BSSID_OFFSET;
+extern int PROBE_RESPONSE_PRIVACY_OFFSET;
+extern int PROBE_RESPONSE_SSID_OFFSET;
+extern int PROBE_RESPONSE_GROUP_CIPHER_OFFSET;
+extern int PROBE_RESPONSE_PAIRWISE_CIPHER_OFFSET;
+extern int PROBE_RESPONSE_AUTH_TYPE_OFFSET;
+
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,
  * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
@@ -40,3 +62,5 @@ char **lsSsid();
 char *generate_random_ssid();
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+
+#endif

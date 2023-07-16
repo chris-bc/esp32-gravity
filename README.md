@@ -108,8 +108,13 @@ TODO
 ## Bugs / Todo
 
 * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
+  * Max packet lengths
+    * Beacon: 57 + SSID = 89
+    * Probe Req: 42 + SSID = 74
+    * Probe Resp: 173 + 32 = 205 #Winner!
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs
+* Add 'malformedFrom - in fuzz.c - as a configuration parameter
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI
