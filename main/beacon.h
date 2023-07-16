@@ -27,6 +27,10 @@ static char *rick_ssids[] = {
 };
 #define RICK_SSID_COUNT 8
 #define BEACON_SSID_OFFSET 38
+#define BEACON_PACKET_LEN 57
+#define BEACON_SRCADDR_OFFSET 10
+#define BEACON_BSSID_OFFSET 16
+#define BEACON_SEQNUM_OFFSET 22
 
 typedef enum {
     ATTACK_BEACON_NONE,

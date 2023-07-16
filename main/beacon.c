@@ -16,10 +16,6 @@ char **attack_ssids = NULL;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define SRCADDR_OFFSET 10
-#define BSSID_OFFSET 16
-#define SEQNUM_OFFSET 22
-
 static beacon_attack_t attackType = ATTACK_BEACON_NONE;
 static int SSID_COUNT;
 
@@ -85,12 +81,12 @@ void beaconSpam(void *pvParameter) {
 		memcpy(&beacon_send[BEACON_SSID_OFFSET + currentSsidLen], &beacon_raw[BEACON_SSID_OFFSET], sizeof(beacon_raw) - BEACON_SSID_OFFSET);
 
 		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one SSID each
-		beacon_send[SRCADDR_OFFSET + 5] = line;
-		beacon_send[BSSID_OFFSET + 5] = line;
+		beacon_send[BEACON_SRCADDR_OFFSET + 5] = line;
+		beacon_send[BEACON_BSSID_OFFSET + 5] = line;
 
 		// Update sequence number
-		beacon_send[SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
-		beacon_send[SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
+		beacon_send[BEACON_SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
+		beacon_send[BEACON_SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
 		seqnum[line]++;
 		if (seqnum[line] > 0xfff)
 			seqnum[line] = 0;
