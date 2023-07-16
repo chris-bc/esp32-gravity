@@ -1,3 +1,6 @@
+#ifndef BEACON_H
+#define BEACON_H
+
 #include <esp_wifi.h>
 #include "esp_wifi_default.h"
 #include "esp_wifi_types.h"
@@ -23,6 +26,7 @@ static char *rick_ssids[] = {
 	"08 and hurt you"
 };
 #define RICK_SSID_COUNT 8
+#define BEACON_SSID_OFFSET 38
 
 typedef enum {
     ATTACK_BEACON_NONE,
@@ -41,6 +45,8 @@ static const char* BEACON_TAG = "beacon@GRAVITY";
 extern char **user_ssids;
 extern int user_ssid_count;
 
+extern uint8_t beacon_raw[];
+
 int beacon_start(beacon_attack_t type, int ssidCount);
 int beacon_stop();
 
@@ -50,3 +56,5 @@ int rmSsid(char *ssid);
 int countSsid();
 char **lsSsid();
 char *generate_random_ssid();
+
+#endif

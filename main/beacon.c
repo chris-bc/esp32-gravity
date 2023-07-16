@@ -16,7 +16,6 @@ char **attack_ssids = NULL;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define BEACON_SSID_OFFSET 38
 #define SRCADDR_OFFSET 10
 #define BSSID_OFFSET 16
 #define SEQNUM_OFFSET 22
@@ -26,7 +25,7 @@ static int SSID_COUNT;
 
 static TaskHandle_t beaconTask = NULL;
 
-static uint8_t beacon_raw[] = {
+uint8_t beacon_raw[] = {
 	0x80, 0x00,							    // 0-1: Frame Control
 	0x00, 0x00,						    	// 2-3: Duration
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff,				// 4-9: Destination address (broadcast)

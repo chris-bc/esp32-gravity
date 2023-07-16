@@ -74,9 +74,10 @@ esp_err_t fuzzPacketTypeAsString(char *result) {
 /* Will generate any packet type defined in FuzzPacketType.
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
-int fuzz_overflow(FuzzPacketType ptype, uint8_t **outBytes) {
+int fuzz_overflow(FuzzPacketType ptype, uint8_t *outBytes) {
     // TODO - inc current upper, copy start of pkt to outBytes, add len, gen and add SSID, finish pkt
 
+    memcpy(outBytes, beacon_raw, BEACON_SSID_OFFSET - 1);
 
     return ESP_OK;
 }
