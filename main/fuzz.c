@@ -17,6 +17,17 @@ bool firstCallback = true;
 bool malformedPartOne = true;
 const char *FUZZ_TAG = "fuzz@GRAVITY";
 
+esp_err_t prepareDictionary() {
+    // TODO
+
+    return ESP_OK;
+}
+
+char *getRandomWord() {
+    // TODO
+
+    return "";
+}
 
 /* Generate a random SSID of the specified length.
    This function uses the included dictionary file to generate a sequence of
@@ -24,8 +35,32 @@ const char *FUZZ_TAG = "fuzz@GRAVITY";
    Generated SSIDs will never end with a space. If they are generated like
    that the algorithm replaces the final space with a numeral.
 */
-esp_err_t randomSsid(char **ssid, int len) {
-    //
+esp_err_t randomSsid(char *ssid, int len) {
+    // TODO: Farm off the work to prepareDictionary
+    int currentLen = 0;
+    memset(ssid, 0, (len + 1)); /* Including trailing NULL */
+
+    while (currentLen < len) {
+        char *word = getRandomWord();
+        if (currentLen + strlen(word) + 1 < len) {
+            if (currentLen > 0) {
+                ssid[currentLen] = (uint8_t)' ';
+                ++currentLen;
+            }
+            memcpy(&ssid[currentLen], (uint8_t *)word, strlen(word));
+            currentLen += strlen(word);
+        } else {
+            if (currentLen > 0) {
+                ssid[currentLen] = (uint8_t)' ';
+                ++currentLen;
+            }
+            /* How much space do we have left? */
+            int remaining = len - currentLen;
+            memcpy(&ssid[currentLen], (uint8_t *)word, remaining);
+            currentLen += remaining;
+        }
+    }
+    ssid[currentLen] = '\0';
 
     return ESP_OK;
 }
@@ -159,7 +194,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         return 0;
     }
     /* Generate a random SSID of the required length */
-    if (randomSsid(&ssid, fuzzCounter) != ESP_OK) {
+    if (randomSsid(ssid, fuzzCounter) != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
@@ -238,7 +273,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         return 0;
     }
     /* Generate a random SSID of the required length */
-    if (randomSsid(&ssid, ssidSize) != ESP_OK) {
+    if (randomSsid(ssid, ssidSize) != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
