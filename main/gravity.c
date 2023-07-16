@@ -10,6 +10,7 @@
 #include "gravity.h"
 #include "common.h"
 #include "esp_err.h"
+#include "esp_flip_struct.h"
 #include "esp_log.h"
 #include "beacon.h"
 #include "esp_wifi.h"
@@ -19,6 +20,7 @@
 #include "probe.h"
 #include "scan.h"
 #include "deauth.h"
+#include "fuzz.h"
 
 #define MAX_CHANNEL 9
 
@@ -27,9 +29,6 @@ int user_ssid_count = 0;
 static long hop_millis = 0;
 static enum HopStatus hopStatus = HOP_STATUS_DEFAULT;
 static TaskHandle_t channelHopTask = NULL;
-
-FuzzMode fuzzMode;
-FuzzPacketType fuzzPacketType;
 
 uint8_t probe_response_raw[] = {
 0x50, 0x00, 0x3c, 0x00, 
@@ -390,30 +389,23 @@ int rmSsid(char *ssid) {
 }
 
 /* Send various types of incorrect 802.11 packets
-   Usage: fuzz ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
+   Usage: fuzz OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
    Overflow: ssid_len has an accurate length, but it's greater than 32. Start with 33 and increment.
    Malformed: ssid_len does not match the SSID's length. Alternate counting down and up.
 */
 int cmd_fuzz(int argc, char **argv) {
-    /* argc cannot be 2 - it's 1 to show current status, up to 5 with fuzz arguments */
-    if (argc == 2 || argc > 5) {
-        #ifdef CONFIG_FLIPPER
-            printf("%s\n", SHORT_FUZZ);
-        #else
-            ESP_LOGE(FUZZ_TAG, "%s", USAGE_FUZZ);
-        #endif
-        return ESP_ERR_INVALID_ARG;
-    }
+    esp_err_t err;
     /* Flexible input parameters - loop through them to validate them */
-    FuzzPacketType packetType = FUZZ_PACKET_NONE;
+    FuzzPacketType newPacketType = FUZZ_PACKET_NONE;
+    FuzzMode newFuzzMode = FUZZ_MODE_NONE;
     /* Skip command name, final argument is required to be 'overflow' or 'malformed' */
     for (int i = 1; i < (argc - 1); ++i) {
         if (!strcasecmp(argv[i], "BEACON")) {
-            packetType |= FUZZ_PACKET_BEACON;
+            newPacketType |= FUZZ_PACKET_BEACON;
         } else if (!strcasecmp(argv[i], "REQ")) {
-            packetType |= FUZZ_PACKET_PROBE_REQ;
+            newPacketType |= FUZZ_PACKET_PROBE_REQ;
         } else if (!strcasecmp(argv[i], "RESP")) {
-            packetType |= FUZZ_PACKET_PROBE_RESP;
+            newPacketType |= FUZZ_PACKET_PROBE_RESP;
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("%s is invalid\nSkipping...\n", argv[i]);
@@ -423,56 +415,32 @@ int cmd_fuzz(int argc, char **argv) {
             continue;
         }
     }
-    if (packetType == FUZZ_PACKET_NONE) {
-        #ifdef CONFIG_FLIPPER
-            printf("%s\n", SHORT_FUZZ);
-        #else
-            ESP_LOGE(FUZZ_TAG, "No valid packet types specified. %s", USAGE_FUZZ);
-        #endif
-        return ESP_ERR_INVALID_ARG;
-    }
     /* Don't forget to check the final argument */
-    if (strcmp(argv[argc - 1], "OVERFLOW") && strcmp(argv[argc - 1], "MALFORMED")) {
-        #ifdef CONFIG_FLIPPER
-            printf("%s\n", SHORT_FUZZ);
-        #else
-            ESP_LOGE(FUZZ_TAG, "Invalid Fuzz mode \"%s\" specified. %s", argv[argc - 1], USAGE_FUZZ);
-        #endif
-        return ESP_ERR_INVALID_ARG;
+    if (!strcasecmp(argv[argc - 1], "OVERFLOW")) {
+        newFuzzMode = FUZZ_MODE_SSID_OVERFLOW;
+    } else if (!strcasecmp(argv[argc - 1], "MALFORMED")) {
+        newFuzzMode = FUZZ_MODE_SSID_MALFORMED;
+    } else if (!strcasecmp(argv[argc - 1], "OFF")) {
+        newFuzzMode = FUZZ_MODE_OFF;
+    } else {
+        // This is addressed later
     }
 
     if (argc == 1) {
-        char strFuzzMode[21] = "Mode: ";
-        char strFuzzType[38] = "";
-        switch (fuzzMode) {
-            case FUZZ_MODE_SSID_OVERFLOW:
-                strcat(strFuzzMode, "SSID Overflow");
-                break;
-            case FUZZ_MODE_SSID_MALFORMED:
-                strcat(strFuzzMode, "Malformed SSID");
-                break;
-            default:
-                ESP_LOGE(FUZZ_TAG, "Unknown mode %d!", fuzzMode);
-                return ESP_ERR_INVALID_ARG;
+        char strFuzzMode[21];
+        char strFuzzType[38];
+        char strTemp[15];
+        err = fuzzModeAsString(strTemp);
+        err |= fuzzPacketTypeAsString(strFuzzType);
+        if (err != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Internal failure computing strings\n");
+            #else
+                ESP_LOGE(FUZZ_TAG, "Internal failure while stringifying Fuzz Mode and Packet Type");
+            #endif
+            return ESP_ERR_INVALID_RESPONSE;
         }
-        if (fuzzPacketType & FUZZ_PACKET_BEACON) {
-            if (strlen(strFuzzType) > 0) {
-                strcat(strFuzzType, ", ");
-            }
-            strcat(strFuzzType, "Beacon");
-        }
-        if (fuzzPacketType & FUZZ_PACKET_PROBE_REQ) {
-            if (strlen(strFuzzType) > 0) {
-                strcat(strFuzzType, ", ");
-            }
-            strcat(strFuzzType, "Probe Request");
-        }
-        if (fuzzPacketType & FUZZ_PACKET_PROBE_RESP) {
-            if (strlen(strFuzzType) > 0) {
-                strcat(strFuzzType, ", ");
-            }
-            strcat(strFuzzType, "Probe Response");
-        }
+        sprintf(strFuzzMode, "Mode: %s", strTemp);
 
         #ifdef CONFIG_FLIPPER
             printf("Fuzz: %s\t%s\t%s\n", (attack_status[ATTACK_FUZZ])?"ON":"OFF", strFuzzType, strFuzzMode);
@@ -482,8 +450,35 @@ int cmd_fuzz(int argc, char **argv) {
         return ESP_OK;
     }
 
-    /* Enable channel hopping if we should */
-    return ESP_OK;
+    /* Now that 'fuzz' with no arguments has returned, enforce the validation */
+    /* Specifying packetType can be skipped provided it's already set, specifying mood cannot */
+    if ((newPacketType == FUZZ_PACKET_NONE && fuzzPacketType == FUZZ_PACKET_NONE) || newFuzzMode == FUZZ_MODE_NONE || argc > 5) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_FUZZ);
+        #else
+            ESP_LOGE(FUZZ_TAG, "Invalid arguments provided.\n%s", USAGE_FUZZ);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Update attack_status[ATTACK_BEACON] appropriately
+    attack_status[ATTACK_FUZZ] = strcasecmp(argv[argc - 1], "OFF");
+
+    /* Start/stop hopping task loop as needed */
+    hop_millis = dwellTime();
+    char *args[] = {"hop","on"};
+    if (isHopEnabled()) {
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    } else {
+        args[1] = "off";
+        ESP_ERROR_CHECK(cmd_hop(2, args));
+    }
+
+    if (attack_status[ATTACK_FUZZ]) {
+        return fuzz_start(newFuzzMode, newPacketType);
+    } else {
+        return fuzz_stop();
+    }
 }
 
 /* Control channel hopping

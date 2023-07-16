@@ -1,3 +1,6 @@
+#ifndef ESP_FLIP_CONST_H
+#define ESP_FLIP_CONST_H
+
 /* Command usage string - SHORT_* is compressed help text for Flipper */
 const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ]";
 const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
@@ -40,3 +43,5 @@ const char SHORT_SELECTED[] = "selected ( AP | STA )";
 const char SHORT_CLEAR[] = "clear ( AP | STA | ALL )";
 const char SHORT_HANDSHAKE[] = "handshake [ ON | OFF ]";
 const char SHORT_COMMANDS[] = "Brief command summary";
+
+#endif

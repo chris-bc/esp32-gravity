@@ -1,3 +1,6 @@
+#ifndef ESP_FLIP_STRUCT_H
+#define ESP_FLIP_STRUCT_H
+
 /*  Globals to track module status information */
 enum AttackMode {
     ATTACK_BEACON,
@@ -41,17 +44,4 @@ enum GravityCommand {
 };
 typedef enum GravityCommand GravityCommand;
 
-/* Using binary values so we can use binary operations & and | */
-typedef enum FuzzPacketType {
-    FUZZ_PACKET_NONE = 0,
-    FUZZ_PACKET_BEACON = 1,
-    FUZZ_PACKET_PROBE_REQ = 2,
-    FUZZ_PACKET_PROBE_RESP = 4,
-    FUZZ_PACKET_TYPE_COUNT = 3
-} FuzzPacketType;
-
-typedef enum FuzzMode {
-    FUZZ_MODE_SSID_OVERFLOW,
-    FUZZ_MODE_SSID_MALFORMED,
-    FUZZ_MODE_COUNT
-} FuzzMode;
+#endif
