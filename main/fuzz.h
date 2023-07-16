@@ -26,7 +26,7 @@ typedef enum FuzzMode {
 extern FuzzMode fuzzMode;
 extern FuzzPacketType fuzzPacketType;
 extern int fuzzCounter;
-extern int malformedFrom;
+extern uint8_t malformedFrom;
 extern const char *FUZZ_TAG;
 
 /* Function may use up to 38 bytes of memory at the

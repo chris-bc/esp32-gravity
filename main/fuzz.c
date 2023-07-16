@@ -12,17 +12,24 @@ FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;
 static TaskHandle_t fuzzTask = NULL;
 
 int fuzzCounter = 0;
-int malformedFrom = 16; /* Default at half the length */
+uint8_t malformedFrom = 16; /* Default at half the length */
 bool firstCallback = true;
 bool malformedPartOne = true;
 const char *FUZZ_TAG = "fuzz@GRAVITY";
 
 
+/* Generate a random SSID of the specified length.
+   This function uses the included dictionary file to generate a sequence of
+   words separated by spaces, to make up the length required.
+   Generated SSIDs will never end with a space. If they are generated like
+   that the algorithm replaces the final space with a numeral.
+*/
 esp_err_t randomSsid(char **ssid, int len) {
     //
 
     return ESP_OK;
 }
+
 /* Function may use up to 15 bytes of memory at the
    location specified by result */
 esp_err_t fuzzModeAsString(char *result) {
@@ -98,8 +105,6 @@ esp_err_t setMalformedSsidLength(int newLength) {
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
 int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
-    // TODO - inc current upper, copy start of pkt to outBytes, add len, gen and add SSID, finish pkt
-
     uint8_t *packet_raw = NULL;
     int packet_len = 0;
     int thisSsidOffset = 0;
@@ -143,7 +148,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     /* Construct our packet in-place in outBytes */
     memcpy(outBytes, packet_raw, thisSsidOffset - 1);
     outBytes[thisSsidOffset - 1] = (uint8_t)fuzzCounter; /* ssid_len */
-    /* Generate a random SSID of the desired length and append to the packet */
+    /* Allocate space for an SSID of the required length */
     char *ssid = malloc(sizeof(char) * (fuzzCounter + 1)); /* Other callers may want to use it as a string */
     if (ssid == NULL) {
         #ifdef CONFIG_FLIPPER
@@ -151,7 +156,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         #else
             ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", fuzzCounter);
         #endif
-        return ESP_ERR_NO_MEM;
+        return 0;
     }
     /* Generate a random SSID of the required length */
     if (randomSsid(&ssid, fuzzCounter) != ESP_OK) {
@@ -160,7 +165,8 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         #else
             ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", fuzzCounter);
         #endif
-        return ESP_ERR_NO_MEM;
+        free(ssid);
+        return 0;
     }
     memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, fuzzCounter);
 
@@ -175,9 +181,78 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
 int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
-    // TODO
+    uint8_t *packet_raw = NULL;
+    int packet_len = 0;
+    int thisSsidOffset = 0;
+    int thisBssidOffset = 0;
+    int thisSrcAddrOffset = 0;
+    int thisDestAddrOffset = 0;
 
-    return ESP_OK;
+    switch (ptype) {
+        case FUZZ_PACKET_BEACON:
+            packet_raw = beacon_raw;
+            packet_len = BEACON_PACKET_LEN;
+            thisSsidOffset = BEACON_SSID_OFFSET;
+            thisBssidOffset = BEACON_BSSID_OFFSET;
+            thisSrcAddrOffset = BEACON_SRCADDR_OFFSET;
+            thisDestAddrOffset = BEACON_DESTADDR_OFFSET;
+            break;
+        case FUZZ_PACKET_PROBE_REQ:
+            packet_raw = probe_raw;
+            packet_len = PROBE_REQUEST_LEN;
+            thisSsidOffset = PROBE_SSID_OFFSET;
+            thisBssidOffset = PROBE_BSSID_OFFSET;
+            thisSrcAddrOffset = PROBE_SRCADDR_OFFSET;
+            thisDestAddrOffset = PROBE_DESTADDR_OFFSET;
+            break;
+        case FUZZ_PACKET_PROBE_RESP:
+            packet_raw = probe_response_raw;
+            packet_len = PROBE_RESPONSE_LEN;
+            thisSsidOffset = PROBE_RESPONSE_SSID_OFFSET;
+            thisBssidOffset = PROBE_RESPONSE_BSSID_OFFSET;
+            thisSrcAddrOffset = PROBE_RESPONSE_SRC_ADDR_OFFSET;
+            thisDestAddrOffset = PROBE_RESPONSE_DEST_ADDR_OFFSET;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid Packet Type \"%d\"\n", ptype);
+            #else
+                ESP_LOGE(FUZZ_TAG, "Encountered an invalid Packet Type, '%d'", ptype);
+            #endif
+            return 0;
+    }
+
+    /* Start by copying packet_raw up to SSID_len */
+    memcpy(outBytes, packet_raw, thisSsidOffset - 1);
+    /* What's the length we're reporting as ssid_len ? */
+    outBytes[thisSsidOffset - 1] = malformedFrom;
+
+    /* Allocate space for an SSID with our actual length */
+    char *ssid = malloc(sizeof(char) * (ssidSize + 1)); /* Other callers may want to use it as a string */
+    if (ssid == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to allocate %db for an SSID\n", (ssidSize + 1));
+        #else
+            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", (ssidSize + 1));
+        #endif
+        return 0;
+    }
+    /* Generate a random SSID of the required length */
+    if (randomSsid(&ssid, ssidSize) != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to generate an SSID!\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", fuzzCounter);
+        #endif
+        free(ssid);
+        return 0;
+    }
+    /* Append SSID to our packet */
+    memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
+    /* And the end */
+    memcpy(&outBytes[thisSsidOffset + ssidSize], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
+
+    return (packet_len + ssidSize);
 }
 
 /* Implementation of malformed mode */
