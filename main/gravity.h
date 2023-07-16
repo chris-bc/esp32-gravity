@@ -41,6 +41,7 @@ extern const char USAGE_COMMANDS[];
 /* Command specifications */
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);
+int cmd_fuzz(int argc, char **argv);
 int cmd_sniff(int argc, char **argv);
 int cmd_deauth(int argc, char **argv);
 int cmd_mana(int argc, char **argv);
@@ -100,6 +101,7 @@ static bool WIFI_INITIALISED = false;
 static const char *TAG = "GRAVITY";
 static const char *MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
+static const char *FUZZ_TAG = "fuzz@GRAVITY";
 
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -118,7 +120,7 @@ extern int PROBE_SEQNUM_OFFSET;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 19
+#define CMD_COUNT 20
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -135,6 +137,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_PROBE,
         .help = "A probe flood attack continually transmits probe requests, imposing continual load on target APs.",
         .func = cmd_probe
+    }, {
+        .command = "fuzz",
+        .hint = USAGE_FUZZ,
+        .help = "Sends different types of invalid 802.11 packets, to see what happens. Will send either beacon or probe request packets; in OVERFLOW mode will send variously-sized SSIDS that exceed the standard maximum of 32 bytes; in MALFORMED mode will send SSIDs of various sizes that exceed the length specified in ssid_len.",
+        .func = cmd_fuzz
     }, {
         .command = "sniff",
         .hint = USAGE_SNIFF,
