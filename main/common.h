@@ -1,6 +1,9 @@
 #ifndef GRAVITY_COMMON_H
 #define GRAVITY_COMMON_H
 
+#define WORDLIST_FILE "../words.txt"
+#define CONFIG_MAX_WORD_LEN 32
+
 #include <stdbool.h>
 #include <esp_wifi.h>
 #include "esp_flip_struct.h"

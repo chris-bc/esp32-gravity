@@ -17,23 +17,47 @@ bool firstCallback = true;
 bool malformedPartOne = true;
 const char *FUZZ_TAG = "fuzz@GRAVITY";
 
-esp_err_t prepareDictionary() {
-    // TODO
-
-    return ESP_OK;
-}
+static FILE *filePtr = NULL;
 
 char *getRandomWord() {
-    // TODO
+    /* Open wordFile if not open */
+    if (filePtr == NULL) {
+        filePtr = fopen(WORDLIST_FILE, "r");
+    }
+    if (filePtr == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to load wordlist file\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Failed to load wordlist file \"%s\"", WORDLIST_FILE);
+        #endif
+        return NULL;
+    }
 
-    return "";
+    /* While next line starts with '#', is a number, or has a length of 0 get next line */
+    char thisWord[CONFIG_MAX_WORD_LEN];
+    char *inChars = fgets(thisWord, CONFIG_MAX_WORD_LEN, filePtr);
+    
+    while(inChars != NULL && (strlen(thisWord) < 3 || atoi(thisWord) != 0 || thisWord[0] == '#')) {
+        inChars = fgets(thisWord, CONFIG_MAX_WORD_LEN, filePtr);
+    }
+
+    /* Return word */
+    if (inChars == NULL) {
+        /* We ran out of words! */
+        #ifdef CONFIG_FLIPPER
+            printf("No valid words found!\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Reached the end of wordlist without finding a suitable word.");
+        #endif
+        return NULL;
+    }
+
+    return inChars;
 }
 
 /* Generate a random SSID of the specified length.
    This function uses the included dictionary file to generate a sequence of
-   words separated by spaces, to make up the length required.
-   Generated SSIDs will never end with a space. If they are generated like
-   that the algorithm replaces the final space with a numeral.
+   words separated by hyphen, to make up the length required.
 */
 esp_err_t randomSsid(char *ssid, int len) {
     // TODO: Farm off the work to prepareDictionary
@@ -44,14 +68,14 @@ esp_err_t randomSsid(char *ssid, int len) {
         char *word = getRandomWord();
         if (currentLen + strlen(word) + 1 < len) {
             if (currentLen > 0) {
-                ssid[currentLen] = (uint8_t)' ';
+                ssid[currentLen] = (uint8_t)'-';
                 ++currentLen;
             }
             memcpy(&ssid[currentLen], (uint8_t *)word, strlen(word));
             currentLen += strlen(word);
         } else {
             if (currentLen > 0) {
-                ssid[currentLen] = (uint8_t)' ';
+                ssid[currentLen] = (uint8_t)'-';
                 ++currentLen;
             }
             /* How much space do we have left? */

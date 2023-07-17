@@ -78,6 +78,10 @@ TODO
       verbose output, and set the authentication type it indicates. If not specified returns the current status. 
       * Mana attack - Respond to all probes
       * Loud Mana - Respond with SSIDs from all STAs
+    * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len) - FUZZ OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
+      * SSID longer/shorter than ssid_len
+      * SSID matches ssid_len, is greater than 32 (MAX_SSID_LEN)
+
 * **ONGOING** Receive and parse 802.11 frames
 
 ## Features TODO
@@ -107,14 +111,12 @@ TODO
 
 ## Bugs / Todo
 
-* beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len)
-  * Max packet lengths
-    * Beacon: 57 + SSID = 89
-    * Probe Req: 42 + SSID = 74
-    * Probe Resp: 173 + 32 = 205 #Winner!
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs
 * Add 'malformedFrom - in fuzz.c - as a configuration parameter
+* Add wordlist file as configuration parameter
+* Migrate beacon's random SSIDs to use words
+* Add CONFIG_MAX_WORD_LEN to configuration parameter
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI
