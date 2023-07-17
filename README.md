@@ -114,9 +114,7 @@ TODO
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs
 * Add 'malformedFrom - in fuzz.c - as a configuration parameter
-* Add wordlist file as configuration parameter
 * Migrate beacon's random SSIDs to use words
-* Add CONFIG_MAX_WORD_LEN to configuration parameter
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI

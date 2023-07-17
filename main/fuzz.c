@@ -6,6 +6,7 @@
 #include "esp_flip_struct.h"
 #include "esp_wifi_types.h"
 #include <string.h>
+#include <time.h>
 
 FuzzMode fuzzMode = FUZZ_MODE_OFF;
 FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;
@@ -17,42 +18,11 @@ bool firstCallback = true;
 bool malformedPartOne = true;
 const char *FUZZ_TAG = "fuzz@GRAVITY";
 
-static FILE *filePtr = NULL;
-
 char *getRandomWord() {
-    /* Open wordFile if not open */
-    if (filePtr == NULL) {
-        filePtr = fopen(WORDLIST_FILE, "r");
-    }
-    if (filePtr == NULL) {
-        #ifdef CONFIG_FLIPPER
-            printf("Failed to load wordlist file\n");
-        #else
-            ESP_LOGE(FUZZ_TAG, "Failed to load wordlist file \"%s\"", WORDLIST_FILE);
-        #endif
-        return NULL;
-    }
-
-    /* While next line starts with '#', is a number, or has a length of 0 get next line */
-    char thisWord[CONFIG_MAX_WORD_LEN];
-    char *inChars = fgets(thisWord, CONFIG_MAX_WORD_LEN, filePtr);
-    
-    while(inChars != NULL && (strlen(thisWord) < 3 || atoi(thisWord) != 0 || thisWord[0] == '#')) {
-        inChars = fgets(thisWord, CONFIG_MAX_WORD_LEN, filePtr);
-    }
-
-    /* Return word */
-    if (inChars == NULL) {
-        /* We ran out of words! */
-        #ifdef CONFIG_FLIPPER
-            printf("No valid words found!\n");
-        #else
-            ESP_LOGE(FUZZ_TAG, "Reached the end of wordlist without finding a suitable word.");
-        #endif
-        return NULL;
-    }
-
-    return inChars;
+    #include "words.h"
+    // TODO
+    int index = rand() % gravityWordCount;
+    return gravityWordList[index];
 }
 
 /* Generate a random SSID of the specified length.
@@ -60,11 +30,11 @@ char *getRandomWord() {
    words separated by hyphen, to make up the length required.
 */
 esp_err_t randomSsid(char *ssid, int len) {
-    // TODO: Farm off the work to prepareDictionary
     int currentLen = 0;
     memset(ssid, 0, (len + 1)); /* Including trailing NULL */
 
     while (currentLen < len) {
+        #include "words.h"
         char *word = getRandomWord();
         if (currentLen + strlen(word) + 1 < len) {
             if (currentLen > 0) {
@@ -424,6 +394,10 @@ esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType) {
     if (attack_status[ATTACK_FUZZ]) {
         fuzz_stop();
     }
+
+    // And initialise the random number generator
+	srand(time(NULL));
+
 
     xTaskCreate(&fuzzCallback, "fuzzCallback", 2048, NULL, 5, &fuzzTask);
 
