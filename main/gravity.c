@@ -30,6 +30,7 @@ int user_ssid_count = 0;
 static long hop_millis = 0;
 static enum HopStatus hopStatus = HOP_STATUS_DEFAULT;
 static TaskHandle_t channelHopTask = NULL;
+long ATTACK_MILLIS = CONFIG_DEFAULT_ATTACK_MILLIS;
 
 #define PROMPT_STR "gravity"
 
@@ -959,7 +960,7 @@ int cmd_deauth(int argc, char **argv) {
     }
 
     /* Extract parameters */
-    long delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
+    long delay = ATTACK_MILLIS;
     DeauthMAC setMAC = DEAUTH_MAC_FRAME;
     DeauthMode dMode = DEAUTH_MODE_OFF;
     switch (argc) {
@@ -977,6 +978,14 @@ int cmd_deauth(int argc, char **argv) {
         delay = atol(argv[1]);
         if (delay == 0) {
             delay = atol(argv[2]);
+        }
+        if (delay == 0) {
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid duration\n");
+            #else
+                ESP_LOGE(DEAUTH_TAG, "Invalid duration specified");
+            #endif
+            return ESP_ERR_INVALID_ARG;
         }
         /* Retrieve MAC mode */
         if (!strcasecmp(argv[1], "FRAME") || !strcasecmp(argv[2], "FRAME")) {
@@ -1474,10 +1483,20 @@ int cmd_set(int argc, char **argv) {
             ESP_LOGI(TAG, "This command has not been implemented.");
         #endif
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
+        long newMillis = atof(argv[1]);
+        if (newMillis == 0) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", SHORT_SET);
+            #else
+                ESP_LOGI(TAG, "%s", USAGE_SET);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
+        ATTACK_MILLIS = newMillis;
         #ifdef CONFIG_FLIPPER
-            printf("Not implemented\n");
+            printf("ATTACK_MILLIS is %ld\n", ATTACK_MILLIS);
         #else
-            ESP_LOGI(TAG, "This command has not been implemented.");
+            ESP_LOGI(TAG, "ATTACK_MILLIS is %ld\n", ATTACK_MILLIS);
         #endif
     } else {
         #ifdef CONFIG_FLIPPER

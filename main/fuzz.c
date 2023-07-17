@@ -1,5 +1,6 @@
 #include "fuzz.h"
 #include "beacon.h"
+#include "freertos/portmacro.h"
 #include "probe.h"
 #include "common.h"
 #include "esp_err.h"
@@ -373,7 +374,7 @@ void fuzz_overflow_callback(void *pvParameter) {
 void fuzzCallback(void *pvParameter) {
     //
     while (1) {
-        vTaskDelay(1); /* TODO: use ATTACK_MILLIS */
+        vTaskDelay((ATTACK_MILLIS / portTICK_PERIOD_MS) + 1);
 
         if (!attack_status[ATTACK_FUZZ]) {
             continue; /* Exit this loop iteration */

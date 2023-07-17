@@ -27,7 +27,7 @@ char *DEAUTH_TAG = "deauth@GRAVITY";
 
 static DeauthMode mode = DEAUTH_MODE_OFF;
 static DeauthMAC deauthMAC = DEAUTH_MAC_FRAME;
-static long deauth_delay = CONFIG_DEFAULT_DEAUTH_MILLIS;
+static long deauth_delay = 0;
 static TaskHandle_t deauthTask = NULL;
 
 ScanResultSTA **targetSTA = NULL;

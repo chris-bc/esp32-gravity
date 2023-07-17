@@ -114,7 +114,6 @@ TODO
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs
 * Add "scrambleWords" config option that applies to beacon, probe, and fuzz SSID generation
-* Combine deauth_millis and attack_millis
 * Migrate beacon's random SSIDs to use words
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded

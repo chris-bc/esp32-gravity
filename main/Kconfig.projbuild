@@ -18,23 +18,14 @@ menu "Gravity Configuration"
             hopping is enabled, for the Mana attack and (when implemented)
             handshake capture.
 
-    config DEFAULT_DEAUTH_MILLIS
-        int "Default time between packets during a deauthentication attack (milliseconds)"
-        default 0
+    config DEFAULT_ATTACK_MILLIS
+        int "Default time between packets during an attack (milliseconds)"
+        default 5
         help
-            To avoid causing too much traffic/chaos on a network during a deauthentication
-            attack, the rate at which deauth packets are sent can be throttled using this
+            To avoid causing too much traffic/chaos on a network during attacks,
+            the rate at which deauth packets are sent can be throttled using this
             setting. Gravity will pause the specified number of milliseconds in between
-            each packet during a deauthentication attack.
-
-    config FLIPPER
-        bool "Condense output for Flipper Zero screen size"
-        default n
-        help
-            As a console application, Gravity has been developed around a traditional
-            80x25 character terminal. Flipper Zero has a 20x5 character screen; this
-            option condenses and reduces output from Gravity to be more amenable
-            to use on Flipper Zero.
+            each packet during an attack.
 
     config MALFORMED_FROM
         int "Number of (valid) characters in an SSID being subject to Malformed Fuzzing"
@@ -44,7 +35,16 @@ menu "Gravity Configuration"
             SSID. This SSID is then manipulated in various ways to see how the wireless
             router responds. This option specifies the length of this initial SSID. For
             reference, the maximum length of an SSID is 32 bytes.
-            
+                    
+    config FLIPPER
+        bool "Condense output for Flipper Zero screen size"
+        default n
+        help
+            As a console application, Gravity has been developed around a traditional
+            80x25 character terminal. Flipper Zero has a 20x5 character screen; this
+            option condenses and reduces output from Gravity to be more amenable
+            to use on Flipper Zero.
+
     config DEBUG
         bool "Enable debugging output"
         default y

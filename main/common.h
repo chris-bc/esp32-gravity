@@ -33,6 +33,7 @@ typedef struct ScanResultSTA ScanResultSTA;
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;
 extern bool *hop_defaults;
+extern long ATTACK_MILLIS;
 
 /* scan.c */
 extern int gravity_ap_count;
