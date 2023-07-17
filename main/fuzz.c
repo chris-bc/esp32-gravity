@@ -13,7 +13,11 @@ FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;
 static TaskHandle_t fuzzTask = NULL;
 
 int fuzzCounter = 0;
-uint8_t malformedFrom = 16; /* Default at half the length */
+#ifdef CONFIG_MALFORMED_FROM
+    uint8_t malformedFrom = CONFIG_MALFORMED_FROM;
+#else
+    uint8_t malformedFrom = 16; /* Default at half the length */
+#endif
 bool firstCallback = true;
 bool malformedPartOne = true;
 const char *FUZZ_TAG = "fuzz@GRAVITY";

@@ -36,6 +36,15 @@ menu "Gravity Configuration"
             option condenses and reduces output from Gravity to be more amenable
             to use on Flipper Zero.
 
+    config MALFORMED_FROM
+        int "Number of (valid) characters in an SSID being subject to Malformed Fuzzing"
+        default 16
+        help
+            The Malformed Fuzz attack starts with a wireless packet containing a regular
+            SSID. This SSID is then manipulated in various ways to see how the wireless
+            router responds. This option specifies the length of this initial SSID. For
+            reference, the maximum length of an SSID is 32 bytes.
+            
     config DEBUG
         bool "Enable debugging output"
         default y
