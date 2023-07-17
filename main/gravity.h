@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "esp_err.h"
+#include "esp_flip_const.h"
 #include "esp_system.h"
 #include "esp_log.h"
 #include "esp_console.h"
@@ -59,6 +60,7 @@ int cmd_handshake(int argc, char **argv);
 int cmd_target_ssids(int argc, char **argv);
 int cmd_commands(int argc, char **argv);
 int cmd_hop(int argc, char **argv);
+int cmd_info(int argc, char **argv);
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 char **apListToStrings(ScanResultAP **aps, int apsCount);
@@ -119,7 +121,7 @@ extern int PROBE_SEQNUM_OFFSET;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 20
+#define CMD_COUNT 21
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -221,5 +223,10 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_COMMANDS,
         .help = "Display a BRIEF command summary",
         .func = cmd_commands
+    }, {
+        .command = "info",
+        .hint = USAGE_INFO,
+        .help = "Display help information for the specified command. Usage: info <command>",
+        .func = cmd_info
     }
 };

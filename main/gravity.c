@@ -10,6 +10,7 @@
 #include "gravity.h"
 #include "common.h"
 #include "esp_err.h"
+#include "esp_flip_const.h"
 #include "esp_flip_struct.h"
 #include "esp_log.h"
 #include "beacon.h"
@@ -348,8 +349,113 @@ int rmSsid(char *ssid) {
 	return ESP_OK;
 }
 
+/* Return the GravityCommand (typedef enum) associated with
+   the specified string. If the string could not be converted
+   GRAVITY_NONE is returned.
+*/
+GravityCommand gravityCommandFromString(char *input) {
+    if (!strcasecmp(input, "beacon")) {
+        return GRAVITY_BEACON;
+    }
+    if (!strcasecmp(input, "target-ssids")) {
+        return GRAVITY_TARGET_SSIDS;
+    }
+    if (!strcasecmp(input, "probe")) {
+        return GRAVITY_PROBE;
+    }
+    if (!strcasecmp(input, "fuzz")) {
+        return GRAVITY_FUZZ;
+    }
+    if (!strcasecmp(input, "sniff")) {
+        return GRAVITY_SNIFF;
+    }
+    if (!strcasecmp(input, "deauth")) {
+        return GRAVITY_DEAUTH;
+    }
+    if (!strcasecmp(input, "mana")) {
+        return GRAVITY_MANA;
+    }
+    if (!strcasecmp(input, "stalk")) {
+        return GRAVITY_STALK;
+    }
+    if (!strcasecmp(input, "ap-dos")) {
+        return GRAVITY_AP_DOS;
+    }
+    if (!strcasecmp(input, "ap-clone")) {
+        return GRAVITY_AP_CLONE;
+    }
+    if (!strcasecmp(input, "scan")) {
+        return GRAVITY_SCAN;
+    }
+    if (!strcasecmp(input, "hop")) {
+        return GRAVITY_HOP;
+    }
+    if (!strcasecmp(input, "set")) {
+        return GRAVITY_SET;
+    }
+    if (!strcasecmp(input, "get")) {
+        return GRAVITY_GET;
+    }
+    if (!strcasecmp(input, "view")) {
+        return GRAVITY_VIEW;
+    }
+    if (!strcasecmp(input, "select")) {
+        return GRAVITY_SELECT;
+    }
+    if (!strcasecmp(input, "selected")) {
+        return GRAVITY_SELECTED;
+    }
+    if (!strcasecmp(input, "clear")) {
+        return GRAVITY_CLEAR;
+    }
+    if (!strcasecmp(input, "handshake")) {
+        return GRAVITY_HANDSHAKE;
+    }
+    if (!strcasecmp(input, "commands")) {
+        return GRAVITY_COMMANDS;
+    }
+    if (!strcasecmp(input, "info")) {
+        return GRAVITY_INFO;
+    }
+    return GRAVITY_NONE;
+}
+
+/* Display help information for the specified command.
+   Permit the specification of multiple commands, skip any
+   that are invalid.
+   USage: info <command>+
+*/
+int cmd_info(int argc, char **argv) {
+    if (argc == 1) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_INFO);
+        #else
+            ESP_LOGE(TAG, "%s", USAGE_INFO);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Loop through all arguments */
+    for (int i = 1; i < argc; ++i) {
+        GravityCommand command = gravityCommandFromString(argv[i]);
+
+        /* Is it a valid command? */
+        if (command == GRAVITY_NONE) {
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid command \"%s\", skipping\n", argv[i]);
+            #else
+                ESP_LOGW(TAG, "Invalid command \"%s\", skipping...", argv[i]);
+            #endif
+        } else {
+            printf("%15s:\t%s\n%15s\t%s\n\n", commands[i].command, commands[i].hint, "", commands[i].help);
+        }
+    }
+
+    return ESP_OK;
+}
+
 /* Send various types of incorrect 802.11 packets
-   Usage: fuzz OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
+   Usage: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )
    Overflow: ssid_len has an accurate length, but it's greater than 32. Start with 33 and increment.
    Malformed: ssid_len does not match the SSID's length. Alternate counting down and up.
 */

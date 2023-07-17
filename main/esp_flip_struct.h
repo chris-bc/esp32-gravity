@@ -21,10 +21,10 @@ enum AttackMode {
 typedef enum AttackMode AttackMode;
 
 enum GravityCommand {
-    GRAVITY_NONE,
-    GRAVITY_BEACON,
+    GRAVITY_BEACON = 0,
     GRAVITY_TARGET_SSIDS,
     GRAVITY_PROBE,
+    GRAVITY_FUZZ,
     GRAVITY_SNIFF,
     GRAVITY_DEAUTH,
     GRAVITY_MANA,
@@ -40,7 +40,9 @@ enum GravityCommand {
     GRAVITY_SELECTED,
     GRAVITY_CLEAR,
     GRAVITY_HANDSHAKE,
-    GRAVITY_COMMANDS
+    GRAVITY_COMMANDS,
+    GRAVITY_INFO,
+    GRAVITY_NONE = 99
 };
 typedef enum GravityCommand GravityCommand;
 

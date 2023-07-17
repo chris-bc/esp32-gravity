@@ -5,7 +5,7 @@
 const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ]";
 const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
 const char USAGE_PROBE[] = "Probe flood attack. Usage: probe [ ANY | TARGET-SSIDs | APs | OFF ]";
-const char USAGE_FUZZ[] = "Various invalid packets that may (or may not) have interesting effects. Usage: fuzz ( BEACON | REQ | RESP ) ( OVERFLOW | MALFORMED )";
+const char USAGE_FUZZ[] = "Various invalid packets that may (or may not) have interesting effects. Usage: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )";
 const char USAGE_SNIFF[] = "Display interesting packets. Usage: sniff [ ON | OFF ]";
 const char USAGE_DEAUTH[] = "Deauth attack. Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | AP | BROADCAST | OFF ]";
 const char USAGE_MANA[] = "Mana attack. Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )";
@@ -22,11 +22,12 @@ const char USAGE_SELECTED[] = "Display selected elements. Usage: selected ( AP |
 const char USAGE_CLEAR[] = "Clear stored APs or STAs. Usage: clear ( AP | STA | ALL )";
 const char USAGE_HANDSHAKE[] = "Toggle monitoring for encryption material. Usage handshake [ ON | OFF ]";
 const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
+const char USAGE_INFO[] = "Provide help information for the specified command. Usage: info <cmd>";
 
 const char SHORT_BEACON[] = "beacon RANDOM <count>";
 const char SHORT_TARGET_SSIDS[] = "(ADD | REMOVE) <apName>";
 const char SHORT_PROBE[] = "probe ANY | TARGET-SSIDs | APs | OFF";
-const char SHORT_FUZZ[] = "fuzz ( BEACON | REQ | RESP ) ( OVERFLOW | MALFORMED )";
+const char SHORT_FUZZ[] = "fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )";
 const char SHORT_SNIFF[] = "sniff [ ON | OFF ]";
 const char SHORT_DEAUTH[] = "deauth <millis>";
 const char SHORT_MANA[] = "Mana attack";
@@ -43,5 +44,6 @@ const char SHORT_SELECTED[] = "selected ( AP | STA )";
 const char SHORT_CLEAR[] = "clear ( AP | STA | ALL )";
 const char SHORT_HANDSHAKE[] = "handshake [ ON | OFF ]";
 const char SHORT_COMMANDS[] = "Brief command summary";
+const char SHORT_INFO[] = "Command help. info <cmd>";
 
 #endif
