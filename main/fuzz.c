@@ -21,53 +21,12 @@ int fuzzCounter = 0;
 #endif
 bool firstCallback = true;
 bool malformedPartOne = true;
-bool useRandomWords = true;
-#ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
-    useRandomWords = false;
-#endif
+/* Defines whether we used a sequence of random characters, rather
+   than a sequence of random words.
+   YAGNI: This doesn't belong in FUZZ, but it belongs with getRandomWord()
+*/
 
 const char *FUZZ_TAG = "fuzz@GRAVITY";
-
-char *getRandomWord() {
-    #include "words.h"
-    // TODO
-    int index = rand() % gravityWordCount;
-    return gravityWordList[index];
-}
-
-/* Generate a random SSID of the specified length.
-   This function uses the included dictionary file to generate a sequence of
-   words separated by hyphen, to make up the length required.
-*/
-esp_err_t randomSsid(char *ssid, int len) {
-    int currentLen = 0;
-    memset(ssid, 0, (len + 1)); /* Including trailing NULL */
-
-    while (currentLen < len) {
-        #include "words.h"
-        char *word = getRandomWord();
-        if (currentLen + strlen(word) + 1 < len) {
-            if (currentLen > 0) {
-                ssid[currentLen] = (uint8_t)'-';
-                ++currentLen;
-            }
-            memcpy(&ssid[currentLen], (uint8_t *)word, strlen(word));
-            currentLen += strlen(word);
-        } else {
-            if (currentLen > 0) {
-                ssid[currentLen] = (uint8_t)'-';
-                ++currentLen;
-            }
-            /* How much space do we have left? */
-            int remaining = len - currentLen;
-            memcpy(&ssid[currentLen], (uint8_t *)word, remaining);
-            currentLen += remaining;
-        }
-    }
-    ssid[currentLen] = '\0';
-
-    return ESP_OK;
-}
 
 /* Function may use up to 15 bytes of memory at the
    location specified by result */
@@ -142,7 +101,9 @@ esp_err_t setMalformedSsidLength(int newLength) {
 /* Generates a suitable packet for the SSID overflow attack */
 /* Will generate any packet type defined in FuzzPacketType.
    Returns the size of the resulting packet, which will be 
-   stored in outBytes upon conclusion. Caller must allocate memory */
+   stored in outBytes upon conclusion. Caller must allocate memory
+   Returns the length of the generated SSID.
+*/
 int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     uint8_t *packet_raw = NULL;
     int packet_len = 0;
@@ -186,33 +147,39 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
 
     /* Construct our packet in-place in outBytes */
     memcpy(outBytes, packet_raw, thisSsidOffset - 1);
-    outBytes[thisSsidOffset - 1] = (uint8_t)fuzzCounter; /* ssid_len */
+    outBytes[thisSsidOffset - 1] = (uint8_t)ssidSize; /* ssid_len */
     /* Allocate space for an SSID of the required length */
-    char *ssid = malloc(sizeof(char) * (fuzzCounter + 1)); /* Other callers may want to use it as a string */
+    char *ssid = malloc(sizeof(char) * (ssidSize + 1)); /* Other callers may want to use it as a string */
     if (ssid == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to allocate %db for an SSID\n", fuzzCounter);
+            printf("Failed to allocate %db for an SSID\n", ssidSize);
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", fuzzCounter);
+            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", ssidSize);
         #endif
         return 0;
     }
+    esp_err_t err = ESP_OK;
+    if (scrambledWords) {
+        err |= randomSsidWithChars(ssid, ssidSize);
+    } else {
+        err |= randomSsidWithWords(ssid, ssidSize);
+    }
     /* Generate a random SSID of the required length */
-    if (randomSsid(ssid, fuzzCounter) != ESP_OK) {
+    if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", fuzzCounter);
+            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssidSize);
         #endif
         free(ssid);
         return 0;
     }
-    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, fuzzCounter);
+    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, ssidSize);
 
     /* Finish the packet */
-    memcpy(&outBytes[thisSsidOffset + fuzzCounter], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
+    memcpy(&outBytes[thisSsidOffset + ssidSize], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
 
-    return packet_len + fuzzCounter;
+    return packet_len + ssidSize;
 }
 
 /* Generates packets for the Malformed SSID attack */
@@ -277,11 +244,11 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         return 0;
     }
     /* Generate a random SSID of the required length */
-    if (randomSsid(ssid, ssidSize) != ESP_OK) {
+    if (randomSsidWithWords(ssid, ssidSize) != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", fuzzCounter);
+            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssideSize);
         #endif
         free(ssid);
         return 0;

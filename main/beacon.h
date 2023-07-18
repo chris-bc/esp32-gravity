@@ -52,6 +52,12 @@ extern int user_ssid_count;
 
 extern uint8_t beacon_raw[];
 
+/* SSID generation */
+extern bool scrambledWords;
+char *getRandomWord();
+esp_err_t randomSsidWithWords(char *ssid, int len);
+esp_err_t randomSsidWithChars(char *ssid, int len);
+
 int beacon_start(beacon_attack_t type, int ssidCount);
 int beacon_stop();
 
@@ -60,6 +66,5 @@ int addSsid(char *ssid);
 int rmSsid(char *ssid);
 int countSsid();
 char **lsSsid();
-char *generate_random_ssid();
 
 #endif

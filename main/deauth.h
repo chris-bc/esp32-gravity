@@ -1,3 +1,6 @@
+#ifndef DEAUTH_H
+#define DEAUTH_H
+
 #include <esp_err.h>
 #include <stdbool.h>
 
@@ -22,3 +25,5 @@ esp_err_t deauth_setDelay(long millis);
 long deauth_getDelay();
 
 extern char *DEAUTH_TAG;
+
+#endif

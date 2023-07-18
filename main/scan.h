@@ -1,3 +1,6 @@
+#ifndef SCAN_H
+#define SCAN_H
+
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include "common.h"
@@ -30,3 +33,5 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload);
 /* External function definitions (gravity.c) */
 int mac_bytes_to_string(uint8_t *bMac, char *strMac);
 int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+
+#endif

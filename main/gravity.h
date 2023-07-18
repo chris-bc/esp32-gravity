@@ -1,3 +1,6 @@
+#ifndef GRAVITY_H
+#define GRAVITY_H
+
 #include <esp_wifi.h>
 #include <stdio.h>
 #include <string.h>
@@ -230,3 +233,5 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .func = cmd_info
     }
 };
+
+#endif
