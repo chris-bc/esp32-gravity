@@ -34,7 +34,16 @@ ScanResultSTA **targetSTA = NULL;
 int targetCount = 0;
 
 void deauthLoop(void *pvParameter) {
-    //
+    /* Set deauth_delay appropriately if it's silly */
+    if (deauth_delay < CONFIG_MIN_ATTACK_MILLIS) {
+        #ifdef CONFIG_FLIPPER
+            printf("Deauth delay %ld less than minimum %d. using minimum\n", deauth_delay, CONFIG_MIN_ATTACK_MILLIS);
+        #else
+            ESP_LOGW(DEAUTH_TAG, "Deauth delay %ld is less than the configured minimum delay %d. Using minimum delay.", deauth_delay, CONFIG_MIN_ATTACK_MILLIS);
+        #endif
+        deauth_delay = (long)CONFIG_MIN_ATTACK_MILLIS;
+    }
+
     while (true) {
         /* Need to delay at least one tick to satisfy the watchdog */
         vTaskDelay((deauth_delay / portTICK_PERIOD_MS) + 1); /* Delay <delay>ms plus a smidge */

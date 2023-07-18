@@ -4,6 +4,7 @@
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include "common.h"
+#include "freertos/portmacro.h"
 #include "probe.h"
 
 int PROBE_SSID_OFFSET = 26;
@@ -117,7 +118,7 @@ void probeCallback(void *pvParameter) {
     #endif
 
     while (true) {
-        vTaskDelay(10); // TODO: At least understand how long this is!
+        vTaskDelay(ATTACK_MILLIS / portTICK_PERIOD_MS);
 
         // Create a buffer large enough to store packet + SSID etc.
         probeBuffer = malloc(sizeof(uint8_t) * 1024);

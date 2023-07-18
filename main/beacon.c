@@ -1,6 +1,7 @@
 #include "beacon.h"
 #include "esp_err.h"
 #include "common.h"
+#include "freertos/portmacro.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
@@ -49,6 +50,7 @@ uint8_t beacon_raw[] = {
 char *currentSsid = NULL;
 int currentSsidLen = 0;
 
+/* Callback for the beacon spam attack. This will pause 50ms if ATTACK_MILLIS is < 50ms >*/
 void beaconSpam(void *pvParameter) {
 	uint8_t line = 0;
 
@@ -63,10 +65,11 @@ void beaconSpam(void *pvParameter) {
 	}
 
 	for (;;) {
-		if (attackType != ATTACK_BEACON_INFINITE) {
-			vTaskDelay(100 / SSID_COUNT / portTICK_PERIOD_MS);
+		if (ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS) {
+			vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
+		} else {
+			vTaskDelay(ATTACK_MILLIS / portTICK_PERIOD_MS);
 		}
-		vTaskDelay(1);
 
 		// Pull the current SSID and SSID length into variables to more
 		//   easily implement infinite beacon spam

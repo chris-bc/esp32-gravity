@@ -21,6 +21,11 @@ int fuzzCounter = 0;
 #endif
 bool firstCallback = true;
 bool malformedPartOne = true;
+bool useRandomWords = true;
+#ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
+    useRandomWords = false;
+#endif
+
 const char *FUZZ_TAG = "fuzz@GRAVITY";
 
 char *getRandomWord() {

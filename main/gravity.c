@@ -981,11 +981,11 @@ int cmd_deauth(int argc, char **argv) {
         }
         if (delay == 0) {
             #ifdef CONFIG_FLIPPER
-                printf("Invalid duration\n");
+                printf("Invalid duration, using %ld\n", ATTACK_MILLIS);
             #else
-                ESP_LOGE(DEAUTH_TAG, "Invalid duration specified");
+                ESP_LOGW(DEAUTH_TAG, "Invalid duration specified, using ATTACK_MILLIS: %d", ATTACK_MILLIS);
             #endif
-            return ESP_ERR_INVALID_ARG;
+            return delay = ATTACK_MILLIS;
         }
         /* Retrieve MAC mode */
         if (!strcasecmp(argv[1], "FRAME") || !strcasecmp(argv[2], "FRAME")) {
@@ -1919,8 +1919,8 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     #endif
 
     // Send the frame
-    /* Pause first */
-    vTaskDelay(1);
+    /* Pause for ATTACK_MILLIS first */
+    vTaskDelay((ATTACK_MILLIS / portTICK_PERIOD_MS) + 1);
     esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), false);
     free(probeBuffer);
     return e;

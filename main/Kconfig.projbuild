@@ -45,6 +45,24 @@ menu "Gravity Configuration"
             option condenses and reduces output from Gravity to be more amenable
             to use on Flipper Zero.
 
+    config DEFAULT_SCRAMBLE_WORDS
+        bool "Use random characters, not random words, when generating SSIDs"
+        default n
+        help
+            beacon RANDOM, beacon INFINITE and all FUZZ commands include the generation
+            of random SSIDs. By default these SSIDs use a sequence of words, drawn from
+            words.h. Select this option to use random characters rather than random words.
+
+    config MIN_ATTACK_MILLIS
+        int "Minimum time between attack packets for sensitivy processes (milliseconds)."
+        default 50
+        help
+            The beacon attack sends beacon frame too quickly to be observed by Wireshark. I'm
+            unclear whether the culprit is the sender or receiver, but the situation improves
+            significants by introducing a small delay. A single tick works well enough; this
+            option specifies the minimum number of milliseconds for such attacks.
+            This option applies to the BEACON command, excluding the infinite attack mode.
+
     config DEBUG
         bool "Enable debugging output"
         default y
