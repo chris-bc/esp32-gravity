@@ -151,6 +151,7 @@ void deauthLoop(void *pvParameter) {
         }
         if (mode == DEAUTH_MODE_BROADCAST || mode == DEAUTH_MODE_AP) {
             free(targetSTA);
+            targetSTA = NULL;
         }
     }
 }
@@ -171,7 +172,7 @@ esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis) {
 }
 
 esp_err_t deauth_stop() {
-    if (mode == DEAUTH_MODE_AP) {
+    if (mode == DEAUTH_MODE_AP && targetSTA != NULL) {
         free(targetSTA);
     }
     if (deauthTask != NULL) {
