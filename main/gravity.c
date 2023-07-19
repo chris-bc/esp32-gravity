@@ -1766,6 +1766,15 @@ int cmd_select(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
+    /* Flipper Zero's keyboard doesn't have a space, so support ^-separated selectors */
+    if (argc == 3 && strstr(argv[2], "^") != NULL) {
+        for (int i = 0; i < strlen(argv[2]); ++i) {
+            if (argv[2][i] == '^') {
+                argv[2][i] = ' ';
+            }
+        }
+    }
+
     esp_err_t err = ESP_OK;;
     if (!strcasecmp(argv[1], "AP")) {
         for (int i = 2; i < argc; ++i) {
