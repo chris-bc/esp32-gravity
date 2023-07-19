@@ -34,6 +34,7 @@ typedef struct ScanResultSTA ScanResultSTA;
 extern bool *attack_status;
 extern bool *hop_defaults;
 extern long ATTACK_MILLIS;
+extern char **gravityWordList;
 
 /* scan.c */
 extern int gravity_ap_count;

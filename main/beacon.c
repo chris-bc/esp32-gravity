@@ -31,6 +31,12 @@ static int SSID_COUNT;
 
 static TaskHandle_t beaconTask = NULL;
 
+/* If true, scrambleWords generates random characters rather than random words */
+bool scrambledWords = false;
+#ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
+    scrambleWords = true;
+#endif
+
 uint8_t beacon_raw[] = {
 	0x80, 0x00,							    // 0-1: Frame Control
 	0x00, 0x00,						    	// 2-3: Duration
@@ -53,6 +59,7 @@ int currentSsidLen = 0;
 
 /* Callback for the beacon spam attack. This will pause 50ms if ATTACK_MILLIS is < 50ms >*/
 void beaconSpam(void *pvParameter) {
+	esp_err_t err;
 	uint8_t line = 0;
 
 	// Keep track of beacon sequence numbers on a per-songline-basis
@@ -81,8 +88,29 @@ void beaconSpam(void *pvParameter) {
 			if (currentSsid != NULL) {
 				free(currentSsid);
 			}
+			currentSsidLen = random() % MAX_SSID_LEN;
+			currentSsid = malloc(sizeof(char) * (currentSsidLen + 1));
+			if (currentSsid == NULL) {
+				#ifdef CONFIG_FLIPPER
+					printf("Out of memory for random SSID\n");
+				#else
+					ESP_LOGE(BEACON_TAG, "Unable to allocate memory for a random %s SSID", (scrambledWords)?"chars":"words");
+				#endif
+				return;
+			}
 			if (scrambledWords) {
-				currentSsidLen = randomSsidWithChars(currentSsid, random() % MAX_SSID_LEN);
+				err = randomSsidWithChars(currentSsid, currentSsidLen);
+			} else {
+				err = randomSsidWithWords(currentSsid, currentSsidLen);
+			}
+			if (err != ESP_OK) {
+				#ifdef CONFIG_FLIPPER
+					printf("SSID Generation failed:\n%25s\n", esp_err_to_name(err));
+				#else
+					ESP_LOGE(BEACON_TAG, "%s SSID Generation failed: %s", (scrambledWords)?"Character":"Word", esp_err_to_name(err));
+				#endif
+				free(currentSsid);
+				return;
 			}
 		} else {
 			currentSsid = attack_ssids[line];
@@ -121,15 +149,9 @@ void beaconSpam(void *pvParameter) {
 }
 
 /* Alternative SSID generation, using 1000 dictionary words */
-/* If true, scrambleWords generates random characters rather than random words */
-bool scrambledWords = false;
-#ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
-    useRandomWords = true;
-#endif
-
 char *getRandomWord() {
-    #include "words.h"
-    // TODO
+    #include "words.c"
+
     int index = rand() % gravityWordCount;
     return gravityWordList[index];
 }
@@ -141,9 +163,7 @@ char *getRandomWord() {
 esp_err_t randomSsidWithWords(char *ssid, int len) {
     int currentLen = 0;
     memset(ssid, 0, (len + 1)); /* Including trailing NULL */
-
     while (currentLen < len) {
-        #include "words.h"
         char *word = getRandomWord();
         if (currentLen + strlen(word) + 1 < len) {
             if (currentLen > 0) {
@@ -185,7 +205,6 @@ esp_err_t randomSsidWithChars(char *newSsid, int len) {
    Each SSID name will be between SSID_LEN_MIN and SSID_LEN_MAX
 */
 char **generateRandomSSids() {
-	int thisLen;
 	// Generate SSID_COUNT random strings between SSID_LEN_MIN and SSID_LEN_MAX
 	char **ret = malloc(sizeof(char*) * SSID_COUNT);
 	if (ret == NULL) {
@@ -214,14 +233,40 @@ char **generateRandomSSids() {
 		/* Generate a word or letter sequence */
 		char ssidType[6] = "";
 		if (scrambledWords) {
-			thisLen = randomSsidWithChars(ret[i], len);
+			esp_err_t err = randomSsidWithChars(ret[i], len);
+			if (err != ESP_OK) {
+				#ifdef CONFIG_FLIPPER
+					printf("randomSsidWithChars: %s\n", esp_err_to_name(err));
+				#else
+					ESP_LOGE(TAG, "randomSsidsWithChars() failed: %s", esp_err_to_name(err));
+				#endif
+				/* Free allocated memory */
+				for (int j = 0; j < i; ++j) {
+					free(ret[j]);
+				}
+				free(ret);
+				return NULL;
+			}
 			strcpy(ssidType, "Chars");
 		} else {
-			thisLen = randomSsidWithWords(ret[i], len);
+			esp_err_t err = randomSsidWithWords(ret[i], len);
+			if (err != ESP_OK) {
+				#ifdef CONFIG_FLIPPER
+					printf("randomSsidWithWords: %s\n", esp_err_to_name(err));
+				#else
+					ESP_LOGE(TAG, "randomSsidWithWords() failed: %s", esp_err_to_name(err));
+				#endif
+				/* Free allocated memory */
+				for (int j = 0; j < i; ++j) {
+					free(ret[j]);
+				}
+				free(ret);
+				return NULL;
+			}
 			strcpy(ssidType, "Words");
 		}
 		
-		if (ret[i] == NULL || thisLen == 0) {
+		if (len == 0) {
 			#ifdef CONFIG_FLIPPER
 				printf("randomSsidWith%s() failed!\n", ssidType);
 			#else
@@ -278,9 +323,6 @@ int beacon_stop() {
 }
 
 int beacon_start(beacon_attack_t type, int ssidCount) {
-	if (SSID_COUNT == 0) {
-		SSID_COUNT = DEFAULT_SSID_COUNT;
-	}
     /* Stop an existing beacon attack if one exists */
     if (attackType != ATTACK_BEACON_NONE) {
         beacon_stop();

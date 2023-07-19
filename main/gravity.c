@@ -26,6 +26,7 @@
 #define MAX_CHANNEL 9
 
 char **user_ssids = NULL;
+char **gravityWordList = NULL;
 int user_ssid_count = 0;
 static long hop_millis = 0;
 static enum HopStatus hopStatus = HOP_STATUS_DEFAULT;
@@ -439,7 +440,9 @@ int cmd_info(int argc, char **argv) {
     /* Loop through all arguments */
     for (int i = 1; i < argc; ++i) {
         GravityCommand command = gravityCommandFromString(argv[i]);
-
+        #ifdef CONFIG_DEBUG_VERBOSE
+            printf("i: %d command %d\n", i, command);
+        #endif
         /* Is it a valid command? */
         if (command == GRAVITY_NONE) {
             #ifdef CONFIG_FLIPPER
@@ -448,7 +451,7 @@ int cmd_info(int argc, char **argv) {
                 ESP_LOGW(TAG, "Invalid command \"%s\", skipping...", argv[i]);
             #endif
         } else {
-            printf("%15s:\t%s\n%15s\t%s\n\n", commands[i].command, commands[i].hint, "", commands[i].help);
+            printf("%15s:\t%s\n%15s\t%s\n\n", commands[command].command, commands[command].hint, "", commands[command].help);
         }
     }
 
@@ -1351,21 +1354,40 @@ int cmd_scan(int argc, char **argv) {
    Gravity instances. Many of them are initialised in beacon.h.
    Usage: set <variable> <value>
    Allowed values for <variable> are:
-      SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
+      SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
       MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRES */
 /* Channel hopping is not catered for in this feature */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
-    if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
+    if (!strcasecmp(argv[1], "SCRAMBLE_WORDS")) {
+        if (!strcasecmp(argv[2], "TRUE") || !strcasecmp(argv[2], "YES") || !strcasecmp(argv[2], "ON")) {
+            scrambledWords = true;
+        } else if (!strcasecmp(argv[2], "FALSE") || !strcasecmp(argv[2], "NO") || !strcasecmp(argv[2], "OFF")) {
+            scrambledWords = false;
+        } else {
+            #ifdef CONFIG_FLIPPER
+                printf("Usage: set SCRAMBLE WORDS <value>\n<value> can be true/false, yes/no or on/off\n");
+            #else
+                ESP_LOGE(TAG, "Incorrect state specified for SCRAMBLE_WORDS. Usage: set SCRAMBLE_WORDS <value>\n<value> ==> True/False, Yes/No, On/Off");
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
+        #ifdef CONFIG_FLIPPER
+            printf("SCRAMBLE_WORDS: %s\n", (scrambledWords)?"ON":"OFF");
+        #else
+            ESP_LOGI(TAG, "SCRAMBLE_WORDS is %s", (scrambledWords)?"Enabled":"Disabled");
+        #endif
+        return ESP_OK;
+    } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         //
         int iVal = atoi(argv[2]);
         if (iVal < 0 || iVal > SSID_LEN_MAX) {
@@ -1521,15 +1543,21 @@ int cmd_set(int argc, char **argv) {
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
-    if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
+    if (!strcasecmp(argv[1], "SCRAMBLE_WORDS")) {
+        #ifdef CONFIG_FLIPPER
+            printf("SCRAMBLE_WORDS: %s\n", (scrambledWords)?"On":"Off");
+        #else
+            ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (SCRAMBLE_WORDS)?"Enabled":"Disabled");
+        #endif
+    } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         #ifdef CONFIG_FLIPPER
             printf("SSID_LEN_MIN: %d\n", SSID_LEN_MIN);
         #else
