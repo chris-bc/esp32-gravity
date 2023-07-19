@@ -22,6 +22,7 @@
 #include "scan.h"
 #include "deauth.h"
 #include "fuzz.h"
+#include "sniff.h"
 
 #define MAX_CHANNEL 9
 
@@ -2003,6 +2004,19 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     /* Just send the whole packet to the scanner */
     if (attack_status[ATTACK_SCAN]) {
         scan_wifi_parse_frame(payload);
+    }
+    /* Ditto for the sniffer */
+    if (attack_status[ATTACK_SNIFF]) {
+        esp_err_t err;
+        err = sniffPacket(payload);
+        /* Report the error, but continue */
+        if (err != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Packet sniffer returned %s\n", esp_err_to_name(err));
+            #else
+                ESP_LOGW(SNIFF_TAG, "Packet sniffer returned an error: %s", esp_err_to_name(err));
+            #endif
+        }
     }
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
