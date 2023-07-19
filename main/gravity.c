@@ -1789,11 +1789,13 @@ int cmd_select(int argc, char **argv) {
 }
 
 /* Display selected STAs and/or APs. Usage: selected ( AP | STA ). Call with no arguments to display both */
+/* Adding selected AP STA as well as no args because I keep forgetting I can use no args */
 int cmd_selected(int argc, char **argv) {
     int retVal = ESP_OK;
     int retVal2 = ESP_OK;
 
-    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "AP"))) {
+    if (argc > 3 || (argc > 1 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "AP")) ||
+            (argc == 3 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "AP"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SELECTED);
         #else
@@ -1804,10 +1806,10 @@ int cmd_selected(int argc, char **argv) {
 
     /* Print APs if no args or "AP" */
     /* Hide expired packets only if scanResultExpiry has been set */
-    if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "AP"))) {
+    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "AP")) || (argc == 3 && !strcasecmp(argv[2], "AP"))) {
         retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
     }
-    if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "STA"))) {
+    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "STA")) || (argc == 3 && !strcasecmp(argv[2], "STA"))) {
         retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
     }
 
