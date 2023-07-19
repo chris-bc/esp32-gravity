@@ -847,7 +847,7 @@ int cmd_probe(int argc, char **argv) {
     }
 
     /* Set attack_status[ATTACK_PROBE] before checking channel hopping or starting/stopping */
-    attack_status[ATTACK_PROBE] = !strcasecmp(argv[1], "OFF");
+    attack_status[ATTACK_PROBE] = strcasecmp(argv[1], "OFF");
 
     /* Start hopping task loop if hopping is on by default */
     hop_millis = dwellTime();
