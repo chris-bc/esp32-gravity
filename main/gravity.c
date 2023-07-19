@@ -249,6 +249,14 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 
 /* Extract and return SSIDs from the specified ScanResultAP array */
 char **apListToStrings(ScanResultAP **aps, int apsCount) {
+    if (apsCount == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("WARNING: No selected APs\n");
+        #else
+            ESP_LOGW(TAG, "No selected APs");
+        #endif
+        return NULL;
+    }
 	char **res = malloc(sizeof(char *) * apsCount);
 	if (res == NULL) {
 		ESP_LOGE(BEACON_TAG, "Unable to allocate memory to extract AP names");
@@ -1701,7 +1709,9 @@ int cmd_view(int argc, char **argv) {
                 free(selectedAPs);
                 ++i;
             } else {
+                printf("1\n");
                 success = (success && gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK);
+                printf("2\n");
             }
         } else if (!strcasecmp(argv[i], "STA")) {
             /* Are we looking for all STAs, or STAs associated with select APs? */

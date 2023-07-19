@@ -118,7 +118,6 @@ TODO
 * figure out RSSI
 * STA channel issues - can't set channel >= 10 - type/base conversion??
 
-
 ## Testing / Packet verification
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |

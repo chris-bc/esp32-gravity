@@ -1,4 +1,5 @@
 #include "scan.h"
+#include "common.h"
 #include "esp_err.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
@@ -272,11 +273,41 @@ esp_err_t gravity_select_sta(int selIndex) {
 }
 
 esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
-    return gravity_list_ap(&gravity_aps, gravity_ap_count, hideExpiredPackets);
+    /* We need an array of pointers, not an array of ScanResultAPs, for gravity_list_ap */
+    ScanResultAP **retVal = malloc(sizeof(ScanResultAP *) * gravity_ap_count);
+    if (retVal == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to create **gravity_all_aps\n");
+        #else
+            ESP_LOGE(TAG, "Failed to allocate memory for **gravity_all_aps");
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        retVal[i] = &(gravity_aps[i]);
+    }
+    esp_err_t err = gravity_list_ap(retVal, gravity_ap_count, hideExpiredPackets);
+    free(retVal);
+    return err;
 }
 
 esp_err_t gravity_list_all_stas(bool hideExpiredPackets) {
-    return gravity_list_sta(&gravity_stas, gravity_sta_count, hideExpiredPackets);
+    /* Covert gravity_stas into a ScanResultSTA** */
+    ScanResultSTA **retVal = malloc(sizeof(ScanResultSTA *) * gravity_sta_count);
+    if (retVal == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to create **gravity_all_stas\n");
+        #else
+            ESP_LOGE(TAG, "Failed to allocate memory for **gravity_all_stas");
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        retVal[i] = &(gravity_stas[i]);
+    }
+    esp_err_t err = gravity_list_sta(retVal, gravity_sta_count, hideExpiredPackets);
+    free(retVal);
+    return err;
 }
 
 /* Display found APs
@@ -512,6 +543,8 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         #ifdef CONFIG_DEBUG
             #ifdef CONFIG_FLIPPER
                 char trunc[33];
+                /* I guess strncpy mustn't add a null on its own? */
+                memset(trunc, 0, 33); 
                 strncpy(trunc, newSSID, 32);
                 if (strlen(trunc) > 16) {
                     if (trunc[13] == ' ') {
