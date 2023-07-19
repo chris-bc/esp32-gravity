@@ -138,9 +138,9 @@ void probeCallback(void *pvParameter) {
             // Find the length of the SSID at ssid_idx
             // The trailing \0 in the SSID string is being ignored because
             //   the null is not included in the packet.
-            curr_ssid_len = strlen(user_ssids[ssid_idx]);
+            curr_ssid_len = strlen(probeList[ssid_idx]);
             probeBuffer[PROBE_SSID_OFFSET - 1] = curr_ssid_len;
-            memcpy(&probeBuffer[PROBE_SSID_OFFSET], user_ssids[ssid_idx], curr_ssid_len);
+            memcpy(&probeBuffer[PROBE_SSID_OFFSET], probeList[ssid_idx], curr_ssid_len);
         }
         // Append the rest, beginning from probe_raw[PROBE_SSID_OFFSET] with
         //   length sizeof(probe_raw)-PROBE_SSID_OFFSET, to
@@ -191,7 +191,7 @@ void probeCallback(void *pvParameter) {
 //        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
         // increment ssid
         ++ssid_idx;
-        if (ssid_idx >= user_ssid_count) {
+        if (ssid_idx >= probeListCount) {
             ssid_idx = 0;
         }
         free(probeBuffer);
