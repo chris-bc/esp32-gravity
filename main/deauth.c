@@ -148,6 +148,8 @@ void deauthLoop(void *pvParameter) {
 
         if (mode == DEAUTH_MODE_BROADCAST) {
             free(targetSTA[0]);
+        }
+        if (mode == DEAUTH_MODE_BROADCAST || mode == DEAUTH_MODE_AP) {
             free(targetSTA);
         }
     }

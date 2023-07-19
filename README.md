@@ -117,6 +117,12 @@ TODO
 * STA channels not recorded
 * figure out RSSI
 * STA channel issues - can't set channel >= 10 - type/base conversion??
+* Better sniff implementation
+* Eventually deauth triggers "wifi:max connection, deauth!"
+* Refactor modules, move everything to good design
+* Allow selected AP STA
+* scan clear scan causes a free'd object to be free'd
+  => gravity_add_ap scan.c:616 (called from 860 from 1073)
 
 ## Testing / Packet verification
 

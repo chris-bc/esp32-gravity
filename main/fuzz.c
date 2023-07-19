@@ -368,7 +368,7 @@ esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType) {
     malformedPartOne = true;
 
     /* If Fuzz is already running stop it first */
-    if (attack_status[ATTACK_FUZZ]) {
+    if (fuzzTask != NULL) {
         fuzz_stop();
     }
 
@@ -385,6 +385,7 @@ esp_err_t fuzz_stop() {
     fuzzCounter = 0;
     if (fuzzTask != NULL) {
         vTaskDelete(fuzzTask);
+        fuzzTask = NULL;
     }
     return ESP_OK;
 }

@@ -273,6 +273,14 @@ esp_err_t gravity_select_sta(int selIndex) {
 }
 
 esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
+    if (gravity_ap_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("No APs in scan results\n");
+        #else
+            ESP_LOGW(SCAN_TAG, "No APs in scan results to display. Have you run scan?");
+        #endif
+        return ESP_OK;
+    }
     /* We need an array of pointers, not an array of ScanResultAPs, for gravity_list_ap */
     ScanResultAP **retVal = malloc(sizeof(ScanResultAP *) * gravity_ap_count);
     if (retVal == NULL) {
@@ -292,6 +300,14 @@ esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
 }
 
 esp_err_t gravity_list_all_stas(bool hideExpiredPackets) {
+    if (gravity_sta_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("No STAs in scan results\n");
+        #else
+            ESP_LOGW(SCAN_TAG, "No STAs in scan results to display. Have you run scan?");
+        #endif
+        return ESP_OK;
+    }
     /* Covert gravity_stas into a ScanResultSTA** */
     ScanResultSTA **retVal = malloc(sizeof(ScanResultSTA *) * gravity_sta_count);
     if (retVal == NULL) {

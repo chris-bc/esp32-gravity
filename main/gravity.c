@@ -153,6 +153,15 @@ ScanResultAP **collateAPsOfSelectedSTAs(int *apCount) {
        - And the AP isn't in the result set
        - Add the AP to the result set
     */
+    if (gravity_sel_sta_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("No STAs selected\n");
+        #else
+            ESP_LOGW(TAG, "No selected STAs to retrieve APs from");
+        #endif
+        *apCount = 0;
+        return NULL;
+    }
     /* Use STA count as an upper limit on the AP count */
     ScanResultAP **resPassOne = malloc(sizeof(ScanResultAP *) * gravity_sel_sta_count);
     int resCount = 0;
@@ -202,6 +211,12 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 
 	/* Avoid having to guard every second operation */
 	if (resUpperBound == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("No selected APs\n");
+        #else
+            ESP_LOGW(TAG, "No selected APs to obtain STAs from");
+        #endif
+        *staCount = 0;
 		return NULL;
 	}
 
@@ -222,6 +237,7 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 			*/
 			if (!staResultListContainsSTA(resPassOne, resCount, (ScanResultSTA *)gravity_selected_aps[i]->stations[j])) {
 				/* Add it */
+                ScanResultSTA *foo = (ScanResultSTA *)gravity_selected_aps[i]->stations[j];
 				resPassOne[resCount++] = (ScanResultSTA *)gravity_selected_aps[i]->stations[j];
 			}
 		}
@@ -1704,14 +1720,12 @@ int cmd_view(int argc, char **argv) {
                 int apCount = 0;
                 ScanResultAP **selectedAPs = collateAPsOfSelectedSTAs(&apCount);
 
-                success = (success && gravity_list_ap(selectedAPs, apCount, (scanResultExpiry != 0)));
+                success = (success && (gravity_list_ap(selectedAPs, apCount, (scanResultExpiry != 0)) == ESP_OK));
 
                 free(selectedAPs);
                 ++i;
             } else {
-                printf("1\n");
-                success = (success && gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK);
-                printf("2\n");
+                success = (success && (gravity_list_all_aps((scanResultExpiry != 0)) == ESP_OK));
             }
         } else if (!strcasecmp(argv[i], "STA")) {
             /* Are we looking for all STAs, or STAs associated with select APs? */
@@ -1719,13 +1733,11 @@ int cmd_view(int argc, char **argv) {
                 /* Collate all STAs that are associated with the selected APs */
                 int staCount = 0;
                 ScanResultSTA **selectedSTAs = collateClientsOfSelectedAPs(&staCount);
-
-                success = (success && gravity_list_sta(selectedSTAs, staCount, (scanResultExpiry != 0)));
-
+                success = (success && (gravity_list_sta(selectedSTAs, staCount, (scanResultExpiry != 0)) == ESP_OK));
                 free(selectedSTAs);
                 ++i;
             } else {
-                success = (success && gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK);
+                success = (success && (gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK));
             }
         } else {
             #ifdef CONFIG_FLIPPER
