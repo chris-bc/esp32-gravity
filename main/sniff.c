@@ -3,6 +3,10 @@
 const char *SNIFF_TAG = "sniff@GRAVITY";
 
 esp_err_t sniffPacket(uint8_t *payload) {
+    if (payload[0] == 0x40) {
+        printf("inner probe req\n");
+    }
+
     switch (payload[0]) {
         case 0x00:
             return sniffAssocReq(payload);
@@ -41,84 +45,80 @@ esp_err_t sniffPacket(uint8_t *payload) {
             return sniffAction(payload);
             break;
         default:
-            #ifdef CONFIG_FLIPPER
-                printf("Unknown packet type %02x\n", payload[0]);
-            #else
-                ESP_LOGW(SNIFF_TAG, "Unknown packet type: %02x", payload[0]);
-            #endif
+            /* Not a management frame */
     }
 
     return ESP_OK;
 }
 
 esp_err_t sniffAssocReq(uint8_t *payload) {
-    //
+    printf("%s: Association Request\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffAssocResp(uint8_t *payload) {
-    //
+    printf("%s: Association Response\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffReassocReq(uint8_t *payload) {
-    //
+    printf("%s: Reassociation Request\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffReassocResp(uint8_t *payload) {
-    //
+    printf("%s: Reassociation Response\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffProbeReq(uint8_t *payload) {
-    //
+    printf("%s: Probe Request\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffProbeResp(uint8_t *payload) {
-    //
+    printf("%s: Probe Response\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffBeacon(uint8_t *payload) {
-    //
+    printf("%s: Beacon\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffAtims(uint8_t *payload) {
-    //
+    printf("%s: Atims Packet\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffDisassoc(uint8_t *payload) {
-    //
+    printf("%s: Disassociation Packet\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffAuth(uint8_t *payload) {
-    //
+    printf("%s: Authentication Packet\n", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffDeauth(uint8_t *payload) {
-    //
+    printf("%s: Deauthentication Packet", SNIFF_TAG);
 
     return ESP_OK;
 }
 
 esp_err_t sniffAction(uint8_t *payload) {
-    //
+    printf("%s: Actions Packet\n", SNIFF_TAG);
 
     return ESP_OK;
 }

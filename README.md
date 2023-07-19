@@ -117,7 +117,7 @@ TODO
 * STA channels not recorded
 * figure out RSSI
 * STA channel issues - can't set channel >= 10 - type/base conversion??
-* Better sniff implementation
+* Improve sniff implementation
 * Eventually deauth triggers "wifi:max connection, deauth!"
 * Refactor modules, move everything to good design
 
