@@ -12,12 +12,12 @@
 
 int gravity_ap_count = 0;
 int gravity_sta_count = 0;
-ScanResultAP *gravity_aps;
-ScanResultSTA *gravity_stas;
-int gravity_sel_ap_count;
-int gravity_sel_sta_count;
-ScanResultAP **gravity_selected_aps;
-ScanResultSTA **gravity_selected_stas;
+ScanResultAP *gravity_aps = NULL;
+ScanResultSTA *gravity_stas = NULL;
+int gravity_sel_ap_count = 0;
+int gravity_sel_sta_count = 0;
+ScanResultAP **gravity_selected_aps = NULL;
+ScanResultSTA **gravity_selected_stas = NULL;
 double scanResultExpiry = 0; /* Do not expire packets by default */
 
 
@@ -82,7 +82,7 @@ esp_err_t update_links() {
             }
         }
     }
-    if (gravity_sel_sta_count) {
+    if (gravity_sel_sta_count > 0) {
         free(gravity_selected_stas);
         gravity_selected_stas = malloc(sizeof(ScanResultSTA *) * gravity_sel_sta_count);
         if (gravity_selected_stas == NULL) {
@@ -443,16 +443,20 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
 /* Clear the contents of gravity_aps */
 esp_err_t gravity_clear_ap() {
     free(gravity_aps);
+    gravity_aps = NULL;
     gravity_ap_count = 0;
     free(gravity_selected_aps);
+    gravity_selected_aps = NULL;
     gravity_sel_ap_count = 0;
     return update_links();
 }
 
 esp_err_t gravity_clear_sta() {
     free(gravity_stas);
+    gravity_stas = NULL;
     gravity_sta_count = 0;
     free(gravity_selected_stas);
+    gravity_selected_stas = NULL;
     gravity_sel_sta_count = 0;
     return update_links();
 }
@@ -558,18 +562,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
     } else {
         #ifdef CONFIG_DEBUG
             #ifdef CONFIG_FLIPPER
-                char trunc[33];
-                /* I guess strncpy mustn't add a null on its own? */
-                memset(trunc, 0, 33); 
-                strncpy(trunc, newSSID, 32);
-                if (strlen(trunc) > 16) {
-                    if (trunc[13] == ' ') {
-                        memcpy(&trunc[13], "...\0", 4);
-                    } else {
-                        memcpy(&trunc[14], "..\0", 3);
-                    }
-                }
-                printf("AP: %s\n", trunc);
+                printf("AP: %s\n", (newSSID==NULL)?"":newSSID);
             #else
                 ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
             #endif
@@ -612,7 +605,10 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
 
         ++gravity_ap_count;
 
-        free(gravity_aps);
+        if (gravity_aps != NULL) {
+            free(gravity_aps);
+            gravity_aps = NULL;
+        }
         gravity_aps = newAPs;
     }
 
@@ -684,7 +680,9 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
 
         ++gravity_sta_count;
 
-        free(gravity_stas);
+        if (gravity_stas != NULL) {
+            free(gravity_stas);
+        }
         gravity_stas = newSTAs;
     }
 
@@ -754,7 +752,9 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
                     newSTA[idxNew++] = oldSTA[idxOld];
                 }
             }
-            free(oldSTA);
+            if (oldSTA != NULL) {
+                free(specSTA->ap->stations);
+            }
             specSTA->ap->stations = (void **)newSTA;
             --specSTA->ap->stationCount;
 
@@ -774,7 +774,9 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
             memcpy(specSTA->apMac, ap, 6);
 
             /* Finally move newSTA into place */
-            free(specAP->stations);
+            if (specAP->stations != NULL) {
+                free(specAP->stations);
+            }
             specAP->stations = (void **)newSTA;
         }
     } else {
