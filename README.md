@@ -121,10 +121,7 @@ TODO
 * Eventually deauth triggers "wifi:max connection, deauth!"
 * Refactor modules, move everything to good design
   * Move out of gravity.c
-    * Mana
     * Hop
-    * Common functions (arrayContainsString, mac_string_to_bytes, etc)
-    * Perhaps move things like apResultListContainsAP() into scan
     * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
     * Merge esp_flip_const.h, esp_flip_struct.h and common.h, and create common.c for common functions above
 

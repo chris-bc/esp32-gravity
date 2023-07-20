@@ -64,35 +64,16 @@ int cmd_target_ssids(int argc, char **argv);
 int cmd_commands(int argc, char **argv);
 int cmd_hop(int argc, char **argv);
 int cmd_info(int argc, char **argv);
-int mac_bytes_to_string(uint8_t *bMac, char *strMac);
-int mac_string_to_bytes(char *strMac, uint8_t *bMac);
-char **apListToStrings(ScanResultAP **aps, int apsCount);
-ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
-bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
-
-enum HopStatus {
-    HOP_STATUS_OFF,
-    HOP_STATUS_ON,
-    HOP_STATUS_DEFAULT
-};
 
 /* Moving attack_status and hop_defaults off the heap */
-bool *attack_status;
-bool *hop_defaults;
-int *hop_millis_defaults;
+extern bool *attack_status;
+extern bool *hop_defaults;
+extern int *hop_millis_defaults;
 
 static bool WIFI_INITIALISED = false;
-static const char *TAG = "GRAVITY";
-static const char *HOP_TAG = "hop@GRAVITY";
 
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-extern int PROBE_SSID_OFFSET;
-extern int PROBE_SRCADDR_OFFSET;
-extern int PROBE_DESTADDR_OFFSET;
-extern int PROBE_BSSID_OFFSET;
-extern int PROBE_SEQNUM_OFFSET;
 
 /*
  * This is the (currently unofficial) 802.11 raw frame TX API,

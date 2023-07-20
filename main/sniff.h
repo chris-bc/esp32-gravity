@@ -1,3 +1,6 @@
+#ifndef SNIFF_H
+#define SNIFF_H
+
 #include <stdint.h>
 #include <esp_err.h>
 
@@ -16,3 +19,6 @@ esp_err_t sniffDisassoc(uint8_t *payload);
 esp_err_t sniffAuth(uint8_t *payload);
 esp_err_t sniffDeauth(uint8_t *payload);
 esp_err_t sniffAction(uint8_t *payload);
+
+
+#endif
