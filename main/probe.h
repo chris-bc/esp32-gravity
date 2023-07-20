@@ -60,7 +60,5 @@ int rmSsid(char *ssid);
 int countSsid();
 char **lsSsid();
 char *generate_random_ssid();
-int mac_bytes_to_string(uint8_t *bMac, char *strMac);
-int mac_string_to_bytes(char *strMac, uint8_t *bMac);
 
 #endif

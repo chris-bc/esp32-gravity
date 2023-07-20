@@ -70,12 +70,6 @@ char **apListToStrings(ScanResultAP **aps, int apsCount);
 ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
 bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
 
-enum PROBE_RESPONSE_AUTH_TYPE {
-    AUTH_TYPE_NONE,
-    AUTH_TYPE_WEP,
-    AUTH_TYPE_WPA
-};
-
 enum HopStatus {
     HOP_STATUS_OFF,
     HOP_STATUS_ON,
@@ -87,24 +81,8 @@ bool *attack_status;
 bool *hop_defaults;
 int *hop_millis_defaults;
 
-
-uint8_t PRIVACY_OFF_BYTES[] = {0x01, 0x11};
-uint8_t PRIVACY_ON_BYTES[] = {0x11, 0x11};
-
-struct NetworkList {
-    uint8_t bMac[6];
-    char strMac[18];
-    char **ssids;
-    int ssidCount;
-};
-typedef struct NetworkList NetworkList;
-static NetworkList *networkList = NULL;
-static int networkCount = 0;
-static enum PROBE_RESPONSE_AUTH_TYPE mana_auth = AUTH_TYPE_NONE;
-
 static bool WIFI_INITIALISED = false;
 static const char *TAG = "GRAVITY";
-static const char *MANA_TAG = "mana@GRAVITY";
 static const char *HOP_TAG = "hop@GRAVITY";
 
 char scan_filter_ssid[33] = "\0";

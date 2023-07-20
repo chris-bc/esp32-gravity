@@ -50,6 +50,17 @@ extern esp_err_t gravity_list_all_aps(bool hideExpiredPackets);
 extern esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredPackets);
 extern esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets);
 
+typedef enum PROBE_RESPONSE_AUTH_TYPE {
+    AUTH_TYPE_NONE,
+    AUTH_TYPE_WEP,
+    AUTH_TYPE_WPA
+} PROBE_RESPONSE_AUTH_TYPE;
+
+int mac_bytes_to_string(uint8_t *bMac, char *strMac);
+int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+bool arrayContainsString(char **arr, int arrCnt, char *str);
+esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum);
+
 extern char **apListToStrings(ScanResultAP **aps, int apsCount);
 extern ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
 extern bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
