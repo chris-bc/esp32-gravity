@@ -102,7 +102,7 @@ TODO
   * Respond to probe requests with forged beacon frames
   * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
   * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
-* CLI commands to analyse captured data - stations(ap), ap(station), stations/aps(channel), etc
+* CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking
 * Scan 802.15.1 (BLE/BT) devices and types
@@ -120,6 +120,13 @@ TODO
 * Improve sniff implementation
 * Eventually deauth triggers "wifi:max connection, deauth!"
 * Refactor modules, move everything to good design
+  * Move out of gravity.c
+    * Mana
+    * Hop
+    * Common functions (arrayContainsString, mac_string_to_bytes, etc)
+    * Perhaps move things like apResultListContainsAP() into scan
+    * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
+    * Merge esp_flip_const.h, esp_flip_struct.h and common.h, and create common.c for common functions above
 
 ## Testing / Packet verification
 
