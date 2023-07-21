@@ -140,7 +140,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
             #ifdef CONFIG_FLIPPER
                 printf("Invalid packet type: %d\n", ptype);
             #else
-                ESP_LOGE(FUZZ_TAG, "Invalid packet type encountered: %d", pytype);
+                ESP_LOGE(FUZZ_TAG, "Invalid packet type encountered: %d", ptype);
             #endif
             return 0;
     }
@@ -248,7 +248,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssideSize);
+            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssidSize);
         #endif
         free(ssid);
         return 0;

@@ -64,6 +64,9 @@ esp_err_t mana_handleBroadcastProbe(uint8_t *payload, uint8_t bCurrentMac[6], ui
 
 esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uint8_t bDestMac[6], uint16_t seqNum, char *ssid, int ssid_len) {
     /* Directed probe request - Send a directed probe response in reply */
+    char strDestMac[18];
+    mac_bytes_to_string(bDestMac, strDestMac);
+    
     #ifdef CONFIG_FLIPPER
         char shortSsid[33];
         strcpy(shortSsid, ssid);
@@ -78,8 +81,7 @@ esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uin
     #else
         ESP_LOGI(MANA_TAG, "Received directed probe from %s for \"%s\"", strDestMac, ssid);
     #endif
-    char strDestMac[18];
-    mac_bytes_to_string(bDestMac, strDestMac);
+    
     /* Mana attack - Add the current SSID to the station's preferred network
         list if it's not already there 
     */

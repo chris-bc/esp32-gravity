@@ -699,7 +699,7 @@ int cmd_deauth(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("Invalid duration, using %ld\n", ATTACK_MILLIS);
             #else
-                ESP_LOGW(DEAUTH_TAG, "Invalid duration specified, using ATTACK_MILLIS: %d", ATTACK_MILLIS);
+                ESP_LOGW(DEAUTH_TAG, "Invalid duration specified, using ATTACK_MILLIS: %ld", ATTACK_MILLIS);
             #endif
             return delay = ATTACK_MILLIS;
         }
@@ -1202,7 +1202,7 @@ int cmd_set(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_SET);
             #else
-                ESP_LOGE(TAG, USAGE_SET);
+                ESP_LOGE(TAG, "%s", USAGE_SET);
             #endif
             return ESP_ERR_INVALID_ARG;
         }
@@ -1268,7 +1268,7 @@ int cmd_get(int argc, char **argv) {
         #ifdef CONFIG_FLIPPER
             printf("SCRAMBLE_WORDS: %s\n", (scrambledWords)?"On":"Off");
         #else
-            ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (SCRAMBLE_WORDS)?"Enabled":"Disabled");
+            ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (scrambledWords)?"Enabled":"Disabled");
         #endif
     } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         #ifdef CONFIG_FLIPPER
