@@ -1,6 +1,6 @@
 | Supported Targets | ESP32-C6  | ESP32 | 
-|                   | (Partial)
-| ----------------- | --------- | ----- | 
+| ----------------- | --------- | ----- |
+|                   | (Partial) |       | 
 
 # GRAVITY - ESP32 Wireless Tools
 ## The unseen force
