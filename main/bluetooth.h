@@ -1,7 +1,8 @@
 #ifndef BLUETOOTH_H
 #define BLUETOOTH_H
 
-#include <esp_gap_bt_api.h>
+#include <string.h>
+#include "esp_gap_bt_api.h"
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_bt_device.h>
@@ -30,5 +31,6 @@ typedef struct {
 static app_gap_cb_t m_dev_info;
 extern const char *BT_TAG;
 
+void testBT();
 
 #endif

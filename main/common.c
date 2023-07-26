@@ -2,6 +2,13 @@
 
 const char *TAG = "GRAVITY";
 
+int max(int one, int two) {
+    if (one >= two) {
+        return one;
+    }
+    return two;
+}
+
 bool arrayContainsString(char **arr, int arrCnt, char *str) {
     int i;
     for (i=0; i < arrCnt && strcmp(arr[i], str); ++i) { }

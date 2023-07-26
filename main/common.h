@@ -72,6 +72,7 @@ bool apResultListContainsAP(ScanResultAP **list, int listLen, ScanResultAP *ap);
 ScanResultAP **collateAPsOfSelectedSTAs(int *apCount);
 ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
 char **apListToStrings(ScanResultAP **aps, int apsCount);
+int max(int one, int two);
 
 extern const char *TAG;
 

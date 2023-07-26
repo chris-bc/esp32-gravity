@@ -22,6 +22,7 @@
 #include "common.h"
 
 /* Command usage strings */
+extern const char USAGE_BT[];
 extern const char USAGE_BEACON[];
 extern const char USAGE_TARGET_SSIDS[];
 extern const char USAGE_PROBE[];
@@ -43,6 +44,7 @@ extern const char USAGE_HANDSHAKE[];
 extern const char USAGE_COMMANDS[];
 
 /* Command specifications */
+int cmd_bluetooth(int argc, char **argv);
 int cmd_beacon(int argc, char **argv);
 int cmd_probe(int argc, char **argv);
 int cmd_fuzz(int argc, char **argv);
@@ -83,7 +85,7 @@ uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-#define CMD_COUNT 21
+#define CMD_COUNT 22
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -190,6 +192,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_INFO,
         .help = "Display help information for the specified command. Usage: info <command>",
         .func = cmd_info
+    }, {
+        .command = "bluetooth",
+        .hint = USAGE_BT,
+        .help = "Test module for bluetooth. Initialises Bluetooth and is working toward device discovery",
+        .func = cmd_bluetooth
     }
 };
 

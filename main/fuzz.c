@@ -273,7 +273,7 @@ void fuzz_malformed_callback(void *pvParameter) {
         malformedPartOne = true;
     }
     /* Allocate space for the packet */
-    int biggestPktLen = MAX(BEACON_PACKET_LEN, MAX(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + MAX(MAX_SSID_LEN, (fuzzCounter + malformedFrom));
+    int biggestPktLen = max(BEACON_PACKET_LEN, max(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + max(MAX_SSID_LEN, (fuzzCounter + malformedFrom));
     uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
     if (pkt == NULL) {
         #ifdef CONFIG_FLIPPER
@@ -319,7 +319,7 @@ void fuzz_overflow_callback(void *pvParameter) {
         firstCallback = false;
     }
     /* How much space do we need to allocate for the packet? */
-    int biggestPktLen = MAX(BEACON_PACKET_LEN, MAX(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + MAX(MAX_SSID_LEN, fuzzCounter);
+    int biggestPktLen = max(BEACON_PACKET_LEN, max(PROBE_REQUEST_LEN, PROBE_RESPONSE_LEN)) + max(MAX_SSID_LEN, fuzzCounter);
     uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
     if (pkt == NULL) {
         #ifdef CONFIG_FLIPPER

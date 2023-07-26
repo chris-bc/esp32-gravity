@@ -70,7 +70,77 @@ static bool get_name_from_eir(uint8_t *eir, uint8_t *bdname, uint8_t *bdname_len
 }
 
 void update_device_info(esp_bt_gap_cb_param_t *param) {
-    //
+    char bda_str[18];
+    uint32_t cod = 0;
+    int32_t rssi = -129; /* invalid value */
+    uint8_t *bdname = NULL;
+    uint8_t bdname_len = 0;
+    uint8_t *eir = NULL;
+    uint8_t eir_len = 0;
+    esp_bt_gap_dev_prop_t *p;
+
+    ESP_LOGI(BT_TAG, "Device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
+    for (int i = 0; i < param->disc_res.num_prop; i++) {
+        p = param->disc_res.prop + i;
+        switch (p->type) {
+        case ESP_BT_GAP_DEV_PROP_COD:
+            cod = *(uint32_t *)(p->val);
+            ESP_LOGI(BT_TAG, "--Class of Device: 0x%"PRIx32, cod);
+            break;
+        case ESP_BT_GAP_DEV_PROP_RSSI:
+            rssi = *(int8_t *)(p->val);
+            ESP_LOGI(BT_TAG, "--RSSI: %"PRId32, rssi);
+            break;
+        case ESP_BT_GAP_DEV_PROP_BDNAME:
+            bdname_len = (p->len > ESP_BT_GAP_MAX_BDNAME_LEN) ? ESP_BT_GAP_MAX_BDNAME_LEN :
+                          (uint8_t)p->len;
+            bdname = (uint8_t *)(p->val);
+            break;
+        case ESP_BT_GAP_DEV_PROP_EIR: {
+            eir_len = p->len;
+            eir = (uint8_t *)(p->val);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+
+    /* search for device with Major device type "PHONE" or "Audio/Video" in COD */
+    app_gap_cb_t *p_dev = &m_dev_info;
+    if (p_dev->dev_found) {
+        return;
+    }
+
+    if (!esp_bt_gap_is_valid_cod(cod) ||
+	    (!(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_PHONE) &&
+             !(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_AV))) {
+        return;
+    }
+
+    memcpy(p_dev->bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
+    p_dev->dev_found = true;
+
+    p_dev->cod = cod;
+    p_dev->rssi = rssi;
+    if (bdname_len > 0) {
+        memcpy(p_dev->bdname, bdname, bdname_len);
+        p_dev->bdname[bdname_len] = '\0';
+        p_dev->bdname_len = bdname_len;
+    }
+    if (eir_len > 0) {
+        memcpy(p_dev->eir, eir, eir_len);
+        p_dev->eir_len = eir_len;
+    }
+
+    if (p_dev->bdname_len == 0) {
+        get_name_from_eir(p_dev->eir, p_dev->bdname, &p_dev->bdname_len);
+    }
+
+    ESP_LOGI(BT_TAG, "Found a target device, address %s, name %s", bda_str, p_dev->bdname);
+    p_dev->state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
+    ESP_LOGI(BT_TAG, "Cancel device discovery ...");
+    esp_bt_gap_cancel_discovery();
 }
 
 void bt_gap_init() {
@@ -134,6 +204,7 @@ void bt_gap_start() {
     /* Set discoverable and connectable, wait to be connected */
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
+
     bt_gap_init();
 
     /* Start to discover nearby devices */
@@ -143,7 +214,7 @@ void bt_gap_start() {
 }
 
 void testBT() {
-    esp_err_t err = ESP_OK; /* return value */
+    esp_err_t err = ESP_OK;
     err = esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
     ESP_LOGI(BT_TAG, "Controller mem release returned %s", esp_err_to_name(err));
 

@@ -1,19 +1,44 @@
-| Supported Targets | ESP32-C6 | ESP32 | ESP32-C3 | ESP32-S2 | ESP32-S3 |
-| ----------------- | -------- | ----- | -------- | -------- | -------- |
+| Supported Targets | ESP32-C6  | ESP32 | 
+|                   | (Partial)
+| ----------------- | --------- | ----- | 
 
-# GRAVITY - ESP32-C6 Wireless Tools
+# GRAVITY - ESP32 Wireless Tools
 ## The unseen force
 
-This project contains an evolving collection of wireless utilities for use on the ESP32-C6.
+This project contains an evolving collection of wireless utilities for use on the ESP32.
 Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into BLE and 802.15.4 (ZigBee).
+
+## What happened to ESP32-C6?
+
+ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including
+bluetooth scanning. Because of this Gravity now targets the ESP32.
+
+If you would like to use Gravity on an ESP32-C6:
+* Run idf.py menuconfig
+* Under "Gravity Configuration" select "Support ESP32-C6"
 
 ## Configuration
 
 Use idf.py menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
 
+* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's smaller display
+* SUPPORT_C6: Support the ESP32-C6 by removing features it does not support (Bluetooth)
 * DEBUG: Enable additional logging to isolate issues
 * DEBUG_VERBOSE: Enable way too much logging
-* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's 20x5 display
+
+The following configuration options are also required in order for Gravity to use
+Bluetooth and fit within ESP32's smaller memory footprint:
+* Components -> FreeRTOS -> Port: Place FreeRTOS functions into Flash (enable)
+* Components -> ESP Ringbuf: Place non-ISR ringbuf functions into Flash (enable)
+* Components -> ESP Ringbuf: Place ISR ringbuf functions into Flash (enable)
+* Components -> BlueTooth:
+  * Enable Bluetooth
+  * Enable Classic Bluetooth
+  * Enable A2DP
+  * Enable SPP
+  * Enable Bluetooth Low Energy
+  * Enable Enable BLE multi-connections
+  * Enable Place FreeRTOS functions into Flash
 
 ## Building & running
 
@@ -21,7 +46,11 @@ All you need to do to build, flash and run Gravity is:
 * Install ESP-IDF
 * idf.py set-target <chipset>
 * idf.py menuconfig
-  * Pay particular attention to the section 'Gravity Configuration'
+  * Pay particular attention to the section 'Gravity Configuration', where you can configure
+    * Flipper Zero support
+    * Bluetooth (or ESP32-C6) support
+    * Other stuff
+  * Make sure Bluetooth is also enabled
 * idf.py build flash monitor
 
 ### Using Gravity

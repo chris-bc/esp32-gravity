@@ -25,6 +25,7 @@
 #include "sniff.h"
 #include "mana.h"
 #include "hop.h"
+#include "bluetooth.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -133,6 +134,20 @@ int rmSsid(char *ssid) {
 	user_ssids = newSsids;
 	--user_ssid_count;
 	return ESP_OK;
+}
+
+/* Run bluetooth test module */
+int cmd_bluetooth(int argc, char **argv) {
+    #ifdef CONFIG_SUPPORT_C6
+        #ifdef CONFIG_FLIPPER
+            printf("Bluetooth unsupported in this build.\nESP32-C6 compatibility enabled.\n");
+        #else
+            ESP_LOGW(BT_TAG, "ESP32-Gravity has been built with ESP32-C6 support. Bluetooth is not supported in this build");
+        #endif
+    #else
+        testBT();
+    #endif
+    return ESP_OK;
 }
 
 /* Display help information for the specified command.
