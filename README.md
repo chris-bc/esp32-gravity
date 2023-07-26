@@ -21,24 +21,24 @@ If you would like to use Gravity on an ESP32-C6:
 
 Use `idf.py` menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
 
-* FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's smaller display
-* SUPPORT_C6: Support the ESP32-C6 by removing features it does not support (Bluetooth)
-* DEBUG: Enable additional logging to isolate issues
-* DEBUG_VERBOSE: Enable way too much logging
+* `FLIPPER`: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's smaller display
+* `SUPPORT_C6`: Support the ESP32-C6 by removing features it does not support (Bluetooth)
+* `DEBUG`: Enable additional logging to isolate issues
+* `DEBUG_VERBOSE`: Enable way too much logging
 
 The following configuration options are also required in order for Gravity to use
 Bluetooth and fit within ESP32's smaller memory footprint:
-* Components -> FreeRTOS -> Port: Place FreeRTOS functions into Flash (enable)
-* Components -> ESP Ringbuf: Place non-ISR ringbuf functions into Flash (enable)
-* Components -> ESP Ringbuf: Place ISR ringbuf functions into Flash (enable)
+* Components -> FreeRTOS -> Port: `Place FreeRTOS functions into Flash` (enable)
+* Components -> ESP Ringbuf: `Place non-ISR ringbuf functions into Flash` (enable)
+* Components -> ESP Ringbuf: `Place ISR ringbuf functions into Flash` (enable)
 * Components -> BlueTooth:
-  * Enable Bluetooth
-  * Enable Classic Bluetooth
-  * Enable A2DP
-  * Enable SPP
-  * Enable Bluetooth Low Energy
-  * Enable Enable BLE multi-connections
-  * Enable Place FreeRTOS functions into Flash
+  * Enable `Bluetooth`
+  * Enable `Classic Bluetooth`
+  * Enable `A2DP`
+  * Enable `SPP`
+  * Enable `Bluetooth Low Energy`
+  * Enable `Enable BLE multi-connections`
+  * Enable `Place FreeRTOS functions into Flash`
 
 ## Building & running
 
@@ -63,8 +63,10 @@ To use Flipper-Gravity:
 
 ## Using Gravity
 
-To provide a nice, large output screen Gravity was first designed to run as a command-line application. Simply connect your favourite console -
-screen, minicom, netcat, putty - to the device's COM port on your computer and explore away!
+To provide a nice, large output screen Gravity was first designed
+to run as a command-line application. Simply connect your favourite
+console - screen, minicom, netcat, putty - to the device's COM port
+on your computer and explore away!
 
 A Flipper Zero application for Gravity has also been developed, providing a more portable and discreet - if teensy-screened - way of using Gravity.
 ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
