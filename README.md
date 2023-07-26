@@ -74,7 +74,7 @@ https://github.com/chris-bc/Flipper-Gravity
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
 
-**What's Next?**
+### What's Next?
 
 Work on Gravity continues on a few fronts, depending on the mood I'm in at the time:
 * Bluetooth and BTLE support
@@ -145,7 +145,7 @@ As a simple list of strings its use is straightforward:
 
 ### Using Scanned APs/STAs
 
-**SCAN**
+#### SCAN
 
 `scan` controls whether packet scanning is currently active. Scanning parses several
 types of wireless packet to identify nearby *stations* (devices) and *access points*.
@@ -162,7 +162,7 @@ while you run other commands it will continue to discover new APs and STAs in th
 background.
 
 
-**VIEW**
+#### VIEW
 
 `view`, you guessed it, allows you to view the access points and stations discovered
 by `scan`.
@@ -200,7 +200,7 @@ access points.
 
 Display options can be combined in any way you like, for example `view ap selectedsta ap sta sta selectedap`.
 
-**CLEAR**
+#### CLEAR
 
 Clears `scan` results of the specified type. `scan` results are kept until the ESP32 is
 switched off, with subsequent scans *adding to*, rather than replacing, results.
@@ -209,7 +209,7 @@ If you wish to remove these results and start afresh you can run:
 * `clear sta` clears cached stations
 * `clear all` clears both access points and stations
 
-**SELECT**
+#### SELECT
 
 Selects and deselects stations and access points discovered during scanning. Rather
 than specifying whether you want to select or deselect something, `select` will
@@ -226,7 +226,7 @@ command then, after running, APs 1 and 3 will be selected and AP 2 no longer sel
 `select sta <id>+` operates in exactly the same way, except for stations rather than
 access points.
 
-**SELECTED**
+#### SELECTED
 
 Displays only selected access points and/or stations. These are displayed in the same
 format as `view`.
@@ -241,7 +241,7 @@ In addition to the configuration options described under *Configuration* a numbe
 settings can be changed while Gravity is running to change its behaviour. These are
 controlled using the commends `get`, `set` and `hop`.
 
-**GET & SET**
+#### GET & SET
 
 These commands are described together because they complement each other, with `get`
 displaying the current value of a setting and `set` updating that setting to have the
@@ -344,7 +344,7 @@ The default number of SSIDs to generate for features that generate random SSIDs.
 Currently this is only used by `beacon random` (where `count` is not specified).
 
 
-**HOP**
+#### HOP
 
 Channel hopping is a background process that we sometimes want and sometimes don't.
 Because of that it has its own command to turn it on and off, but Gravity attempts
@@ -368,13 +368,13 @@ Syntax: hop [<millis>] [ ON | OFF | DEFAULT | KILL ]
 * `ON` and `OFF` give you manual control of channel hopping; it will remain in that state until you set it again, ignoring features' channel hopping defaults;
 * When set to `DEFAULT` channel hopping is not active, but will automatically start if a function is run that is configured to use channel hopping by default. When this occurs channel hopping will also automatically stop when no more functions are using it by default.
 
-*Changing Hop Defaults*
+##### Changing Hop Defaults
 
 If you wish to change the default `hop` state for any feature, they are defined in
 a `case` statement in the function `app_main` in `gravity.c`. Default values for *dwell
 time* (see below) are also specified in this location.
 
-*Dwell Time*
+##### Dwell Time
 
 The *usage* description above states that, when `<millis>` is specified, Gravity will
 pause on each wireless channel for that number of milliseconds before changing to
@@ -406,7 +406,7 @@ The only reason any of the functionality described above even exists is to provi
 the context needed to run the features described in this section (and those coming
 soon!) - So with all the above information out of the way let's get onto it.
 
-**BEACON SPAM**
+#### BEACON SPAM
 
 Broadcast forged beacon frames, simulating the presence of fake wireless networks.
 
@@ -451,7 +451,7 @@ Use the `target-ssids` command to build a list of SSIDs, and then run
 Broadcast beacon frames for the SSIDs used by the selected access points. Access
 Points must have been `scan`ned and `select`ed prior to starting this mode.
 
-**PROBE REQUEST FLOOD**
+#### PROBE REQUEST FLOOD
 
 Broadcast forged probe request frames, sending requests for specified SSIDs.
 
@@ -475,15 +475,170 @@ Run `probe` with no parameters to display its current status.
 
 `APs` sends probe requests for the SSIDs of the selected access points.
 
-**Deauth**
+#### DEAUTHENTICATION ATTACK
+
+Deauthentication frames are a valid part of the wireless protocol which, for a
+variety of reasons, alert a connected station that it is being deauthenticated
+from its access point. This provides the station with an opportunity to stop what
+it's doing and disconnect from the access point of its own accord.
+
+This is clearly a feature that could be disruptive if misused, and in the
+distant past it was indeed possible to send a broadcast deauthentication packet
+and have most stations disconnect from a network. Things are a little more robust
+these days and you won't often be able to disconnect stations with a broadcast
+packet. Target them individually, however, and your success rate will be high.
+
+```c
+Syntax: deauth [<millis>]  [ FRAME | DEVICE | SPOOF ] [ STA | AP | BROADCAST | OFF ]
+```
+
+`<millis>` provides an optional way to set `ATTACK_MILLIS` while starting `deauth`; specifies the time between deauthentication packets.
+
+`[ FRAME | DEVICE | SPOOF ]`
+
+Specifies what, if any, MAC spoofing occurs.
+* `FRAME` modifies the sender MAC in the wireless frame that is transmitted, but does not change the device's MAC. The sender MAC address that is used, except in `BROADCAST` mode, is the MAC address of the AP the target STA is associated with.
+* `DEVICE` replaces the sender MAC address in the frame template with the ESP32's MAC address.
+* `SPOOF` modifies the sender MAC address in the same way as `FRAME`, and also modifies the ESP32's MAC address to match the address of the target STA's AP.
+
+`[ STA | AP | BROADCAST | OFF ]`
+
+Specifies the target(s) of the deauthentication attack.
+
+##### BROADCAST DEAUTH
+
+While a broadcast packet is widest-reaching, it's also least effective and only
+causes disassociation on a small number of modern devices.
+
+Broadcast mode uses the broadcast address (FF:FF:FF:FF:FF:FF) as the destination
+and the device's MAC as the sender.
+
+##### STATION DEAUTH
+
+The deauthentication attack targets selected stations (i.e. stations `select`ed
+after `scan`ning).
+
+##### AP DEAUTH
+
+The `AP` deauth mode targets all stations that are associated with selected
+access points. In other words, after you `scan` and `select` some access points,
+this mode will target stations connected to those access points.
 
 
+#### Mana
 
-**Mana**
+```c
+Syntax: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )
+```
+
+Mana is a neat little trick you can use to make almost any wireless device connect
+to your access point.
+* Your phone sends a probe request looking for `Home WiFi`
+* Gravity sends a probe response claiming to be `Home WiFi`
+* Your phone attempts to connect to Gravity
+
+That's called the `Karma attack`. If only life were that simple! It used to be, until manufacturers closed that loophole by requiring APs to have previously responded to
+a wildcard probe request.
+* Your phone sends a probe request looking for `Home WiFi`
+* Gravity associates `Home WiFi` with your phone's MAC address, and sends a probe response claiming to be `Home WiFi` (although it won't do anything unless your phone is vulnerable to Karma)
+* Your phone ignores Gravity's probe response because it hasn't seen that MAC address before
+* Your phone sends a wildcard probe request
+* Gravity sees that `Home WiFi` is associated with your phone's MAC and sends a probe response claimining to be `Home WiFi`
+* Your phone may now attempt to connect to Gravity (although wildcard probes are typically used to discover nearby networks rather than connect to one)
+* Your phone sends a directed probe request looking for `Home WiFi`
+* Gravity sends a probe response claiming to be `Home WiFi`
+* Your phone has previously seen Gravity identify as `Home WiFi` in response to a wildcard probe request, so it's OK to trust Gravity
+
+This variation is the `Mana attack`. Gravity starts an access point using
+Open Authentication (i.e. no password) on launch, which handles the final
+piece of a simple Mana-based attack chain:
+* If the authentication type presented in the probe response does not match the STA's expected authentication type, for example you specify open authentication and WPA2 is expected, in the case of a phone or laptop the user will typically be alerted that the authentication type has changed and warned that proceeding could be dangerous (although they still might). In the case of automated connections (such as IoT devices) association will almost certainly **NOT** occur.
+* If the correct authentication type is specified the STA and AP will proceed through association and authentication before establishing a connection. In addition to running an AP, a DHCP server is running to assign IP addresses to connected STAs.
+  * Being able to bridge Gravity's network connection to the Internet, so that connected STAs can obtain an Internet connection and thus be none-the-wiser about Gravity being in the middle, isn't currently possible with Gravity but is on my research list.
+This means that a STA which sends probe requests for an AP it expects to be open can be tricked into connecting to our rogue AP.
+
+A STA will, over timee, send a directed probe request for every network in
+its Preferred Network List (PNL).
+
+In practice this means that, for a consumer device such as a phone, tablet
+or laptop, if that device has *ever connected to* an open wireless network
+before - as is often found at coffee shops, restaurants, airports, etc. -
+and the device hasn't been told to forget that network, then it can be tricked
+into connecting to our rogue AP.
+
+Until I'm able to include bridging to the Internet there's limited use to
+this - most phones will quickly disconnect once they decide they can't get
+an Internet connection - but I think it's a very interesting technique nonetheless.
+
+A connected device will send all network requests to Gravity - For example if
+it tries to open the web page http://google.com it will first ask Gravity for
+the IP of google.com. Unfortunately it will stop there at the moment because
+Gravity is not Internet-connected. However, if you set that aside as a problem
+to be solved, once it is Gravity will see everything that the victim sends over
+the network. While most communication is encrypted today some is not, and some
+that is will fall back to unencrypted if Gravity refuses to connect the victim
+to encrypted ports.
+
+##### Loud Mana
+
+`Loud Mana` is a variation on the `Mana` attack that attempts to successfully
+target devices that are not broadcasting probe requests for open networks
+(for whatever reason) by sending them probe responses for networks we think
+they *may have* seen.
+
+* Suppose devices A and B are both sending directed probe requests for `Johnsons Home WiFi`;
+* Device B is also sending a directed probe request for `My Cafe Free WiFi`, an open network;
+* Sending a probe response for `My Cafe Free WiFi` to **device A** has a high likelihood of succeeding; if the devices are owned by family members they are likely to both have used the free WiFi at the same cafe.
+
+Because this potentially results in Gravity sending a probe response for a
+large number of SSIDs it generates much more network traffic than a regular
+`Mana` attack, hence **Loud** Mana.
+
+##### Running Mana
+
+**NOTE:** Because Mana's purpose is to have STAs connect to your rogue AP
+it is important that channel hopping and MAC randomisation both be disabled
+when running `Mana`.
+
+```c
+Syntax: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )
+```
+
+`mana clear`
+
+Because `Mana` compiles Preferred Network Lists for all stations it observes, you may like to clear out the cached PNLs. That's what `mana clear` does.
+
+`mana [ VERBOSE ] [ ON | OFF ]`
+
+This is the primary command that turns Mana on or Off. Running `mana`
+with no parameters displays its current status. Starting mana using
+`mana verbose on` will generate more console output - there's a lot
+of useful information to monitor while this is in development. Once
+everything is ironed out and there's a clever way to bridge victims
+to the Internet this can become a simple `pwn [ ON | OFF ]` feature
+with everything automated, but for now extra information is good.
+
+`mana auth [ NONE | WEP | WPA ]`
+
+Configure the authentication type advertised by `Mana` in probe responses.
+
+The default authentication type is `NONE` because I don't believe the
+other types offer any value in the `Mana` attack - In order to establish
+an encrypted connection with a STA the AP also needs to know the encryption
+key. And if we know the key it would probably be easier to just connect to
+the network and find your way into the device, rather than convincing it
+to connect to you.
+
+At least, I hope that would be easier, because right now changing the built-in
+AP's authentication type and password requires a recompile.
+
+`mana loud [ ON | OFF ]`
+
+Enable or disable `Loud Mana`, described above. If `Mana` is not running when
+`mana loud on` is run it will be automatically started.
 
 
-
-**FUZZ**
+#### FUZZ
 
 Sends a variety of invalid packets to see how different devices respond to
 different types of invalid packets.
@@ -527,7 +682,7 @@ of 16 is used as the (real) SSID length, this function will transmit a packet
 specifying an SSID_LEN of 17, then 15, 18, 14, 19, 13, 20, 12, etc.
 
 
-**SNIFF**
+#### SNIFF
 
 `sniff` doesn't offer any really compelling functionality and started life as a
 debugging flag during the very early stages of Gravity's development, when I
@@ -547,7 +702,7 @@ Syntax: sniff [ ON | AFF ]
 ```
 
 
-**STALK**
+#### STALK
 
 NOT YET IMPLEMENTED.
 
@@ -556,7 +711,7 @@ wireless and bluetooth devices, and create a sort of 'homing' feature, attemptin
 to make it simple to follow the RSSI of several devices to locate the person carrying
 them all. 
 
-**AP-DOS**
+#### AP-DOS
 
 NOT YET IMPLEMENTED.
 
@@ -564,7 +719,7 @@ This feature is intended to simulate a denial-of-service (DOS) attack on the
 selected AP by adopting the target's MAC and sending a deauthentication packet
 to every station that sends any sort of packet to the target.
 
-**AP-CLONE**
+#### AP-CLONE
 
 NOT YET IMPLEMENTED.
 
@@ -572,7 +727,7 @@ This feature is intended to simulate a 'clone-and-takeover' attack on the select
 AP by combining `AP-DOS` with `Mana`. The hoped-for result is to trick stations to
 disconnect from their existing access point and connect to Gravity.
 
-**HANDSHAKE**
+#### HANDSHAKE
 
 NOT YET IMPLEMENTED.
 
