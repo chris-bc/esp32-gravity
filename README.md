@@ -8,6 +8,14 @@
 This project contains an evolving collection of wireless utilities for use on the ESP32.
 Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into Bluetooth, BLE and 802.15.4 (ZigBee).
 
+### Flipper Zero App
+
+If you have a Flipper Zero there is a Flipper Zero companion app to Gravity. This is being developed alongside ESP32-Gravity and should be in feature parity most of the time.
+
+https://github.com/chris-bc/Flipper-Gravity
+
+Please note the comments below about compiling ESP32-Gravity for the Flipper Zero.
+
 ## What happened to ESP32-C6?
 
 ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including
