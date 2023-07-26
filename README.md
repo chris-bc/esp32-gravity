@@ -140,10 +140,14 @@ will be displayed on the current line.
 by features such as *Beacon Spam* and *Probe Flood* as the SSIDs broadcast by
 Gravity.
 
+```c
+Syntax: target-ssids [ ( ADD | REMOVE ) <ssidName> ]
+```
+
 As a simple list of strings its use is straightforward:
 * `target-ssids` with no arguments displays the list of current targets
-* `target-ssids add <ssidName>` adds `ssidName` to the list
-* `target-ssids remove <ssidName>` removed `ssidName` from the list
+* `target-ssids add <ssidName>` adds `<ssidName>` to the list
+* `target-ssids remove <ssidName>` removed `<ssidName>` from the list
 
 ### Using Scanned APs/STAs
 
@@ -151,6 +155,10 @@ As a simple list of strings its use is straightforward:
 
 `scan` controls whether packet scanning is currently active. Scanning parses several
 types of wireless packet to identify nearby *stations* (devices) and *access points*.
+
+```c
+Syntax: scan [ <ssidName> | ON | OFF ]
+```
 
 If `debug` has been enabled in `idf.py menuconfig` you will receive a notification
 every time a new STA or AP is discovered.
@@ -163,11 +171,31 @@ one or more of those objects as targets for your commands. If you leave `scan` r
 while you run other commands it will continue to discover new APs and STAs in the
 background.
 
+##### SCANNING A SPECIFIC SSID
+
+`scan <ssidName>` will activate scanning, but only for APs advertising
+the specified `<ssidName>`, and STAs that are associated with APs
+advertising the specified `<ssidName>`.
+
+This feature works by first identifying the MAC of the AP advertising
+the specified SSID. Because this requires the AP to send a beacon or
+probe response it may take some time before you see any output from
+this feature. Rest assured that relevant data is being captured from
+packets while this is happening. Because of this, if you `scan` an SSID
+that hasn't previously been discovered by `scan` you will typically have
+a short delay until a suitable packet is found, followed by a lot of
+output from cached data that suddenly becomes relevant once the AP's
+MAC is known.
+
 
 #### VIEW
 
 `view`, you guessed it, allows you to view the access points and stations discovered
 by `scan`.
+
+```c
+Syntax: view ( ( AP [ selectedSTA ] ) | ( STA [ selectedAP ] ) )+
+```
 
 `view ap`
 lists access points discovered during scanning. The following information is provided
@@ -204,6 +232,10 @@ Display options can be combined in any way you like, for example `view ap select
 
 #### CLEAR
 
+```c
+Syntax: clear AP | STA | ALL
+```
+
 Clears `scan` results of the specified type. `scan` results are kept until the ESP32 is
 switched off, with subsequent scans *adding to*, rather than replacing, results.
 If you wish to remove these results and start afresh you can run:
@@ -218,7 +250,9 @@ than specifying whether you want to select or deselect something, `select` will
 simply toggle the item's selected status, selecting specified items if they are
 not selected and deselecting them if they are selected.
 
-`select ap <id>+` toggles the selected status of the specified access point(s).
+```c
+Syntax: select ap <id>+
+```
 
 `<id>` refers to the identifiers displayed by `view ap`. Multiple IDs can be specified by
 separating them with either a space or a `^` (for Flipper Zero compatibility).
@@ -229,6 +263,10 @@ command then, after running, APs 1 and 3 will be selected and AP 2 no longer sel
 access points.
 
 #### SELECTED
+
+```c
+Syntax: selected [ AP | STA ]+
+```
 
 Displays only selected access points and/or stations. These are displayed in the same
 format as `view`.
@@ -249,11 +287,15 @@ These commands are described together because they complement each other, with `
 displaying the current value of a setting and `set` updating that setting to have the
 specified value.
 
-Their use is also very similar, `get <variable>` and `set <variable> <value>`.
+Their use is also very similar,
+```c
+Syntax: get <variable>
+Syntax: set <variable> <value>
+```
 
 `<variable>` can be one of the following settings.
 
-`channel`
+##### channel
 
 The current wireless channel. This will not disable channel hopping if it is active,
 so while setting this *will* change the wireless channel in that situation, it will
@@ -261,7 +303,7 @@ continue to hop to other channels.
 
 **TODO: Information on channels supported by the ESP32 and ESP32-C6**
 
-`mac`
+##### mac
 
 The physical identifier for the ESP32. This is displayed, and when setting must be
 provided, in the standard colon-separated six octet format, e.g. e0:0a:f6:0f:ca:fe.
@@ -271,21 +313,21 @@ identify a specific manufacturer. I hope to be able to add a feature to Gravity 
 display manufacturer information for discovered devices, although could have issues
 fitting an OUI database on the ESP32.
 
-`mac_rand`
+##### mac_rand
 
 MAC Randomisation. Specifies whether Gravity will change its MAC address after
 every packet that is sent.
 
 Valid values to `set` MAC Randomisation are `on` and `off`.
 
-`expires`
+##### expires
 
 The time (in minutes) since a station or access point was last seen when Gravity will
 stop including it in operations and results.
 
 Decimal values can be used for this setting if a minute isn't granular-enough control.
 
-`attack_millis`
+##### attack_millis
 
 The length of time for Gravity to wait between sending packets. A value of `0` disables
 this delay. The default value for this setting is defined under *Gravity Configuration*
@@ -294,15 +336,17 @@ in `esp.py menuconfig`.
 This setting was introduced because some firewalls will identify a sudden burst of
 packets as an attack.
 
-`attack_pkts`
+##### attack_pkts
 
-THIS FEATURE HAS NOT BEEN IMPLEMENTED. For attacks that don't interact with other
+THIS FEATURE HAS NOT BEEN IMPLEMENTED.
+
+For attacks that don't interact with other
 devices, the number of packets to send as part of the attack. Once this number of
 packets have been sent the attack will end and Gravity will await your next command.
 
 This setting applies to `beacon`, `probe`, `deauth` and `fuzz`.
 
-`scramble_words`
+##### scramble_words
 
 This setting can override the value set in `idf.py menuconfig`. Several features,
 at the time of writing `beacon` and `fuzz`, can generate random SSID names as part
@@ -327,19 +371,19 @@ of `gravityWordCount`, also defined in `words.c`.
 If you'd like to change the characters that are used when this setting is enable
 they are held in the array `ssid_chars`, defined in `beacon.h`.
 
-`SSID_LEN_MEN`
+##### SSID_LEN_MEN
 
 The minimum acceptable length for an SSID that is generated by Gravity. This can
 be a value between `0` and the system constant `MAX_SSID_LEN`. `MAX_SSID_LEN` should
 always have a value of `32`. It also must not be greater than `SSID_LEN_MAX`.
 
-`SSID_LEN_MAX`
+##### SSID_LEN_MAX
 
 The maximum acceptable length for an SSID that is generated by Gravity. This can
 be a value between `0` and the system constant `MAX_SSID_LEN`. `MAX_SSID_LEN` should
 always have a value of `32`. It also must not be less than `SSID_LEN_MEN`.
 
-`DEFAULT_SSID_COUNT`
+##### DEFAULT_SSID_COUNT
 
 The default number of SSIDs to generate for features that generate random SSIDs.
 
