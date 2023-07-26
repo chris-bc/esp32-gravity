@@ -6,7 +6,7 @@
 ## The unseen force
 
 This project contains an evolving collection of wireless utilities for use on the ESP32.
-Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into BLE and 802.15.4 (ZigBee).
+Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into Bluetooth, BLE and 802.15.4 (ZigBee).
 
 ## What happened to ESP32-C6?
 
@@ -14,12 +14,12 @@ ESP-IDF v5.2 beta does not yet properly support many bluetooth features, includi
 bluetooth scanning. Because of this Gravity now targets the ESP32.
 
 If you would like to use Gravity on an ESP32-C6:
-* Run idf.py menuconfig
+* Run `idf.py menuconfig`
 * Under "Gravity Configuration" select "Support ESP32-C6"
 
 ## Configuration
 
-Use idf.py menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
+Use `idf.py` menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
 
 * FLIPPER: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's smaller display
 * SUPPORT_C6: Support the ESP32-C6 by removing features it does not support (Bluetooth)
@@ -44,16 +44,24 @@ Bluetooth and fit within ESP32's smaller memory footprint:
 
 All you need to do to build, flash and run Gravity is:
 * Install ESP-IDF
-* idf.py set-target <chipset>
-* idf.py menuconfig
-  * Pay particular attention to the section 'Gravity Configuration', where you can configure
-    * Flipper Zero support
-    * Bluetooth (or ESP32-C6) support
-    * Other stuff
-  * Make sure Bluetooth is also enabled
-* idf.py build flash monitor
+* `. /path/to/esp-idf/export.sh` (note the initial 'dot space')
+* `idf.py set-target <chipset>` ("esp32" or "esp32c6")
+* `idf.py menuconfig`
+  * See the "Configuration" section above
+* `idf.py build flash`
 
-### Using Gravity
+To open a console to Gravity:
+* `idf.py monitor`
+
+To use Flipper-Gravity:
+* Connect 3v3 on the Flipper (pin 9) to 3v3 on the ESP32
+* Connect GND on the Flipper (pin 8, 11 or 18) to GND on the ESP32
+* Connect TX on the Flipper (pin 13) to RX/RX0 on the ESP32
+* Connect RX on the Flipper (pin 14) to TX/TX0 on the ESP32
+* Start Gravity on the Flipper
+
+
+## Using Gravity
 
 To provide a nice, large output screen Gravity was first designed to run as a command-line application. Simply connect your favourite console -
 screen, minicom, netcat, putty - to the device's COM port on your computer and explore away!
@@ -65,9 +73,519 @@ https://github.com/chris-bc/Flipper-Gravity
 
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
+
+**What's Next?**
+
+Work on Gravity continues on a few fronts, depending on the mood I'm in at the time:
+* Bluetooth and BTLE support
+  * Scanning/Discovery
+  * Follow by RSSID
+  * Fuzzing excessive connections and beacons
+  * Attempting connection to target devices
+* Expanding the number of ingested packet types
+  * Improve efficiency & coverage of identifying STA/AP association by looking at
+    * Additional management packets
+    * Data packets
+    * Control packets
+* ap-dos and ap-clone attacks described in the original feature list
+* General improvements/bugfixes as I go
+
+
 ## Using Gravity on a console
 
-TODO
+### Introduction
+
+Gravity provides a number of offensive and defensive wireless features that may be
+useful for testing the robustness of your wireless networks.
+
+Some features do not require any configuration and can be started immediately, for
+example the random, infinite and rickroll Beacon Spam. Most features, however,
+require one or more targets to be selected. Depending on the feature, the targets
+may be real APs, real STAs or user-specified SSIDs.
+Real APs and STAs are identified using `scan`; user-specified SSIDs
+are managed using `target-ssids`.
+
+Settings that affect the behaviour of Gravity are controlled using `get`, `set`, and
+`hop`. One of the most important of these is `hop`, which determines whether channel
+hopping is enabled. If this has not been explicitly set Gravity will use the default
+channel hop setting for that command, starting and stopping hopping if necessary when
+the feature is started and stopped.
+
+All commands accept a variety of parameters. See the *Help* section for information on
+using Gravity's help system to obtain syntax and usage information for commands.
+The `AP` option in particular confuses some people; try to remember that when
+specifying target *stations* as an argument using the `AP` option Gravity will
+target all *clients* of the selected access points.
+
+
+### Help
+
+Gravity uses Espressif's console component, providing tab-completion, command hints and
+a built-in help system. To use the built-in help, which provides a list of available
+commands and their function, and includes several device-specific commands, run `help`.
+
+Once you're sick of that wall of text, `commands` will provide a list of Gravity
+commands and their syntax, and `info <command>` will provide more detailed information
+about that command.
+
+Tab completion works as expected, and if you pause after typing a command its syntax
+will be displayed on the current line.
+
+
+### Using User-Specified SSIDs
+
+`target-ssids` is used to manage user-specified (i.e. fake) SSIDs. These can be used
+by features such as *Beacon Spam* and *Probe Flood* as the SSIDs broadcast by
+Gravity.
+
+As a simple list of strings its use is straightforward:
+* `target-ssids` with no arguments displays the list of current targets
+* `target-ssids add <ssidName>` adds `ssidName` to the list
+* `target-ssids remove <ssidName>` removed `ssidName` from the list
+
+### Using Scanned APs/STAs
+
+**SCAN**
+
+`scan` controls whether packet scanning is currently active. Scanning parses several
+types of wireless packet to identify nearby *stations* (devices) and *access points*.
+
+If `debug` has been enabled in `idf.py menuconfig` you will receive a notification
+every time a new STA or AP is discovered.
+* `scan` returns the current status of scanning
+* `scan on` activates scanning
+* `scan off` deactivates scanning
+
+Once Gravity has discovered stations and access points by scanning, you can select
+one or more of those objects as targets for your commands. If you leave `scan` running
+while you run other commands it will continue to discover new APs and STAs in the
+background.
+
+
+**VIEW**
+
+`view`, you guessed it, allows you to view the access points and stations discovered
+by `scan`.
+
+`view ap`
+lists access points discovered during scanning. The following information is provided
+for each AP:
+* *ID*: The identifier to use when interacting with this AP in Gravity. For example, `select ap 3`. An asterisk (*) displayed before the ID indicates that the AP has been selected.
+* *SSID*: The SSID (name) of the access point.
+* *BSSID*: The MAC address of the access point.
+* *Cli*: The number of clients of the access point that Gravity has been able to identify. Currently this is based on beacons and probe requests. This may over-estimate the number of clients in uncommon situations, and also fail to identify clients in other situations. Work is planned to improve Gravity's STA/AP association detection.
+* *Last Seen*: How long ago the AP was last seen by Gravity.
+* *Ch*: The wireless channel the AP was last seen on.
+* *WPS*: Indicates whether the AP supports Wireless Protected Setup (WPS)
+
+`view sta`
+lists stations discovered during scanning. The following information is provided for each STA:
+* *ID*: The identifier to use when interacting with this STA in Gravity. For example, `select sta 7`. An asterisk (*) displayed before the ID indicates that the STA has been selected.
+* *MAC*: The MAC address of the station
+* *Access Point*: The MAC address of the station's access point, if it has been detected.
+* *Ch*: The wireless channel the station was last seen on.
+* *Last Seen*: How long ago the STA was last seen by Gravity.
+
+If one or more stations or access points have been selected additional options can be
+used to filter your results based on the selected items.
+
+`view ap selectedSTA`
+lists access points discovered during scanning that are access points of the currently-selected
+stations.
+
+`view sta selectedAP`
+lists stations discovered during scanning that are clients of the currently-selected
+access points.
+
+
+Display options can be combined in any way you like, for example `view ap selectedsta ap sta sta selectedap`.
+
+**CLEAR**
+
+Clears `scan` results of the specified type. `scan` results are kept until the ESP32 is
+switched off, with subsequent scans *adding to*, rather than replacing, results.
+If you wish to remove these results and start afresh you can run:
+* `clear ap` clears cached access points
+* `clear sta` clears cached stations
+* `clear all` clears both access points and stations
+
+**SELECT**
+
+Selects and deselects stations and access points discovered during scanning. Rather
+than specifying whether you want to select or deselect something, `select` will
+simply toggle the item's selected status, selecting specified items if they are
+not selected and deselecting them if they are selected.
+
+`select ap <id>+` toggles the selected status of the specified access point(s).
+
+`<id>` refers to the identifiers displayed by `view ap`. Multiple IDs can be specified by
+separating them with either a space or a `^` (for Flipper Zero compatibility).
+For example `select ap 1 2 3`. If AP 2 had already been selected before running this
+command then, after running, APs 1 and 3 will be selected and AP 2 no longer selected.
+
+`select sta <id>+` operates in exactly the same way, except for stations rather than
+access points.
+
+**SELECTED**
+
+Displays only selected access points and/or stations. These are displayed in the same
+format as `view`.
+* `selected ap` displays selected access points
+* `selected sta` displays selected stations
+* `selected`, `selected ap sta` and `selected sta ap` each display both selected access points and selected stations
+
+
+### Settings & Helper Features
+
+In addition to the configuration options described under *Configuration* a number of
+settings can be changed while Gravity is running to change its behaviour. These are
+controlled using the commends `get`, `set` and `hop`.
+
+**GET & SET**
+
+These commands are described together because they complement each other, with `get`
+displaying the current value of a setting and `set` updating that setting to have the
+specified value.
+
+Their use is also very similar, `get <variable>` and `set <variable> <value>`.
+
+`<variable>` can be one of the following settings.
+
+`channel`
+
+The current wireless channel. This will not disable channel hopping if it is active,
+so while setting this *will* change the wireless channel in that situation, it will
+continue to hop to other channels.
+
+**TODO: Information on channels supported by the ESP32 and ESP32-C6**
+
+`mac`
+
+The physical identifier for the ESP32. This is displayed, and when setting must be
+provided, in the standard colon-separated six octet format, e.g. e0:0a:f6:0f:ca:fe.
+
+The first three octets are referred to as the *Organisationally Unique Identifier* and
+identify a specific manufacturer. I hope to be able to add a feature to Gravity to
+display manufacturer information for discovered devices, although could have issues
+fitting an OUI database on the ESP32.
+
+`mac_rand`
+
+MAC Randomisation. Specifies whether Gravity will change its MAC address after
+every packet that is sent.
+
+Valid values to `set` MAC Randomisation are `on` and `off`.
+
+`expires`
+
+The time (in minutes) since a station or access point was last seen when Gravity will
+stop including it in operations and results.
+
+Decimal values can be used for this setting if a minute isn't granular-enough control.
+
+`attack_millis`
+
+The length of time for Gravity to wait between sending packets. A value of `0` disables
+this delay. The default value for this setting is defined under *Gravity Configuration*
+in `esp.py menuconfig`.
+
+This setting was introduced because some firewalls will identify a sudden burst of
+packets as an attack.
+
+`attack_pkts`
+
+THIS FEATURE HAS NOT BEEN IMPLEMENTED. For attacks that don't interact with other
+devices, the number of packets to send as part of the attack. Once this number of
+packets have been sent the attack will end and Gravity will await your next command.
+
+This setting applies to `beacon`, `probe`, `deauth` and `fuzz`.
+
+`scramble_words`
+
+This setting can override the value set in `idf.py menuconfig`. Several features,
+at the time of writing `beacon` and `fuzz`, can generate random SSID names as part
+of their functionality.
+
+This setting can be enabled with the value `on`, `yes` or `true` and disabled
+with the value `off`, `no` or `false`.
+
+When this setting is disabled (default), SSIDs will be generated by selecting a
+random SSID length between SSID_LEN_MIN and SSID_LEN_MAX, and then selecting
+words at random from a dictionary of 1,000 words, selecting additional words
+until the desired length is reached.
+
+When this setting is enabled SSIDs will be generated by selecting a random SSID
+length between SSID_LEN_MIN and SSID_LEN_MAX, and then selecting characters
+at random until the desired length is reached.
+
+If you'd like to change the contents of the dictionary it is defined in `words.c`.
+If you change the number of items in the dictionary you will need to update the value
+of `gravityWordCount`, also defined in `words.c`.
+
+If you'd like to change the characters that are used when this setting is enable
+they are held in the array `ssid_chars`, defined in `beacon.h`.
+
+`SSID_LEN_MEN`
+
+The minimum acceptable length for an SSID that is generated by Gravity. This can
+be a value between `0` and the system constant `MAX_SSID_LEN`. `MAX_SSID_LEN` should
+always have a value of `32`. It also must not be greater than `SSID_LEN_MAX`.
+
+`SSID_LEN_MAX`
+
+The maximum acceptable length for an SSID that is generated by Gravity. This can
+be a value between `0` and the system constant `MAX_SSID_LEN`. `MAX_SSID_LEN` should
+always have a value of `32`. It also must not be less than `SSID_LEN_MEN`.
+
+`DEFAULT_SSID_COUNT`
+
+The default number of SSIDs to generate for features that generate random SSIDs.
+
+Currently this is only used by `beacon random` (where `count` is not specified).
+
+
+**HOP**
+
+Channel hopping is a background process that we sometimes want and sometimes don't.
+Because of that it has its own command to turn it on and off, but Gravity attempts
+to be a little more helpful; if `hop` has not been explicitly turned on or off
+and you use a feature that is configured to use channel hopping by default, Gravity
+will automatically turn hopping on when the feature is started and off when it is
+stopped.
+
+This setting controls the state of Gravity's channel hopping. This can be one of
+three values, `OFF`, `ON` and `DEFAULT`. When channel hopping is in the `ON` or
+`OFF` state it will remain in that state until you manually change it or the ESP32
+is restarted.
+
+```c
+Syntax: hop [<millis>] [ ON | OFF | DEFAULT | KILL ]
+```
+
+* If no arguments are provided Gravity will display the current channel hopping state;
+* If `<millis>` is provided Gravity will pause on each channel for that number of milliseconds before changing to the next channel;
+* `KILL` will terminate the process that controls channel hopping. Normally this remains active once channel hopping has been started for the first time, but this may provide marginally better energy usage through a slight reduction in memory usage and processing when channel hopping is not running;
+* `ON` and `OFF` give you manual control of channel hopping; it will remain in that state until you set it again, ignoring features' channel hopping defaults;
+* When set to `DEFAULT` channel hopping is not active, but will automatically start if a function is run that is configured to use channel hopping by default. When this occurs channel hopping will also automatically stop when no more functions are using it by default.
+
+*Changing Hop Defaults*
+
+If you wish to change the default `hop` state for any feature, they are defined in
+a `case` statement in the function `app_main` in `gravity.c`. Default values for *dwell
+time* (see below) are also specified in this location.
+
+*Dwell Time*
+
+The *usage* description above states that, when `<millis>` is specified, Gravity will
+pause on each wireless channel for that number of milliseconds before changing to
+another channel. This may be called the `hop interval`, `hop frequency` or `dwell time`.
+
+If `hop` has been explicitly enabled you are in *'full control'* of channel hopping
+features; if you want it to hop at a different frequency you need to change it yourself.
+If channel hopping is started without providing a *dwell time* Gravity will determine
+the longest *dwell time* required by each enabled feature and use that value.
+
+To set the *dwell time* to 1,000 (1,000ms == 1 second) use `hop 1000`.
+
+If `hop` is in its default mode default values will be used for the dwell time.
+Currently all features use one of two dwell times, although this is readily extensible.
+
+These default values are specified in `idf.py menuconfig` by the settings labelled
+`default dwell time for most features` and `default dwell time for larger features`.
+The latter value is used for all variations of the Mana attack, with all other features
+(so far) using the smaller value. The allocation of functions to dwell times occurs in
+the function `app_main` in `gravity.c`, where `hop_millis_defaults[]` is populated.
+
+NOTE: While many Gravity features will change the *dwell time* based on their own defaults,
+they will not change this back to its original value.
+
+
+### Gravity Actions
+
+The only reason any of the functionality described above even exists is to provide
+the context needed to run the features described in this section (and those coming
+soon!) - So with all the above information out of the way let's get onto it.
+
+**BEACON SPAM**
+
+Broadcast forged beacon frames, simulating the presence of fake wireless networks.
+
+This function on its own has limited potential beyond practical jokes, although has
+some use verifying the absence of buffer overflows when developing modules that
+scan for wireless networks.
+
+```c
+Syntax: beacon [ RICKROLL | RANDOM [COUNT] | INFINITE | TARGET-SSIDs | APs | OFF ]
+```
+
+Run `beacon` with no parameters to display the current status.
+
+`RICKROLL`
+
+Broadcasts 8 new SSIDs named with lines from a song we all know and love.
+
+`RANDOM [ COUNT ]`
+
+Generates random SSID names and broadcasts those. If `count` is specified this is
+the number of SSIDs that are broadcast; if not specified the value of
+`DEFAULT_SSID_COUNT` is used as the number of SSIDs. If this value has not been set
+its default value, defined in `idf.py menuconfig`, is used.
+
+`INFINITE`
+
+Instead of repeatedly broadcasting frames advertising the same set of SSIDs, this
+mode broadcasts a different frame, advertising a different SSID, every time. This
+was an effective way to find and remove buffer overflows in one of my wireless
+applications.
+
+`TARGET-SSIDs`
+
+This mode should probably be higher up the list because it's probably the most popular
+of this class of attack; broadcast SSID names that you specify yourself.
+
+Use the `target-ssids` command to build a list of SSIDs, and then run
+`beacon target-ssids` to begin broadcasting the SSIDs you have defined.
+
+`APs`
+
+Broadcast beacon frames for the SSIDs used by the selected access points. Access
+Points must have been `scan`ned and `select`ed prior to starting this mode.
+
+**PROBE REQUEST FLOOD**
+
+Broadcast forged probe request frames, sending requests for specified SSIDs.
+
+Probe requests are the mechanism that allows a station (like a phone) to
+automatically connect to an access point (like a wifi router) when they are
+in range and powered on. Stations periodically send probe requests, which
+may signal nearby access points to send a response to the station with information
+about their SSIDs. A probe request may either be a *wildcard request*, asking all
+access points to respond with their SSID information, or it could be a
+*directed request*, asking nearby access points if they provide a specific SSID.
+
+```c
+Syntax: probe [ ANY | TARGET-SSIDs | APs | OFF ]
+```
+
+Run `probe` with no parameters to display its current status.
+
+`ANY` transmits *wildcard* probe requests.
+
+`TARGET-SSIDs` sends probe requests for the SSIDs specified by `target-ssids`.
+
+`APs` sends probe requests for the SSIDs of the selected access points.
+
+**Deauth**
+
+
+
+**Mana**
+
+
+
+**FUZZ**
+
+Sends a variety of invalid packets to see how different devices respond to
+different types of invalid packets.
+
+This feature can currently operate on beacon frames, probe requests and probe
+responses. Two models of invalid packet have been developed so far:
+* **Overflow:** The SSID specified in the packet is longer than permitted by the 802.11 std.
+* **Malformed:** The length of the SSID in the packet doesn't match the SSID_LEN specified in the packet.
+
+```c
+Syntax: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )
+```
+
+`( BEACON | REQ | RESP )+`
+
+The type of packet to send. Multiple packet types can be specified, although
+thinking about it that has never been tested so ... you know.
+* `BEACON` will send a beacon frame
+* `REQ` will send a probe request
+* `RESP` will send a probe response
+* Additional frame types will be added as additional frame types can be parsed by Gravity (which will also improve `scan` results)
+
+`OVERFLOW`
+
+In this mode the transmitted wireless packets are well-formed - they *would* be
+correct, except that their SSID is longer than an SSID is allowed to be.
+
+This mode will begin by sending packets with length `MAX_SSID_LEN + 1`. `MAX_SSID_LEN`
+is (theoretically) platform-specific, but is 32. So we start with an SSID length
+of 33. Then increase it to 34, then 35, and so on until the function is stopped.
+
+`MALFORMED`
+
+In this mode the packets are **not** well-formed - The SSID is either longer or
+shorter than specified by SSID_LEN. This function alters SSID_LEN in invalid ways
+(without changing the length of the SSID) to see what happens.
+
+This function begins by generating a valid SSID with a length as specified by the
+`MALFORMED_FROM` setting in `idf.py menuconfig` (default 16). If the default value
+of 16 is used as the (real) SSID length, this function will transmit a packet
+specifying an SSID_LEN of 17, then 15, 18, 14, 19, 13, 20, 12, etc.
+
+
+**SNIFF**
+
+`sniff` doesn't offer any really compelling functionality and started life as a
+debugging flag during the very early stages of Gravity's development, when I
+was learning how to parse wireless frames.
+
+The intent of `sniff` is to display information about interesting packets that are
+observed. The sheer volume of packets, coupled with limitations of a serial console,
+make finding the balance where enough packets are displayed to be useful, but not so many as to make them incomprehensible.
+
+All that is by way of saying that `sniff`'s functionality may vary considerably over
+time. What won't change, however, is its principle - `sniff` displays interested
+information about interesting packets to the screen. It doesn't store them or do
+anything else with them, so in a lot of ways it is a less capable version of `scan`.
+
+```c
+Syntax: sniff [ ON | AFF ]
+```
+
+
+**STALK**
+
+NOT YET IMPLEMENTED.
+
+The intent of this feature is to generate a composite RSSI based on selected
+wireless and bluetooth devices, and create a sort of 'homing' feature, attempting
+to make it simple to follow the RSSI of several devices to locate the person carrying
+them all. 
+
+**AP-DOS**
+
+NOT YET IMPLEMENTED.
+
+This feature is intended to simulate a denial-of-service (DOS) attack on the
+selected AP by adopting the target's MAC and sending a deauthentication packet
+to every station that sends any sort of packet to the target.
+
+**AP-CLONE**
+
+NOT YET IMPLEMENTED.
+
+This feature is intended to simulate a 'clone-and-takeover' attack on the selected
+AP by combining `AP-DOS` with `Mana`. The hoped-for result is to trick stations to
+disconnect from their existing access point and connect to Gravity.
+
+**HANDSHAKE**
+
+NOT YET IMPLEMENTED.
+
+This is a placeholder for the standard handshake/pmkid capture that all wireless
+software needs to have as a feature.
+
+Actually though, given how many new features have been added to `ESP32 Marauder`
+over the past six months, I think I might leave it as my scanning and
+handshake-capturing tool of choice while I focus on different kinds of features
+like `Mana`, `Fuzz` and `AP-DOS`/`AP-CLONE`.
+
+At least in the short term, then, this feature probably won't be built.
+
 
 
 ## Using Gravity on a Flipper Zero
@@ -93,7 +611,7 @@ TODO
     * view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
       * VIEW AP selectedSTA - View all APs that are associated with the selected STAs
       * VIEW STA selectedAP - View all STAs that are associated with the selected APs
-    * select: select ( SSID | STA ) <specifier>+ - Select/deselect targets for the included tools.
+    * select: select ( SSID | STA ) &lt;specifier&gt;+ - Select/deselect targets for the included tools.
     * beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
       * Beacon spam - Rickroll
       * Beacon spam - User-specified SSIDs
@@ -140,6 +658,11 @@ TODO
 
 ## Bugs / Todo
 
+* Decode OUI when displaying MACs (in the same way Wireshark does)
+* Hop randomly rather than sequentially
+* Add deauth packets to fuzz
+* Test using fuzz with multiple packet types
+* more testing of hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)

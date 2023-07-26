@@ -326,7 +326,7 @@ int cmd_hop(int argc, char **argv) {
             ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
         #endif
     } else {
-        /* argv[1] could be a duration, "on" or "off" */
+        /* argv[1] could be a duration, "on", "default" or "off" */
         /* To avoid starting hopping before updating hop_millis we need to check for duration first */
         long duration = atol(argv[1]);
         if (duration > 0) {
@@ -1083,16 +1083,16 @@ int cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRES */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY */
 /* Channel hopping is not catered for in this feature */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES | SCRAMBLE_WORDS");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1250,11 +1250,11 @@ int cmd_set(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1266,16 +1266,16 @@ int cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, EXPIRES, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS (unused) */
+      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS (unused) */
 /* Channel hopping is not catered for in this feature */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES | SCRAMBLE_WORDS");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1359,7 +1359,7 @@ int cmd_get(int argc, char **argv) {
             ESP_LOGI(TAG, "MAC Randomisation is :  %s", (attack_status[ATTACK_RANDOMISE_MAC])?"ON":"OFF");
         #endif
         return ESP_OK;
-    } else if (!strcasecmp(argv[1], "EXPIRES")) {
+    } else if (!strcasecmp(argv[1], "EXPIRY")) {
         /* Check whether expiry is disabled */
         char resultStr[17] = "";
         if (scanResultExpiry == 0) {
@@ -1392,11 +1392,11 @@ int cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRES\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRES");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
