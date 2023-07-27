@@ -130,7 +130,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "ap-dos",
         .hint = USAGE_AP_DOS,
-        .help = "If no argument is provided returns the current state of this module. This attack targets selected SSIDs.  This attack attempts to interrupt all communication and disconnect all stations from selected access points. When a frame addressed to a target AP is observed a deauthentication packet is created as a reply to the sender, specifying the target AP as the sender. TODO: If we can identify STAs that are associated with target APs send directed deauth frames to them. Perhaps this could be 'DOS Mk. II'",
+        .help = "If no argument is provided returns the current state of this module. This attack targets selected SSIDs.  This attack attempts to interrupt all communication and disconnect all stations from selected access points. When a frame addressed to a target AP is observed a deauthentication packet is created as a reply to the sender, specifying the target AP as the sender.",
         .func = cmd_ap_dos
     }, {
         .command = "ap-clone",

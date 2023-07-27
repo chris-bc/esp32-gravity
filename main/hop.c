@@ -1,4 +1,5 @@
 #include "hop.h"
+#include "esp_err.h"
 
 const char *HOP_TAG = "hop@GRAVITY";
 long hop_millis = 0;
@@ -44,6 +45,33 @@ void channelHopCallback(void *pvParameter) {
             }
         }
     }
+}
+
+/* Convert the specified hopMode into a string.
+   The provided char* must contain enough free memory for at least 19 characters */
+esp_err_t hopModeToString(HopMode mode, char *str) {
+    char tmpStr[19] = "";
+    switch (mode) {
+        case HOP_MODE_SEQUENTIAL:
+            strcpy(tmpStr, "HOP_MODE_SEQUENTAL");
+            break;
+        case HOP_MODE_RANDOM:
+            strcpy(tmpStr, "HOP_MODE_RANDOM");
+            break;
+        case HOP_MODE_COUNT:
+            strcpy(tmpStr, "HOP_MODE_COUNT");
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid HopMode: %d\n", mode);
+            #else
+                ESP_LOGE(HOP_TAG, "Invalid HopMode specified: \"%d\"", mode);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
+    strcpy(str, tmpStr);
+
+    return ESP_OK;
 }
 
 /* Evaluate whether channel hopping should be enabled based on currently-active

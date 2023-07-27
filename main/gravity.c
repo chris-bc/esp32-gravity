@@ -1085,15 +1085,15 @@ int cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY | HOP_MODE */
 /* Channel hopping is not catered for in this feature */
 int cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_SET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
-            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
+            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE |");
             ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
@@ -1117,6 +1117,20 @@ int cmd_set(int argc, char **argv) {
             ESP_LOGI(TAG, "SCRAMBLE_WORDS is %s", (scrambledWords)?"Enabled":"Disabled");
         #endif
         return ESP_OK;
+    } else if (!strcasecmp(argv[1], "HOP_MODE")) {
+        /* Check that argv[2] is valid along the way */
+        if (!strcasecmp(argv[2], "SEQUENTIAL")) {
+            hopMode = HOP_MODE_SEQUENTIAL;
+        } else if (!strcasecmp(argv[2], "RANDOM")) {
+            hopMode = HOP_MODE_RANDOM;
+        } else {
+            #ifdef CONFIG_FLIPPER
+                printf("SET HOP_MODE ( SEQUENTIAL | RANDOM )\n");
+            #else
+                ESP_LOGE(HOP_TAG, "Invalid mode specified. Please use one of ( SEQUENTIAL , RANDOM )");
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
     } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         //
         int iVal = atoi(argv[2]);
@@ -1252,11 +1266,11 @@ int cmd_set(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1267,16 +1281,16 @@ int cmd_set(int argc, char **argv) {
 /* Get application configuration items */
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
-      SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS (unused) */
+      SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL, HOP_MODE
+      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS */
 /* Channel hopping is not catered for in this feature */
 int cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
-            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
+            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE");
             ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
         #endif
         return ESP_ERR_INVALID_ARG;
@@ -1286,6 +1300,16 @@ int cmd_get(int argc, char **argv) {
             printf("SCRAMBLE_WORDS: %s\n", (scrambledWords)?"On":"Off");
         #else
             ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (scrambledWords)?"Enabled":"Disabled");
+        #endif
+    } else if (!strcasecmp(argv[1], "HOP_MODE")) {
+        char mode[19] = "";
+        if (hopModeToString(hopMode, mode) != ESP_OK) {
+            mode[0] = '\0';
+        }
+        #ifdef CONFIG_FLIPPER
+            printf("HOP_MODE: %s (%d)\n", (strlen(mode) > 0)?mode:"Unknown", hopMode);
+        #else
+            ESP_LOGI(HOP_TAG, "HOP_MODE :  %s (%d), (strlen(mode) > 0)?mode:"Unknown", hopMode);
         #endif
     } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         #ifdef CONFIG_FLIPPER
@@ -1394,11 +1418,11 @@ int cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }

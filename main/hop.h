@@ -33,5 +33,6 @@ bool isHopEnabledByDefault();
 bool isHopEnabled();
 int dwellForCurrentFeatures();
 int dwellTime();
+esp_err_t hopModeToString(HopMode mode, char *str);
 
 #endif
