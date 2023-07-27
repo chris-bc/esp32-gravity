@@ -37,7 +37,9 @@ which esp32-Gravity is compatible with which Flipper-Gravity.
 * Changes in minor version, such as `1.2.1` and `1.3.1`, are unlikely to be compatible. A change in minor version represents a noteable change to the platform or a breaking change to the platform;
 * Changes in major verson, such as `1.4.9` to `2.0.0`, represent substantial changes to the application and how it runs. Different major versions *will not* be compatible with each other.
 
-## Configuration
+## Installation From Source
+
+### Configuration
 
 Use `idf.py` menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
 
@@ -60,7 +62,7 @@ Bluetooth and fit within ESP32's smaller memory footprint:
   * Enable `Enable BLE multi-connections`
   * Enable `Place FreeRTOS functions into Flash`
 
-## Building & running
+### Building & running
 
 All you need to do to build, flash and run Gravity is:
 * Install ESP-IDF
@@ -86,6 +88,30 @@ because *it does not support hot plugging*.
 I have no idea whether that's true or not, or what it would mean if it were true,
 but consider yoursef warned. (I use the 3V3 pin myself).
 
+## Installing From Binaries
+
+A number of different binary packages are available with each release.
+* **esp32-gravity-<version>**:  Compiled as a console application without debug outputs;
+* **esp32-gravity-debug-<version>**: Compiled as a console application with debug outputs;
+* **esp32-gravity-flipper-<version>**: Compiled as a Flipper application without debug outputs;
+* **esp32-gravity-flipper-debug-<version>**: Compiled as a flipper application with debug outputs.
+
+Download and extract the appropriate archive, preferably on a Linux
+VM. On a Linux host the packaged executables will work so the flash
+script won't require updating - simply run `flash.sh` and the device should flash.
+
+If it isn't already installed you may need to `python3 -m pip install esptool`.
+
+For Windows and MacOS users you'll just need to take an extra couple of steps:
+1. Install `Python` if it is not already installed. Ensure `PIP` is also installed (in most cases either PIP is installed by default or a bootstrap is provided to easily install it).
+2. Install `esptool` using `python3 -m pip install esptool`
+3. The command `esptool.py` should now be in your path. If not, run esptool.py from the binary package.
+4. Edit flash.sh in your favourite text editor
+  * If you like you could update the commands to call `esptool.py` directly from the path rather than calling a standalone version via python.
+  * Alternatively you could just copy and paste everything that comes after `esptool.py` in the script.
+
+This should have resulted in you flashing three binary files to your esp32: `esp-wireless-tools.bin`, `bootloader.bin` and `partition-table.bin`.
+
 
 ## Using Gravity
 
@@ -98,6 +124,8 @@ A Flipper Zero application for Gravity has also been developed, providing a more
 ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
 don't lose any functionality on Flipper.
 https://github.com/chris-bc/Flipper-Gravity
+Alternatively you can download a compiled Flipper binary file (FAP) from here:
+[![FAP Factory](https://flipc.org/api/v1/cool4uma/UART_Terminal/badge?firmware=unleashed)](https://flipc.org/chris-bc/Flipper-Gravity?firmware=roguemaster)
 
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
