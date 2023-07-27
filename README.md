@@ -918,7 +918,6 @@ TODO
 ## Bugs / Todo
 
 * Decode OUI when displaying MACs (in the same way Wireshark does)
-* Hop randomly rather than sequentially
 * Add deauth packets to fuzz
 * Test using fuzz with multiple packet types
 * more testing of hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??

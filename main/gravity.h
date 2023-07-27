@@ -145,7 +145,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "hop",
         .hint = USAGE_HOP,
-        .help = "Enable or disable channel hopping, and set the frequency of hops. The KILL option terminates the event loop.",
+        .help = "Enable or disable channel hopping, and set the type and frequency of hops. The KILL option terminates the event loop.",
         .func = cmd_hop
     }, {
         .command = "set",

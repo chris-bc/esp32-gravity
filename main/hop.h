@@ -19,6 +19,7 @@ enum HopStatus {
 extern const char *HOP_TAG;
 extern long hop_millis;
 extern enum HopStatus hopStatus;
+extern HopMode hopMode;
 extern TaskHandle_t channelHopTask;
 
 void channelHopCallback(void *pvParameter);

@@ -1,8 +1,10 @@
 #include "hop.h"
+#include "esp_flip_struct.h"
 
 const char *HOP_TAG = "hop@GRAVITY";
 long hop_millis = 0;
 enum HopStatus hopStatus = HOP_STATUS_DEFAULT;
+HopMode hopMode = HOP_MODE_SEQUENTIAL;
 TaskHandle_t channelHopTask = NULL;
 
 /* Channel hopping task  */
@@ -20,9 +22,23 @@ void channelHopCallback(void *pvParameter) {
         /* Check whether we should be hopping or not */
         if (isHopEnabled()) {
             ESP_ERROR_CHECK(esp_wifi_get_channel(&ch, &sec));
-            ch++;
-            if (ch >= MAX_CHANNEL) {
-                ch -= (MAX_CHANNEL - 1);
+            /* Changing to a random channel or the next channel? */
+            if (hopMode == HOP_MODE_RANDOM) {
+                ch = (random() % MAX_CHANNEL) + 1;
+            } else if (hopMode != HOP_MODE_SEQUENTIAL) {
+                /* Not random and not sequential */
+                #ifdef CONFIG_FLIPPER
+                    printf("hopMode is invalid, reverting to sequential\n");
+                #else
+                    ESP_LOGW(HOP_TAG, "hopMode contains an unkown value (%d), reverting to HOP_MODE_SEQUENTIAL", hopMode);
+                #endif
+                hopMode = HOP_MODE_SEQUENTIAL;
+            }
+            if (hopMode == HOP_MODE_SEQUENTIAL) {
+                ch++;
+                if (ch >= MAX_CHANNEL) {
+                    ch -= (MAX_CHANNEL - 1);
+                }
             }
             if (esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_ABOVE) != ESP_OK) {
                 ESP_LOGW(TAG, "Failed to change to channel %d", ch);

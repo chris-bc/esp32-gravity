@@ -48,4 +48,10 @@ enum GravityCommand {
 };
 typedef enum GravityCommand GravityCommand;
 
+typedef enum HopMode {
+    HOP_MODE_SEQUENTIAL = 0,
+    HOP_MODE_RANDOM,
+    HOP_MODE_COUNT
+} HopMode;
+
 #endif

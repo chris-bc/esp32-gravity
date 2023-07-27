@@ -326,7 +326,7 @@ int cmd_hop(int argc, char **argv) {
             ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
         #endif
     } else {
-        /* argv[1] could be a duration, "on", "default" or "off" */
+        /* argv[1] could be a duration, "on", "default", "off", "sequential" or "random" */
         /* To avoid starting hopping before updating hop_millis we need to check for duration first */
         long duration = atol(argv[1]);
         if (duration > 0) {
@@ -336,7 +336,7 @@ int cmd_hop(int argc, char **argv) {
             #else
                 ESP_LOGI(HOP_TAG, "Gravity will dwell on each channel for %ldms.", duration);
             #endif
-        } else if (!strcasecmp(argv[1], "ON") || (argc == 3 && !strcasecmp(argv[2], "ON"))) {
+        } else if (!strcasecmp(argv[1], "ON") || (argc > 2 && !strcasecmp(argv[2], "ON")) || (argc == 4 && !strcasecmp(argv[3], "ON"))) {
             hopStatus = HOP_STATUS_ON;
             char strOutput[220] = "Channel hopping enabled. ";
             char working[128];
@@ -358,14 +358,14 @@ int cmd_hop(int argc, char **argv) {
                 ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
                 xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
             }
-        } else if (!strcasecmp(argv[1], "OFF") || (argc == 3 && !strcasecmp(argv[2], "OFF"))) {
+        } else if (!strcasecmp(argv[1], "OFF") || (argc > 2 && !strcasecmp(argv[2], "OFF")) || (argc == 4 && !strcasecmp(argv[3], "OFF"))) {
             hopStatus = HOP_STATUS_OFF;
             #ifdef CONFIG_FLIPPER
                 printf("Ch. hop OFF\n");
             #else
                 ESP_LOGI(HOP_TAG, "Channel hopping disabled.");
             #endif
-        } else if (!strcasecmp(argv[1], "KILL") || (argc == 3 && !strcasecmp(argv[2], "KILL"))) {
+        } else if (!strcasecmp(argv[1], "KILL") || (argc > 2 && !strcasecmp(argv[2], "KILL")) || (argc == 4 && !strcasecmp(argv[3], "KILL"))) {
             hopStatus = HOP_STATUS_OFF;
             if (channelHopTask == NULL) {
                 ESP_LOGE(HOP_TAG, "Unable to locate the channel hop task. Is it running?");
@@ -379,7 +379,7 @@ int cmd_hop(int argc, char **argv) {
                 vTaskDelete(channelHopTask);
                 channelHopTask = NULL;
             }
-        } else if (!strcasecmp(argv[1], "DEFAULT") || (argc == 3 && !strcasecmp(argv[2], "DEFAULT"))) {
+        } else if (!strcasecmp(argv[1], "DEFAULT") || (argc > 2 && !strcasecmp(argv[2], "DEFAULT")) || (argc == 4 && !strcasecmp(argv[3], "DEFAULT"))) {
             hopStatus = HOP_STATUS_DEFAULT;
             hop_millis = dwellForCurrentFeatures();
             #ifdef CONFIG_FLIPPER
@@ -387,6 +387,10 @@ int cmd_hop(int argc, char **argv) {
             #else
                 ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
             #endif
+        } else if (!strcasecmp(argv[1], "SEQUENTIAL") || (argc > 2 && !strcasecmp(argv[2], "SEQUENTIAL")) || (argc == 4 && !strcasecmp(argv[3], "SEQUENTIAL"))) {
+            hopMode = HOP_MODE_SEQUENTIAL;
+        } else if (!strcasecmp(argv[1], "RANDOM") || (argc > 2 && !strcasecmp(argv[2], "RANDOM")) || (argc == 4 && !strcasecmp(argv[3], "RANDOM"))) {
+            hopMode = HOP_MODE_RANDOM;
         } else {
             /* Invalid argument */
             #ifdef CONFIG_FLIPPER
