@@ -31,14 +31,11 @@ Since Gravity has been included with RogueMaster Firmware I thought I should
 make a couple of changes to make it easy for people other than me to know
 which esp32-Gravity is compatible with which Flipper-Gravity.
 
-From here out versions will be numbered `(major).(minor).(release)`
-
-For example 1.2.1.
-
-To determine compatibility between Flipper-Gravity and ESP32-Gravity:
-* If the major and minor versions are the same then the two applications are compatible with each other - although additional/modified functionality in the later version may prevent some features from working.
-* Significant changes, or breaking changes, are represented by a new minor version number, e.g. from 1.2.1 to 1.3.0.
-* **Really** notable changes increase the major version number.
+* From here on out versions will be numbered `(major).(minor).(release)`;
+* For example `1.2.1`;
+* Different **release** versions (such as `1.2.1` and `1.2.9`) will always be compatible with each other, although the addition or significant modification of some features may result in a small number of features not working;
+* Changes in minor version, such as `1.2.1` and `1.3.1`, are unlikely to be compatible. A change in minor version represents a noteable change to the platform or a breaking change to the platform;
+* Changes in major verson, such as `1.4.9` to `2.0.0`, represent substantial changes to the application and how it runs. Different major versions *will not* be compatible with each other.
 
 ## Configuration
 
