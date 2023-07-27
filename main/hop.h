@@ -16,6 +16,12 @@ enum HopStatus {
     HOP_STATUS_DEFAULT
 };
 
+typedef enum HopMode {
+    HOP_MODE_SEQUENTIAL = 0,
+    HOP_MODE_RANDOM,
+    HOP_MODE_COUNT
+} HopMode;
+
 extern const char *HOP_TAG;
 extern long hop_millis;
 extern enum HopStatus hopStatus;

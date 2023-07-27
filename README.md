@@ -918,11 +918,10 @@ TODO
 ## Bugs / Todo
 
 * Decode OUI when displaying MACs (in the same way Wireshark does)
-* Add deauth packets to fuzz
 * Test using fuzz with multiple packet types
 * more testing of hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
 * Add non-broadcast targets to fuzz
-* Mana "Scream" - Broadcast known APs
+* Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
 * figure out RSSI

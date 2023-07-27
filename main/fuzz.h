@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "esp_flip_struct.h"
-#include "esp_flip_const.h"
+#include "usage_const.h"
 #include "beacon.h"
 
 /* Using binary values so we can use binary operations & and | */

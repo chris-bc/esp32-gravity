@@ -6,7 +6,7 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include "esp_flip_struct.h"
-#include "esp_flip_const.h"
+#include "usage_const.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
@@ -31,6 +31,53 @@ struct ScanResultSTA {
     int channel;
 };
 typedef struct ScanResultSTA ScanResultSTA;
+
+/*  Globals to track module status information */
+enum AttackMode {
+    ATTACK_BEACON,
+    ATTACK_PROBE,
+    ATTACK_FUZZ,
+    ATTACK_SNIFF,
+    ATTACK_DEAUTH,
+    ATTACK_MANA,
+    ATTACK_MANA_VERBOSE,
+    ATTACK_MANA_LOUD,
+    ATTACK_AP_DOS,
+    ATTACK_AP_CLONE,
+    ATTACK_SCAN,
+    ATTACK_HANDSHAKE,
+    ATTACK_RANDOMISE_MAC, // True
+    ATTACK_BT,
+    ATTACKS_COUNT
+};
+typedef enum AttackMode AttackMode;
+
+enum GravityCommand {
+    GRAVITY_BEACON = 0,
+    GRAVITY_TARGET_SSIDS,
+    GRAVITY_PROBE,
+    GRAVITY_FUZZ,
+    GRAVITY_SNIFF,
+    GRAVITY_DEAUTH,
+    GRAVITY_MANA,
+    GRAVITY_STALK,
+    GRAVITY_AP_DOS,
+    GRAVITY_AP_CLONE,
+    GRAVITY_SCAN,
+    GRAVITY_HOP,
+    GRAVITY_SET,
+    GRAVITY_GET,
+    GRAVITY_VIEW,
+    GRAVITY_SELECT,
+    GRAVITY_SELECTED,
+    GRAVITY_CLEAR,
+    GRAVITY_HANDSHAKE,
+    GRAVITY_COMMANDS,
+    GRAVITY_INFO,
+    GRAVITY_BT,
+    GRAVITY_NONE = 99
+};
+typedef enum GravityCommand GravityCommand;
 
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;
