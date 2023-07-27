@@ -23,7 +23,22 @@ bluetooth scanning. Because of this Gravity now targets the ESP32.
 
 If you would like to use Gravity on an ESP32-C6:
 * Run `idf.py menuconfig`
-* Under "Gravity Configuration" select "Support ESP32-C6"
+* Under "Gravity Configuration" select `Support ESP32-C6`
+
+## Version Compatibility
+
+Since Gravity has been included with RogueMaster Firmware I thought I should
+make a couple of changes to make it easy for people other than me to know
+which esp32-Gravity is compatible with which Flipper-Gravity.
+
+From here out versions will be numbered `(major).(minor).(release)`
+
+For example 1.2.1.
+
+To determine compatibility between Flipper-Gravity and ESP32-Gravity:
+* If the major and minor versions are the same then the two applications are compatible with each other - although additional/modified functionality in the later version may prevent some features from working.
+* Significant changes, or breaking changes, are represented by a new minor version number, e.g. from 1.2.1 to 1.3.0.
+* **Really** notable changes increase the major version number.
 
 ## Configuration
 
@@ -297,8 +312,9 @@ specified value.
 
 Their use is also very similar,
 ```c
-Syntax: get <variable>
-Syntax: set <variable> <value>
+Syntax:
+get <variable>
+set <variable> <value>
 ```
 
 `<variable>` can be one of the following settings.
@@ -458,7 +474,7 @@ they will not change this back to its original value.
 
 The only reason any of the functionality described above even exists is to provide
 the context needed to run the features described in this section (and those coming
-soon!) - So with all the above information out of the way let's get onto it.
+soon!) - So with all the above information out of the way let's get into it.
 
 #### BEACON SPAM
 
@@ -867,6 +883,7 @@ TODO
 
 ## Bugs / Todo
 
+* Tweak memory management to extend the lifespan of beacon infinite (maintain a static reference to data model holding the dictionary rather than reloading the dictinary each time a word is needed
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * Hop randomly rather than sequentially
 * Add deauth packets to fuzz

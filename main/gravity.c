@@ -1884,13 +1884,14 @@ void app_main(void)
             case ATTACK_AP_DOS:
             case ATTACK_AP_CLONE:
             case ATTACK_HANDSHAKE:
+            case ATTACK_BT:
                 attack_status[i] = false;
                 break;
             case ATTACK_RANDOMISE_MAC:
                 attack_status[i] = true;
                 break;
             default:
-                ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
+                ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length. Unexpected value %d", i);
                 free(attack_status);
                 free(hop_defaults);
                 free(hop_millis_defaults);
@@ -1914,6 +1915,7 @@ void app_main(void)
             case ATTACK_AP_CLONE:
             case ATTACK_HANDSHAKE:
             case ATTACK_RANDOMISE_MAC:
+            case ATTACK_BT:
                 hop_defaults[i] = false;
                 break;
             default:
@@ -1940,7 +1942,8 @@ void app_main(void)
             case ATTACK_DEAUTH:
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */
             case ATTACK_AP_CLONE:                                   /* make sense be */
-            case ATTACK_RANDOMISE_MAC:                              /* treated differently somehow? */
+            case ATTACK_RANDOMISE_MAC: 
+            case ATTACK_BT:                             /* treated differently somehow? */
                 hop_millis_defaults[i] = CONFIG_DEFAULT_HOP_MILLIS;
                 break;
             default:

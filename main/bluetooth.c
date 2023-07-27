@@ -1,8 +1,10 @@
 #include "bluetooth.h"
+#include "esp_bt.h"
 #include "esp_bt_defs.h"
 #include "esp_bt_main.h"
 #include "esp_err.h"
 #include "esp_gap_bt_api.h"
+#include "esp_wifi_types.h"
 #include <stddef.h>
 
 const char *BT_TAG = "bt@GRAVITY";
@@ -219,10 +221,14 @@ void testBT() {
     ESP_LOGI(BT_TAG, "Controller mem release returned %s", esp_err_to_name(err));
 
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    //bt_cfg.mode = ESP_BT_MODE_CLASSIC_BT;
     err = esp_bt_controller_init(&bt_cfg);
     ESP_LOGI(BT_TAG, "BT controller init returned %s", esp_err_to_name(err));
 
-    err = esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT);
+    /* Enable WiFi sleep mode in order for wireless coexistence to work */
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+
+    err = esp_bt_controller_enable(BTDM_CONTROLLER_MODE_EFF); /* Was ESP_BT_MODE_CLASSIC_BT */
     ESP_LOGI(BT_TAG, "BT Controller enable returned %s", esp_err_to_name(err));
 
     err = esp_bluedroid_init();

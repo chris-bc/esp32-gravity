@@ -7,6 +7,7 @@
 #include <esp_bt_main.h>
 #include <esp_bt_device.h>
 #include <esp_log.h>
+#include <esp_wifi.h>
 
 typedef enum {
     APP_GAP_STATE_IDLE = 0,
