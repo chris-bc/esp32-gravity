@@ -10,7 +10,6 @@
 #include "gravity.h"
 #include "common.h"
 #include "esp_err.h"
-#include "esp_flip_struct.h"
 #include "esp_log.h"
 #include "beacon.h"
 #include "esp_wifi.h"

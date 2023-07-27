@@ -5,7 +5,6 @@
 #include <string.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
-#include "esp_flip_struct.h"
 #include "usage_const.h"
 
 struct ScanResultAP {

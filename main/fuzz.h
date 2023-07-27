@@ -2,7 +2,6 @@
 #define FUZZ_H
 
 #include "common.h"
-#include "esp_flip_struct.h"
 #include "usage_const.h"
 #include "beacon.h"
 

@@ -918,6 +918,7 @@ TODO
 ## Bugs / Todo
 
 * Decode OUI when displaying MACs (in the same way Wireshark does)
+* parse additional packet types
 * Test using fuzz with multiple packet types
 * more testing of hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
 * Add non-broadcast targets to fuzz
@@ -931,8 +932,7 @@ TODO
 * Refactor modules, move everything to good design
   * Move out of gravity.c
     * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
-    * Merge esp_flip_const.h, esp_flip_struct.h and common.h, and create common.c for common functions above
-
+    
 ## Testing / Packet verification
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |

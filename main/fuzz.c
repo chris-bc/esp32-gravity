@@ -4,7 +4,6 @@
 #include "probe.h"
 #include "common.h"
 #include "esp_err.h"
-#include "esp_flip_struct.h"
 #include "esp_wifi_types.h"
 #include <string.h>
 #include <time.h>
