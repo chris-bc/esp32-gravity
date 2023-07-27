@@ -1,3 +1,4 @@
+#include "common.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -3022,18 +3023,22 @@ char *processWord(int i) {
     return retVal;
 }
 
-/* Looks like these are being created on the heap - Move them to the stack */
+/* Looks like these are being created on the stack - Move them to the heap */
+/* This was wasteful - Don't re-cache the words into memory every time
 if (gravityWordList != NULL) {
     for (int i = 0; i < gravityWordCount; ++i) {
         free(gravityWordList[i]);
     }
     free(gravityWordList);
 }
-gravityWordList = malloc(sizeof(char *) * gravityWordCount);
-if (gravityWordList != NULL) {
-    for (int i = 0; i < gravityWordCount; ++i) {
-        gravityWordList[i] = processWord(i);
+*/
+if (gravityWordList == NULL) {
+    gravityWordList = malloc(sizeof(char *) * gravityWordCount);
+    if (gravityWordList != NULL) {
+        for (int i = 0; i < gravityWordCount; ++i) {
+            gravityWordList[i] = processWord(i);
 
-    }
+        }
     
+    }
 }

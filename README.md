@@ -917,7 +917,6 @@ TODO
 
 ## Bugs / Todo
 
-* Tweak memory management to extend the lifespan of beacon infinite (maintain a static reference to data model holding the dictionary rather than reloading the dictinary each time a word is needed
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * Hop randomly rather than sequentially
 * Add deauth packets to fuzz
