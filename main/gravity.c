@@ -2003,6 +2003,13 @@ void app_main(void)
     register_gravity_commands();
     /*register_nvs();*/
 
+    /* Display the Gravity version */
+    #ifdef CONFIG_FLIPPER
+        printf("Started Gravity v0.2.0\n\n");
+    #else
+        ESP_LOGI(TAG, "Started Gravity v0.2.0\n");
+    #endif
+
 #if defined(CONFIG_ESP_CONSOLE_UART_DEFAULT) || defined(CONFIG_ESP_CONSOLE_UART_CUSTOM)
     esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_config, &repl_config, &repl));

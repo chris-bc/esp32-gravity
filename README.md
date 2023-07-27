@@ -80,6 +80,12 @@ To use Flipper-Gravity:
 * Connect RX on the Flipper (pin 14) to TX/TX0 on the ESP32
 * Start Gravity on the Flipper
 
+I've been told to avoid powering the ESP32 from Flipper's 3V3 pin, purportedly
+because *it does not support hot plugging*.
+
+I have no idea whether that's true or not, or what it would mean if it were true,
+but consider yoursef warned. (I use the 3V3 pin myself).
+
 
 ## Using Gravity
 
@@ -814,6 +820,9 @@ At least in the short term, then, this feature probably won't be built.
 
 TODO
 
+![Flipper-Gravity Main Menu](https://github.com/chris-bc/flipper-gravity/blob/main/assets/flip-grav-mainmenu.png)
+
+![Flipper-Gravity Manna Attack](https://github.com/chris-bc/flipper-gravity/blob/main/assets/flip-grav-mana.png)
 
 ## Features Done
 
