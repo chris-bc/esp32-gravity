@@ -1,6 +1,10 @@
 #include "common.h"
+#include "esp_interface.h"
+#include "esp_wifi.h"
+#include "esp_wifi_types.h"
 
 const char *TAG = "GRAVITY";
+const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 int max(int one, int two) {
     if (one >= two) {
@@ -177,6 +181,43 @@ ScanResultAP **collateAPsOfSelectedSTAs(int *apCount) {
         }
     }
     return resPassOne;
+}
+
+/* Retain current MAC */
+static uint8_t current_mac[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
+
+static uint8_t *get_current_mac() {
+    if (current_mac[0] == NULL && current_mac[1] == NULL && current_mac[2] == NULL && current_mac[3] == NULL && current_mac[4] == NULL && current_mac[5] == NULL) {
+        if (esp_wifi_get_mac(WIFI_IF_AP, current_mac) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Failed to get MAC\n");
+            #else
+                ESP_LOGE(TAG, "Failed to get MAC!");
+            #endif
+            return NULL;
+        }
+    }
+    return current_mac;
+}
+
+static esp_err_t set_current_mac(uint8_t *newMac) {
+    if (esp_wifi_set_mac(ESP_IF_WIFI_AP, newMac) != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Failed to set MAC\n");
+        #else
+            ESP_LOGE(TAG, "Failed to set MAC");
+        #endif
+        return ESP_ERR_WIFI_MAC;
+    }
+    #ifdef CONFIG_DEBUG
+        #ifdef CONFIG_FLIPPER
+            printf("Gravity MAC now: %02x:%02x:%02x:%02x:%02x:%02x\n", newMac[0], newMac[1], newMac[2], newMac[3], newMac[4], newMac[5]);
+        #else
+            ESP_LOGI(TAG, "Successfully updated Gravity MAC to %02x:%02x:%02x:%02x:%02x:%02x\n", newMac[0], newMac[1], newMac[2], newMac[3], newMac[4], newMac[5]);
+        #endif
+    #endif
+    memcpy(current_mac, newMac, 6);
+    return ESP_OK;
 }
 
 /* For "APs" beacon mode we need a set of all STAs that are clients of the selected APs

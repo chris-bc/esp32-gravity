@@ -6,6 +6,7 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include "usage_const.h"
+#include "dos.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
@@ -78,12 +79,27 @@ enum GravityCommand {
 };
 typedef enum GravityCommand GravityCommand;
 
+/* Packet types TODO: Refactor old code to use them */
+typedef enum WiFi_Frames {
+    WIFI_FRAME_PROBE_REQ = 0x40,
+    WIFI_FRAME_PROBE_RESP = 0x50,
+    WIFI_FRAME_BEACON = 0x80,
+    WIFI_FRAME_DISASSOC = 0xa0,
+    WIFI_FRAME_DEAUTH = 0xc0,
+    WIFI_FRAME_COUNT = 5
+} WiFi_Frames;
+
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;
 extern bool *hop_defaults;
 extern int *hop_millis_defaults;
 extern long ATTACK_MILLIS;
 extern char **gravityWordList;
+
+static uint8_t *gravity_get_mac();
+static esp_err_t gravity_set_mac(uint8_t *newMac);
+
+extern const uint8_t BROADCAST[];
 
 /* scan.c */
 extern int gravity_ap_count;

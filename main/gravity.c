@@ -9,6 +9,7 @@
 
 #include "gravity.h"
 #include "common.h"
+#include "dos.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "beacon.h"
@@ -24,6 +25,7 @@
 #include "mana.h"
 #include "hop.h"
 #include "bluetooth.h"
+#include "usage_const.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -316,12 +318,15 @@ int cmd_hop(int argc, char **argv) {
         #endif
             break;
         }
+        char tempStr[19];
+        hopModeToString(hopMode, tempStr);
+        
         #ifdef CONFIG_FLIPPER
             char hopStr[21];
             sprintf(hopStr, "Dwell time %ldms", hop_millis);
-            printf("Ch. hop %s\n%20s\n", hopMsg, hopStr);
+            printf("Ch. hop %s\n%20s\nHop Mode: %s\n", hopMsg, hopStr, tempStr);
         #else
-            ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms", hopMsg, hop_millis);
+            ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms\nChannel hopping mode: %s", hopMsg, hop_millis, tempStr);
         #endif
     } else {
         /* argv[1] could be a duration, "on", "default", "off", "sequential" or "random" */
@@ -943,10 +948,28 @@ int cmd_stalk(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Enable or disable AP Denial-of-service attack mode */
+/* Usage ap-dos [ ON | OFF ] */
 int cmd_ap_dos(int argc, char **argv) {
-    /* TODO: Update attack_status[] */
+    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF"))) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_AP_DOS);
+        #else
+            ESP_LOGE(DOS_TAG, "Invalid parameters. Usage: %s", USAGE_AP_DOS);
+        #endif
+    }
+    if (argc == 1) {
+        #ifdef CONFIG_FLIPPER
+            printf("AP-DOS is %srunning\n", (attack_status[ATTACK_AP_DOS])?"":"not ");
+        #else
+            ESP_LOGI(DOS_TAG, "AP-DOS is %srunning", (attack_status[ATTACK_AP_DOS])?"":"not ");
+        #endif
+        return ESP_OK;
+    }
+    /* Update attack_status[] */
+    attack_status[ATTACK_AP_DOS] = strcasecmp(argv[1], "OFF");
 
-    /* Start hopping task loop if hopping is on by default */
+    /* Start/Stop hopping task loop if hopping is on by default */
     hop_millis = dwellTime();
     char *args[] = {"hop","on"};
     if (isHopEnabled()) {
@@ -1728,7 +1751,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
 void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
-    if (!(attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN])) {
+    if (!(attack_status[ATTACK_AP_DOS] || attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN])) {
         // No reason to listen to the packets
         return;
     }
@@ -1753,6 +1776,17 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 printf("Packet sniffer returned %s\n", esp_err_to_name(err));
             #else
                 ESP_LOGW(SNIFF_TAG, "Packet sniffer returned an error: %s", esp_err_to_name(err));
+            #endif
+        }
+    }
+    /* DOS payload */
+    if (attack_status[ATTACK_AP_DOS]) {
+        esp_err_t err = dosParseFrame(payload);
+        if (err != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("DOS returned %s\n", esp_err_to_name(err));
+            #else
+                ESP_LOGW(DOS_TAG, "DOS returned %s", esp_err_to_name(err));
             #endif
         }
     }
@@ -1932,12 +1966,12 @@ void app_main(void)
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
             case ATTACK_MANA:
+            case ATTACK_AP_DOS:
                 hop_defaults[i] = true;
                 break;
             case ATTACK_DEAUTH:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:
-            case ATTACK_AP_DOS:
             case ATTACK_AP_CLONE:
             case ATTACK_HANDSHAKE:
             case ATTACK_RANDOMISE_MAC:
@@ -2031,9 +2065,9 @@ void app_main(void)
 
     /* Display the Gravity version */
     #ifdef CONFIG_FLIPPER
-        printf("Started Gravity v0.2.0\n\n");
+        printf("Started Gravity v%s\n\n", GRAVITY_VERSION);
     #else
-        ESP_LOGI(TAG, "Started Gravity v0.2.0\n");
+        ESP_LOGI(TAG, "Started Gravity v%s\n", GRAVITY_VERSION);
     #endif
 
 #if defined(CONFIG_ESP_CONSOLE_UART_DEFAULT) || defined(CONFIG_ESP_CONSOLE_UART_CUSTOM)

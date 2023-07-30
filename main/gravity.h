@@ -1,6 +1,8 @@
 #ifndef GRAVITY_H
 #define GRAVITY_H
 
+#define GRAVITY_VERSION "0.2.1"
+
 #include <esp_wifi.h>
 #include <stdio.h>
 #include <string.h>

@@ -887,6 +887,13 @@ TODO
     * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len) - FUZZ OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
       * SSID longer/shorter than ssid_len
       * SSID matches ssid_len, is greater than 32 (MAX_SSID_LEN)
+    * ap-dos
+      * Respond to frames to/from a selectedAP with
+        * deauth to STA using AP's MAC
+        * disassoc to AP using STA's MAC
+      * Respond to frames between STAs, where one STA is known to be associated with a selectedAP
+        * deauth to both STAs using AP's MAC
+
 
 * **ONGOING** Receive and parse 802.11 frames
 
@@ -898,10 +905,6 @@ TODO
 * TODO: additional option to show hidden SSIDs
 * stalk
   * Homing attack (Focus on RSSI for selected STA(s) or AP)
-* ap-dos
-  * DOS AP
-  * Use target's MAC
-  * Respond to frames directed at AP with a deauth packet
 * ap-clone
   * Clone AP
   * Use target's MAC

