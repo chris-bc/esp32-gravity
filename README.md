@@ -460,7 +460,7 @@ three values, `OFF`, `ON` and `DEFAULT`. When channel hopping is in the `ON` or
 is restarted.
 
 ```c
-Syntax: hop [<millis>] [ ON | OFF | DEFAULT | KILL ]
+Syntax: hop [<millis>] [ ON | OFF | DEFAULT | KILL ] [ SEQUENTIAL | RANDOM ]
 ```
 
 * If no arguments are provided Gravity will display the current channel hopping state;
@@ -468,6 +468,8 @@ Syntax: hop [<millis>] [ ON | OFF | DEFAULT | KILL ]
 * `KILL` will terminate the process that controls channel hopping. Normally this remains active once channel hopping has been started for the first time, but this may provide marginally better energy usage through a slight reduction in memory usage and processing when channel hopping is not running;
 * `ON` and `OFF` give you manual control of channel hopping; it will remain in that state until you set it again, ignoring features' channel hopping defaults;
 * When set to `DEFAULT` channel hopping is not active, but will automatically start if a function is run that is configured to use channel hopping by default. When this occurs channel hopping will also automatically stop when no more functions are using it by default.
+* `SEQUENTIAL` and `RANDOM` specify whether channel hopping should occur progressively through the channels, or move around randomly. `RANDOM` hopping can be helpful if trying to evade detection, but `SEQUENTIAL` is the default and typically the best choice.
+
 
 ##### Changing Hop Defaults
 
