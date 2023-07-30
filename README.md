@@ -143,7 +143,7 @@ Work on Gravity continues on a few fronts, depending on the mood I'm in at the t
     * Additional management packets
     * Data packets
     * Control packets
-* ap-dos and ap-clone attacks described in the original feature list
+* ap-clone attack described in the original feature list
 * General improvements/bugfixes as I go
 
 
@@ -814,15 +814,22 @@ them all.
 
 #### AP-DOS
 
-NOT YET IMPLEMENTED.
-
 This feature is intended to simulate a denial-of-service (DOS) attack on the
-selected AP by adopting the target's MAC and sending a deauthentication packet
-to every station that sends any sort of packet to the target.
+selected AP(s) by
+1. When a station sends or receives a packet from a target AP
+  * Adopting the target AP's MAC and sending a deauthentication packet to the STA
+  * Adopting the STA's MAC and sending a disassociation packet to the AP
+2. When a station that is known to be associated with a target AP sends or receives a packet from another station
+  * Adopting the AP's MAC and sending a deauthentication packet to both stations
+
+```c
+Syntax: ap-dos [ ON | OFF ]
+```
+
 
 #### AP-CLONE
 
-NOT YET IMPLEMENTED.
+TODO: Write documentation
 
 This feature is intended to simulate a 'clone-and-takeover' attack on the selected
 AP by combining `AP-DOS` with `Mana`. The hoped-for result is to trick stations to
