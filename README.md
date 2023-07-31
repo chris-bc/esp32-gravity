@@ -1,6 +1,12 @@
-| Supported Targets | ESP32-C6  | ESP32 | 
-| ----------------- | --------- | ----- |
-|                   | (Partial) |       | 
+| Supported Targets | ESP32 | ESP32-C6  | ESP32S2 | 
+| ----------------- | ----- | --------- | ------- |
+| Wireless (802.11) |  Yes  |    Yes    |   Yes   |
+| Bluetooth         |  Yes  |  Not Yet  |   No    |
+| BTLE              |  Yes  |  Maybe?   |   No    |
+| ZigBee/Thread     |  No   |    Yes    |   No    |
+|        (802.15.4) |       |           |         |
+
+**Flipper WiFi Dev Board uses ESP32S2**
 
 # GRAVITY - ESP32 Wireless Tools
 ## The unseen force
