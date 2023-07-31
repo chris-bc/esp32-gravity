@@ -21,9 +21,9 @@ Please note the comments below about compiling ESP32-Gravity for the Flipper Zer
 ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including
 bluetooth scanning. Because of this Gravity now targets the ESP32.
 
-If you would like to use Gravity on an ESP32-C6:
-* Run `idf.py menuconfig`
-* Under "Gravity Configuration" select `Support ESP32-C6`
+If you would like to use Gravity on an ESP32-C6 or ESP32-S2 (like
+the Flipper WiFi Dev Board) just build it as usual. Bluetooth
+functionality will automatically be excluded for those two chipsets.
 
 ## Version Compatibility
 
@@ -44,7 +44,6 @@ which esp32-Gravity is compatible with which Flipper-Gravity.
 Use `idf.py` menuconfig to configure global options. The section 'Gravity Configuration' contains these options, which include the following:
 
 * `FLIPPER`: Reduce console output as much as possible while retaining utility, to accommodate the Flipper Zero's smaller display
-* `SUPPORT_C6`: Support the ESP32-C6 by removing features it does not support (Bluetooth)
 * `DEBUG`: Enable additional logging to isolate issues
 * `DEBUG_VERBOSE`: Enable way too much logging
 
@@ -67,7 +66,7 @@ Bluetooth and fit within ESP32's smaller memory footprint:
 All you need to do to build, flash and run Gravity is:
 * Install ESP-IDF
 * `. /path/to/esp-idf/export.sh` (note the initial 'dot space')
-* `idf.py set-target <chipset>` ("esp32" or "esp32c6")
+* `idf.py set-target <chipset>` ("esp32", "esp32s2", "esp32c6", etc.)
 * `idf.py menuconfig`
   * See the "Configuration" section above
 * `idf.py build flash`
@@ -824,6 +823,9 @@ selected AP(s) by
 2. When a station that is known to be associated with a target AP sends or receives a packet from another station
   * Adopting the AP's MAC and sending a deauthentication packet to both stations
 
+`AP-DOS` operates on `selectedAPs` - that is, the Access Points that were
+identified using `scan` and selected using `select ap`.
+
 ```c
 Syntax: ap-dos [ ON | OFF ]
 ```
@@ -831,11 +833,20 @@ Syntax: ap-dos [ ON | OFF ]
 
 #### AP-CLONE
 
-TODO: Write documentation
-
 This feature is intended to simulate a 'clone-and-takeover' attack on the selected
-AP by combining `AP-DOS` with `Mana`. The hoped-for result is to trick stations to
-disconnect from their existing access point and connect to Gravity.
+AP. At a general level you could say that it combines `AP-DOS`'s `deauthentication`
+and `disassociation` messages with `Mana`'s ability to sneak its way into a station's
+Preferred Network List (PNL). The hoped-for result is to trick stations to
+disconnect from their existing access point and, not necessarily connect to Gravity,
+but **NOT** reconnect to their original AP.
+
+`AP-CLONE` operates on `selectedAPs` - that is, the Access Points that were
+identified using `scan` and selected using `select ap`.
+
+```c
+Syntax: ap-clone [ ON | OFF ]
+```
+
 
 #### HANDSHAKE
 
@@ -863,6 +874,9 @@ TODO
 
 ## Features Done
 
+* Automatically include/exclude bluetooth based on target chipset
+  * ESP32 is currently the only device with Bluetooth support
+  * Hopefully ESP32-C6 will join it soon!
 * Soft AP
 * Command line interface with commands:
     * scan [ ON | OFF ]
@@ -920,6 +934,7 @@ TODO
   * Respond to probe requests with forged beacon frames
   * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
   * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
+  * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking
@@ -995,7 +1010,7 @@ TelstraB20819 BC:30:D9:B2:08:1B
 Debugging statements written during development have not been removed from the code; they've been put behind #ifdef directives and can be enabled by adding #define DEBUG to one of the header files to enable them.
 
 Gravity is written using Espressif's ESP-IDF development platform.
-Building & installation follows the same paradigm as other ESP-IDF projects, using idf.py build flash monitor to build the application, flash a ESP32-C6, and start a serial connection with the device.
+Building & installation follows the same paradigm as other ESP-IDF projects, using idf.py build flash monitor to build the application, flash a chip, and start a serial connection with the device.
 
 Gravity currently uses a serial console as its user interface, with text-based commands and feedback.
 Tools such as Putty, Screen, Minicom and the Arduino IDE can be used to establish a serial connection over USB to interact with the device. Since it will already be installed for building the application, I suggest using ESP-IDF as your serial monitor. To start the ESP-IDF serial monitor and have it connect to a device run idf.py monitor. This can be combined alongside building and flashing with the command "idf.py build flash monitor".

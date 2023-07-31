@@ -69,6 +69,8 @@ int cmd_commands(int argc, char **argv);
 int cmd_hop(int argc, char **argv);
 int cmd_info(int argc, char **argv);
 
+bool gravitySniffActive();
+
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;
 extern bool *hop_defaults;
@@ -137,7 +139,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "ap-clone",
         .hint = USAGE_AP_CLONE,
-        .help = "If no argument is provided returns the current state of the module. To start the attack issue the ap_clone command with the target AP's MAC address as a parameter.  Clone the specified AP and attempt to coerce STAs to connect to the cloned AP instead of the authentic one. The success of this attack is dependent upon being able to generate a more powerful signal than the genuine AP. The attack will set ESP32C6's MAC and SSID to match the AP's, run a deauth attack until there are no associated STAs or a predetermined time has passed, then disable the deauth attack and hope that STAs connect to the rogue AP.",
+        .help = "If no argument is provided returns the current state of the module. Syntax: ap-clone [ ON | OFF ]  Clone the selected AP(s) and attempt to coerce STAs to connect to the cloned AP instead of the authentic one. The success of this attack will be improved by being able to provide stations a more powerful signal than the genuine AP. The attack will set Gravity's MAC to match the AP's.",
         .func = cmd_ap_clone
     }, {
         .command = "scan",

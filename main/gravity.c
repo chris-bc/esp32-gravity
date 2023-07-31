@@ -138,14 +138,14 @@ int rmSsid(char *ssid) {
 
 /* Run bluetooth test module */
 int cmd_bluetooth(int argc, char **argv) {
-    #ifdef CONFIG_SUPPORT_C6
-        #ifdef CONFIG_FLIPPER
-            printf("Bluetooth unsupported in this build.\nESP32-C6 compatibility enabled.\n");
-        #else
-            ESP_LOGW(BT_TAG, "ESP32-Gravity has been built with ESP32-C6 support. Bluetooth is not supported in this build");
-        #endif
-    #else
+    #if defined(CONFIG_IDF_TARGET_ESP32)
         testBT();
+    #else
+        #ifdef CONFIG_FLIPPER
+            printf("Bluetooth unsupported in this build because you're using a S2 or C6\n");
+        #else
+            ESP_LOGW(BT_TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
+        #endif
     #endif
     return ESP_OK;
 }
@@ -983,7 +983,26 @@ int cmd_ap_dos(int argc, char **argv) {
 }
 
 int cmd_ap_clone(int argc, char **argv) {
-    /* TODO: Update attack_status[] */
+    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF"))) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_AP_DOS);
+        #else
+            ESP_LOGE(DOS_TAG, "Invalid arguments: %s", USAGE_AP_DOS);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (argc == 1) {
+        #ifdef CONFIG_FLIPPER
+            printf("AP-CLONE is %srunning\n", (attack_status[ATTACK_AP_CLONE])?"":"not ");
+        #else
+            ESP_LOGI(DOS_TAG, "AP-CLONE is %srunning", (attack_status[ATTACK_AP_CLONE])?"":"not ");
+        #endif
+        return ESP_OK;
+    }
+
+    /* Update attack_status[] */
+    attack_status[ATTACK_AP_CLONE] = strcasecmp(argv[1], "OFF");
 
     /* Start hopping task loop if hopping is on by default */
     hop_millis = dwellTime();
@@ -1332,7 +1351,7 @@ int cmd_get(int argc, char **argv) {
         #ifdef CONFIG_FLIPPER
             printf("HOP_MODE: %s (%d)\n", (strlen(mode) > 0)?mode:"Unknown", hopMode);
         #else
-            ESP_LOGI(HOP_TAG, "HOP_MODE :  %s (%d), (strlen(mode) > 0)?mode:"Unknown", hopMode);
+            ESP_LOGI(HOP_TAG, "HOP_MODE :  %s (%d)", (strlen(mode) > 0)?mode:"Unknown", hopMode);
         #endif
     } else if (!strcasecmp(argv[1], "SSID_LEN_MIN")) {
         #ifdef CONFIG_FLIPPER
@@ -1740,6 +1759,19 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     return e;
 }
 
+/* Does Gravity need to monitor frames as they arrive?
+   This is just a simple IF statement, but it keeps getting longer
+   and more complicated; I figured it could do with having its
+   own function
+*/
+bool gravitySniffActive() {
+    //
+
+    return (attack_status[ATTACK_AP_DOS] || attack_status[ATTACK_AP_CLONE] ||
+        attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN] ||
+        attack_status[ATTACK_MANA_LOUD]);
+}
+
 /* Monitor mode callback
    This is the callback function invoked when the wireless interface receives any selected packet.
    Currently it only responds to management packets.
@@ -1751,7 +1783,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
 void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     wifi_promiscuous_pkt_t *data = (wifi_promiscuous_pkt_t *)buf;
 
-    if (!(attack_status[ATTACK_AP_DOS] || attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN])) {
+    if (!gravitySniffActive()) {
         // No reason to listen to the packets
         return;
     }
@@ -1789,6 +1821,10 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
                 ESP_LOGW(DOS_TAG, "DOS returned %s", esp_err_to_name(err));
             #endif
         }
+    }
+    /* AP-CLONE - More like DOS+ than "clone", but ... */
+    if (attack_status[ATTACK_AP_CLONE]) {
+        // dosParseFrame() or cloneParseFrame() ?
     }
     if (payload[0] == 0x40) {
         //printf("W00T! Got a probe request!\n");
@@ -1967,12 +2003,12 @@ void app_main(void)
             case ATTACK_SCAN:
             case ATTACK_MANA:
             case ATTACK_AP_DOS:
+            case ATTACK_AP_CLONE:
                 hop_defaults[i] = true;
                 break;
             case ATTACK_DEAUTH:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:
-            case ATTACK_AP_CLONE:
             case ATTACK_HANDSHAKE:
             case ATTACK_RANDOMISE_MAC:
             case ATTACK_BT:

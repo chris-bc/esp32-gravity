@@ -9,15 +9,6 @@ menu "Gravity Configuration"
             option condenses and reduces output from Gravity to be more amenable
             to use on Flipper Zero.
 
-    config SUPPORT_C6
-        bool "Support ESP32-C6 by removing features it does not yet support"
-        default n
-        help
-            Gravity was initially written targetting the ESP32-C6, however this plan
-            had to be abandoned when I learnt that ESP-IDF did not yet completely
-            support bluetooth on ESP32-C6. This features removes bluetooth support
-            from Gravity.
-            
     config DEFAULT_HOP_MILLIS
         int "Default dwell time for most features when channel hopping (milliseconds)"
         default 500
