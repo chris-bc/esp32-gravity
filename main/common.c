@@ -183,7 +183,7 @@ ScanResultAP **collateAPsOfSelectedSTAs(int *apCount) {
 /* Retain current MAC */
 static uint8_t current_mac[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
 
-static uint8_t *get_current_mac() {
+uint8_t *gravity_get_mac() {
     if (current_mac[0] == NULL && current_mac[1] == NULL && current_mac[2] == NULL && current_mac[3] == NULL && current_mac[4] == NULL && current_mac[5] == NULL) {
         if (esp_wifi_get_mac(WIFI_IF_AP, current_mac) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
@@ -197,7 +197,7 @@ static uint8_t *get_current_mac() {
     return current_mac;
 }
 
-static esp_err_t set_current_mac(uint8_t *newMac) {
+esp_err_t gravity_set_mac(uint8_t *newMac) {
     if (esp_wifi_set_mac(ESP_IF_WIFI_AP, newMac) != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to set MAC\n");
@@ -285,6 +285,7 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 
 
 /* Extract and return SSIDs from the specified ScanResultAP array */
+// TODO: Is that a memory leak in strcpy?
 char **apListToStrings(ScanResultAP **aps, int apsCount) {
     if (apsCount == 0) {
         #ifdef CONFIG_FLIPPER
@@ -310,4 +311,17 @@ char **apListToStrings(ScanResultAP **aps, int apsCount) {
 		strcpy(res[i], (char *)aps[i]->espRecord.ssid);
 	}
 	return res;
+}
+
+esp_err_t convert_bytes_to_string(uint8_t *bIn, char *sOut, int maxLen) {
+    memset(sOut, '\0', maxLen + 1);
+    for (int i = 0; i < maxLen + 1 && bIn[i] != '\0'; ++i) {
+        sOut[i] = bIn[i];
+    }
+    return ESP_OK;
+}
+
+/* Convert */
+esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid) {
+    return convert_bytes_to_string(bSsid, ssid, 32);
 }

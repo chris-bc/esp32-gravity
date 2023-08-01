@@ -24,7 +24,7 @@ esp_err_t cloneStartStop(bool isStarting) {
     attack_status[ATTACK_AP_DOS] = isStarting;
     attack_status[ATTACK_BEACON] = isStarting;
 
-    /* Start hopping task loop if hopping is on by default */
+    /* Start/stop hopping task loop if hopping is on by default for included features */
     hop_millis = dwellTime();
     char *args[] = {"hop","on"};
     if (isHopEnabled()) {
@@ -40,6 +40,9 @@ esp_err_t cloneStartStop(bool isStarting) {
     } else {
         beacon_stop();
     }
+
+    /* Sending probe responses in response to relevant
+       requests is handled by dosParseFrame() */
 
     return ESP_OK;
 }
@@ -163,17 +166,81 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
     uint8_t destAddr[6];
     uint8_t srcAddr[6];
     uint8_t ssid[32];
+    char *strSsid;
     memcpy(destAddr, &payload[PROBE_DESTADDR_OFFSET], 6);
     memcpy(srcAddr, &payload[PROBE_SRCADDR_OFFSET], 6);
     memset(ssid, '\0', 32);
     memcpy(ssid, &payload[PROBE_SSID_OFFSET], payload[PROBE_SSID_OFFSET - 1]);
+    strSsid = malloc(sizeof(char) * (payload[PROBE_SSID_OFFSET - 1] + 1));
+    if (strSsid == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate space for a string SSID\n");
+        #else
+            ESP_LOGE(DOS_TAG, "Unable to allocate memory to calculate a string representation of SSID");
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    memcpy(strSsid, ssid, payload[PROBE_SSID_OFFSET - 1]);
+    strSsid[payload[PROBE_SSID_OFFSET - 1]] = '\0';
 
-    char srcStr[18];
-    char destStr[18];
-    mac_bytes_to_string(srcAddr, srcStr);
-    mac_bytes_to_string(destAddr, destStr);
-    ESP_LOGI(DOS_TAG, "Processing probe request from %s to %s for \"%s\"", srcStr, destStr, (char *)ssid);
+    #ifdef CONFIG_DEBUG
+        char srcStr[18];
+        char destStr[18];
+        mac_bytes_to_string(srcAddr, srcStr);
+        mac_bytes_to_string(destAddr, destStr);
+        #ifdef CONFIG_FLIPPER
+            printf("%s probe req for\n%25s\n", (memcmp(destAddr, BROADCAST, 6))?"Directed":"Wildcard", ssid);
+        #else
+            ESP_LOGI(DOS_TAG, "Processing %s probe request from %s to %s for \"%s\"", (memcmp(destAddr, BROADCAST, 6))?"Directed":"Wildcard", srcStr, destStr, (char *)ssid);
+        #endif
+    #endif
 
+    /* Is it for me (i.e. wildcard or a selectedAP SSID)? */
+    bool willRespond = (strlen(strSsid) == 0); /* true for empty SSID (wildcard) */
+    int i = gravity_sel_ap_count;
+    if (!willRespond) {
+        for (i = 0; i < gravity_sel_ap_count && strcasecmp(strSsid, (char *)gravity_selected_aps[i]->espRecord.ssid); ++i) { }
+        willRespond = (i < gravity_sel_ap_count);
+    }
+
+    /* Leave unless you're a wildcard request or directed to one of the selected SSIDs */
+    if (!willRespond) {
+        free(strSsid);
+        return ESP_OK;
+    }
+
+    /* Until this point we haven't considered the intended destination
+       As a bit of a sanity check let's compare the frame's destination, which should be an AP,
+       with the MAC recorded for the matching selectedAP, and report if they are different
+    */
+    if (i < gravity_sel_ap_count) {
+        if (memcmp(destAddr, gravity_selected_aps[i]->espRecord.bssid, 6)) {
+            ESP_LOGI(DOS_TAG, "AP record and destAddr %s do not match", destStr);
+        }
+        /* Set MAC */
+        if (gravity_set_mac(destAddr) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Unable to set MAC to %s\n", strSsid);
+            #else
+                ESP_LOGW(DOS_TAG, "Unable to set MAC to %s", strSsid);
+            #endif
+        }
+        send_probe_response(destAddr, srcAddr, strSsid, AUTH_TYPE_NONE, 0); // TODO: Decide on AUTH approach
+    } else {
+        for (i = 0; i < gravity_sel_ap_count; ++i) {
+            // TODO: AUTH
+            if (gravity_set_mac(gravity_selected_aps[i]->espRecord.bssid) != ESP_OK) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to set MAC from selectedAP\n");
+                #else
+                    ESP_LOGW(DOS_TAG, "Unable to set MAC from selectedAP");
+                #endif
+            }
+            send_probe_response(gravity_selected_aps[i]->espRecord.bssid, srcAddr, (char *)gravity_selected_aps[i]->espRecord.ssid, AUTH_TYPE_NONE, 0);
+        }
+    }
+
+    free(strSsid);
     return ESP_OK;
 }
 

@@ -117,8 +117,8 @@ extern int *hop_millis_defaults;
 extern long ATTACK_MILLIS;
 extern char **gravityWordList;
 
-static uint8_t *gravity_get_mac();
-static esp_err_t gravity_set_mac(uint8_t *newMac);
+uint8_t *gravity_get_mac();
+esp_err_t gravity_set_mac(uint8_t *newMac);
 
 extern const uint8_t BROADCAST[];
 
@@ -156,6 +156,7 @@ ScanResultAP **collateAPsOfSelectedSTAs(int *apCount);
 ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
 char **apListToStrings(ScanResultAP **aps, int apsCount);
 int max(int one, int two);
+esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid);
 
 extern const char *TAG;
 

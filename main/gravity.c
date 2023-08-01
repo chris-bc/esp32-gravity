@@ -138,7 +138,7 @@ int cmd_bluetooth(int argc, char **argv) {
         #ifdef CONFIG_FLIPPER
             printf("Bluetooth unsupported in this build because you're using a S2 or C6\n");
         #else
-            ESP_LOGW(BT_TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
+            ESP_LOGW(TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
         #endif
     #endif
     return ESP_OK;
@@ -1630,6 +1630,7 @@ int cmd_handshake(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* seqNum == 0 to let IDF handle seq num */
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum) {
     uint8_t *probeBuffer;
 
@@ -1695,13 +1696,18 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
 
     /* Decode, increment and recode seqNum */
-    uint16_t seq = seqNum >> 4;
-    ++seq;
-    uint16_t newSeq = seq << 4 | (seq & 0x000f);
-    uint8_t finalSeqNum[2];
-    finalSeqNum[0] = (newSeq & 0x00FF);
-    finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
-    memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
+    bool sys_queue = false;
+    if (seqNum == 0) {
+        sys_queue = true;
+    } else {
+        uint16_t seq = seqNum >> 4;
+        ++seq;
+        uint16_t newSeq = seq << 4 | (seq & 0x000f);
+        uint8_t finalSeqNum[2];
+        finalSeqNum[0] = (newSeq & 0x00FF);
+        finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
+        memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
+    }
 
     #ifdef CONFIG_DEBUG_VERBOSE
         char debugOut[1024];
@@ -1737,7 +1743,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     // Send the frame
     /* Pause for ATTACK_MILLIS first */
     vTaskDelay((ATTACK_MILLIS / portTICK_PERIOD_MS) + 1);
-    esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), false);
+    esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), sys_queue);
     free(probeBuffer);
     return e;
 }

@@ -937,7 +937,7 @@ TODO
 * ap-clone
   * Clone AP
   * Use target's MAC
-  * Respond to probe requests with forged beacon frames
+  * Respond to probe requests with forged responses, send beacon frames
   * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
   * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
   * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
@@ -953,7 +953,7 @@ TODO
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * parse additional packet types
 * Test using fuzz with multiple packet types
-* more testing of hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
+* hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
