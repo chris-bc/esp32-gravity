@@ -1,8 +1,4 @@
 #include "beacon.h"
-#include "esp_err.h"
-#include "common.h"
-#include "esp_wifi_types.h"
-#include "freertos/portmacro.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;

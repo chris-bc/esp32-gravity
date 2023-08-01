@@ -1,17 +1,19 @@
 #ifndef BEACON_H
 #define BEACON_H
 
-#include <esp_wifi.h>
-#include "esp_wifi_default.h"
-#include "esp_wifi_types.h"
-#include "nvs.h"
 #include <esp_err.h>
-#include <stdbool.h>
-#include <nvs_flash.h>
-#include <string.h>
 #include <esp_log.h>
+#include <esp_wifi.h>
+#include <esp_wifi_default.h>
+#include <esp_wifi_types.h>
+#include <nvs.h>
+#include <nvs_flash.h>
+#include <freertos/portmacro.h>
+#include <stdbool.h>
+#include <string.h>
 #include <time.h>
 #include <stdlib.h>
+#include "common.h"
 
 // Allowable chars for randomly-generated SSIDs
 static char ssid_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

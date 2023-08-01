@@ -3,10 +3,24 @@
 
 #include <stdbool.h>
 #include <string.h>
+
 #include <esp_log.h>
 #include <esp_wifi.h>
+#include <esp_interface.h>
+#include <esp_wifi_types.h>
+
+/* Adding mana.h causes it to be unabe to use PROBE_RESPONSE_AUTH_TYPE */
+/* Adding scan.h causes it to be unable to use ScanResultAP and ScanResultSTA */
 #include "usage_const.h"
 #include "dos.h"
+#include "beacon.h"
+#include "bluetooth.h"
+#include "deauth.h"
+#include "fuzz.h"
+#include "gravity.h"
+#include "hop.h"
+#include "probe.h"
+#include "sniff.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
@@ -80,14 +94,21 @@ enum GravityCommand {
 typedef enum GravityCommand GravityCommand;
 
 /* Packet types TODO: Refactor old code to use them */
-typedef enum WiFi_Frames {
+typedef enum WiFi_Mgmt_Frames {
+    WIFI_FRAME_ASSOC_REQ = 0x00,
+    WIFI_FRAME_ASSOC_RESP = 0x10,
+    WIFI_FRAME_REASSOC_REQ = 0x20,
+    WIFI_FRAME_REASSOC_RESP = 0x30,
     WIFI_FRAME_PROBE_REQ = 0x40,
     WIFI_FRAME_PROBE_RESP = 0x50,
     WIFI_FRAME_BEACON = 0x80,
+    WIFI_FRAME_ATIMS = 0x90,
     WIFI_FRAME_DISASSOC = 0xa0,
+    WIFI_FRAME_AUTH = 0xb0,
     WIFI_FRAME_DEAUTH = 0xc0,
-    WIFI_FRAME_COUNT = 5
-} WiFi_Frames;
+    WIFI_FRAME_ACTION = 0xd0,
+    WIFI_FRAME_COUNT = 12
+} WiFi_Mgmt_Frames;
 
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;

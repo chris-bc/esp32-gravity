@@ -4,23 +4,27 @@
 #define GRAVITY_VERSION "0.2.1"
 
 #include <esp_wifi.h>
+#include <esp_err.h>
+#include <esp_system.h>
+#include <esp_log.h>
+#include <esp_console.h>
+#include <esp_vfs_dev.h>
+#include <esp_vfs_fat.h>
+#include <nvs.h>
+#include <nvs_flash.h>
+#include <cmd_system.h>
+#include <cmd_wifi.h>
+#include <cmd_nvs.h>
+#include <esp_wifi_types.h>
+#include <freertos/portmacro.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include "esp_err.h"
-#include "usage_const.h"
-#include "esp_system.h"
-#include "esp_log.h"
-#include "esp_console.h"
-#include "esp_vfs_dev.h"
-#include "esp_vfs_fat.h"
-#include "nvs.h"
-#include "nvs_flash.h"
-#include "cmd_system.h"
-#include "cmd_wifi.h"
-#include "cmd_nvs.h"
 #include <stdlib.h>
 #include <stdint.h>
+
+#include "usage_const.h"
 #include "common.h"
 
 /* Command usage strings */

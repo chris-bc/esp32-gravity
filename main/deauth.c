@@ -1,15 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <esp_log.h>
-#include "common.h"
 #include "deauth.h"
-#include "esp_err.h"
-#include "esp_interface.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 
 // ========== DEAUTH PACKET ========== //
 uint8_t deauth_pkt[26] = {

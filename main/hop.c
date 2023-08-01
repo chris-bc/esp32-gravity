@@ -1,5 +1,4 @@
 #include "hop.h"
-#include "esp_err.h"
 
 const char *HOP_TAG = "hop@GRAVITY";
 long hop_millis = 0;

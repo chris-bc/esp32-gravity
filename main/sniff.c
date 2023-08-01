@@ -1,47 +1,48 @@
 #include "sniff.h"
+#include "common.h"
 
 const char *SNIFF_TAG = "sniff@GRAVITY";
 
 esp_err_t sniffPacket(uint8_t *payload) {
-    if (payload[0] == 0x40) {
+    if (payload[0] == WIFI_FRAME_PROBE_REQ) {
         printf("inner probe req\n");
     }
 
     switch (payload[0]) {
-        case 0x00:
+        case WIFI_FRAME_ASSOC_REQ:
             return sniffAssocReq(payload);
             break;
-        case 0x10:
+        case WIFI_FRAME_ASSOC_RESP:
             return sniffAssocResp(payload);
             break;
-        case 0x20:
+        case WIFI_FRAME_REASSOC_REQ:
             return sniffReassocReq(payload);
             break;
-        case 0x30:
+        case WIFI_FRAME_REASSOC_RESP:
             return sniffReassocResp(payload);
             break;
-        case 0x40:
+        case WIFI_FRAME_PROBE_REQ:
             return sniffProbeReq(payload);
             break;
-        case 0x50:
+        case WIFI_FRAME_PROBE_RESP:
             return sniffProbeResp(payload);
             break;
-        case 0x80:
+        case WIFI_FRAME_BEACON:
             return sniffBeacon(payload);
             break;
-        case 0x90:
+        case WIFI_FRAME_ATIMS:
             return sniffAtims(payload);
             break;
-        case 0xa0:
+        case WIFI_FRAME_DISASSOC:
             return sniffDisassoc(payload);
             break;
-        case 0xb0:
+        case WIFI_FRAME_AUTH:
             return sniffAuth(payload);
             break;
-        case 0xc0:
+        case WIFI_FRAME_DEAUTH:
             return sniffDeauth(payload);
             break;
-        case 0xd0:
+        case WIFI_FRAME_ACTION:
             return sniffAction(payload);
             break;
         default:

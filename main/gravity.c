@@ -8,15 +8,10 @@
 */
 
 #include "gravity.h"
+
 #include "common.h"
 #include "dos.h"
-#include "esp_err.h"
-#include "esp_log.h"
 #include "beacon.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include "freertos/portmacro.h"
-//#include "common.h"
 #include "probe.h"
 #include "scan.h"
 #include "deauth.h"
@@ -25,7 +20,6 @@
 #include "mana.h"
 #include "hop.h"
 #include "bluetooth.h"
-#include "usage_const.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -1001,20 +995,9 @@ int cmd_ap_clone(int argc, char **argv) {
         return ESP_OK;
     }
 
-    /* Update attack_status[] */
-    attack_status[ATTACK_AP_CLONE] = strcasecmp(argv[1], "OFF");
+    esp_err_t err = cloneStartStop(strcasecmp(argv[1], "OFF"));
 
-    /* Start hopping task loop if hopping is on by default */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    }
-
-    return ESP_OK;
+    return err;
 }
 
 int cmd_scan(int argc, char **argv) {
@@ -1826,7 +1809,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     if (attack_status[ATTACK_AP_CLONE]) {
         // dosParseFrame() or cloneParseFrame() ?
     }
-    if (payload[0] == 0x40) {
+    if (payload[0] == WIFI_FRAME_PROBE_REQ) {
         //printf("W00T! Got a probe request!\n");
         int ssid_len = payload[PROBE_SSID_OFFSET - 1];
         char *ssid = malloc(sizeof(char) * (ssid_len + 1));

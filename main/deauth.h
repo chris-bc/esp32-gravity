@@ -2,7 +2,20 @@
 #define DEAUTH_H
 
 #include <esp_err.h>
+#include <esp_log.h>
+#include <esp_interface.h>
+#include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "common.h"
+
 
 enum DeauthMode {
     DEAUTH_MODE_OFF,

@@ -1,7 +1,4 @@
 #include "common.h"
-#include "esp_interface.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
 
 const char *TAG = "GRAVITY";
 const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };

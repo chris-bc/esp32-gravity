@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <esp_wifi_types.h>
 #include <esp_system.h>
+#include <esp_err.h>
 #include <freertos/portmacro.h>
 #include "common.h"
 

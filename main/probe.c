@@ -1,10 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include "esp_err.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include "common.h"
-#include "freertos/portmacro.h"
 #include "probe.h"
 
 int PROBE_SSID_OFFSET = 26;

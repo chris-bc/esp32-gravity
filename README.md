@@ -65,7 +65,7 @@ Bluetooth and fit within ESP32's smaller memory footprint:
   * Enable `SPP`
   * Enable `Bluetooth Low Energy`
   * Enable `Enable BLE multi-connections`
-  * Enable `Place FreeRTOS functions into Flash`
+  * Enable `Use Dynamic memory allocation in BT/BLE stack`
 
 ### Building & running
 

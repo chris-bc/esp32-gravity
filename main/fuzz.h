@@ -1,9 +1,12 @@
 #ifndef FUZZ_H
 #define FUZZ_H
 
+#include <string.h>
+#include <time.h>
+#include <freertos/portmacro.h>
+#include <esp_err.h>
+#include <esp_wifi_types.h>
 #include "common.h"
-#include "usage_const.h"
-#include "beacon.h"
 
 /* Using binary values so we can use binary operations & and | */
 typedef enum FuzzPacketType {

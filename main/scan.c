@@ -1,12 +1,5 @@
 #include "scan.h"
 #include "common.h"
-#include "esp_err.h"
-#include "esp_wifi.h"
-#include "esp_wifi_types.h"
-#include <stdbool.h>
-#include <esp_log.h>
-#include <time.h>
-#include <string.h>
 
 #define CHANNEL_TAG 0x03
 
@@ -808,15 +801,15 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
 int parseChannel(uint8_t *payload) {
     int startIndex = 0;
     switch (payload[0]) {
-    case 0x40:
+    case WIFI_FRAME_PROBE_REQ:
         // Probe request
         startIndex = 24;
         break;
-    case 0x50:
+    case WIFI_FRAME_PROBE_RESP:
         // Probe response
         startIndex = 36;
         break;
-    case 0x80:
+    case WIFI_FRAME_BEACON:
         // Beacon
         startIndex = 36;
         break;
@@ -1065,13 +1058,13 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
     }
 
     switch (payload[0]) {
-    case 0x40:
+    case WIFI_FRAME_PROBE_REQ:
         return parse_probe_request(payload);
         break;
-    case 0x50:
+    case WIFI_FRAME_PROBE_RESP:
         return parse_probe_response(payload);
         break;
-    case 0x80:
+    case WIFI_FRAME_BEACON:
         return parse_beacon(payload);
         break;
     case 0xB4:

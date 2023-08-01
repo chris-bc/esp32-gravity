@@ -3,7 +3,14 @@
 
 #include <esp_err.h>
 #include <esp_wifi.h>
+#include <esp_wifi_types.h>
+#include <esp_log.h>
+
+#include <stdbool.h>
+#include <time.h>
+#include <string.h>
 #include "common.h"
+
 
 // TODO: If there are problems with SSID filtering, scan_filter_ssid had to be changed from static to get extern working...
 extern char scan_filter_ssid[33];

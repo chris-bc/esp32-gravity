@@ -1,12 +1,4 @@
 #include "fuzz.h"
-#include "beacon.h"
-#include "freertos/portmacro.h"
-#include "probe.h"
-#include "common.h"
-#include "esp_err.h"
-#include "esp_wifi_types.h"
-#include <string.h>
-#include <time.h>
 
 FuzzMode fuzzMode = FUZZ_MODE_OFF;
 FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;

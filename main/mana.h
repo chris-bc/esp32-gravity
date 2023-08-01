@@ -7,7 +7,6 @@
 #include <esp_err.h>
 #include <esp_wifi.h>
 #include "common.h"
-#include "probe.h"
 
 typedef struct NetworkList {
     uint8_t bMac[6];

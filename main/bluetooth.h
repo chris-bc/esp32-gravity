@@ -4,8 +4,8 @@
 #include <string.h>
 #include <esp_log.h>
 #include <esp_wifi.h>
-#include "esp_err.h"
-#include "esp_wifi_types.h"
+#include <esp_err.h>
+#include <esp_wifi_types.h>
 #include <stddef.h>
 
 #if defined(CONFIG_IDF_TARGET_ESP32)

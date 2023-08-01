@@ -1,6 +1,4 @@
 #include "mana.h"
-#include "common.h"
-#include "esp_err.h"
 
 const char *MANA_TAG = "mana@GRAVITY";
 
