@@ -18,7 +18,15 @@ const char INNOCENT_MAC_STR[] = "A6:04:60:22:1A:B2";
    * Responds to probe requests with selectedAPs
 */
 esp_err_t cloneStartStop(bool isStarting) {
-    //
+    /* Reject startup if no selectedAPs */
+    if (isStarting && gravity_sel_ap_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("Not starting AP-Clone, no selectedAPs.\nPlease select one or more APs first.\n");
+        #else
+            ESP_LOGE(DOS_TAG, "Not starting AP-Clone, no selectedAPs. Please select one or more APs first.");
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
     /* Update attack_status[] */
     attack_status[ATTACK_AP_CLONE] = isStarting;
     attack_status[ATTACK_AP_DOS] = isStarting;
@@ -258,6 +266,11 @@ esp_err_t dosParseFrame(uint8_t *payload) {
     uint8_t srcAddr[6];
     uint8_t destAddr[6];
     esp_err_t err = ESP_OK;
+
+    /* AP-DOS and AP-Clone both require at least one selectedAP */
+    if (gravity_sel_ap_count == 0) {
+        return ESP_OK;
+    }
 
     /* If AP-Clone is running and it's a probe request pass it to AP-Clone */
     if (attack_status[ATTACK_AP_CLONE] && payload[0] == WIFI_FRAME_PROBE_REQ) {

@@ -973,6 +973,14 @@ int cmd_ap_dos(int argc, char **argv) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
+    if (gravity_sel_ap_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("NOTE: You have no selected APs\nAP-DOS will not function until you select some.\n");
+        #else
+            ESP_LOGI(DOS_TAG, "You have no selected APs. AP-DOS is active, but only operates on selected APs. Please select one or more APs.");
+        #endif
+    }
+
     return ESP_OK;
 }
 
