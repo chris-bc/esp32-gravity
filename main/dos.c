@@ -1,12 +1,13 @@
 #include "dos.h"
 #include "beacon.h"
-#include "common.h"
 #include "esp_err.h"
 #include "probe.h"
+#include "common.h"
 
 const char *DOS_TAG = "dos@GRAVITY";
 const uint8_t INNOCENT_MAC_BYTES[] = { 0xA6, 0x04, 0x60, 0x22, 0x1A, 0xB2 };
 const char INNOCENT_MAC_STR[] = "A6:04:60:22:1A:B2";
+static PROBE_RESPONSE_AUTH_TYPE currentAuthType = 0;
 
 /* Start/Stop AP-Clone
    Frustratingly, this is the second time I've written this function
@@ -17,7 +18,7 @@ const char INNOCENT_MAC_STR[] = "A6:04:60:22:1A:B2";
    * Enables Beacon: Broadcast beacon frames advertising selectedAPs
    * Responds to probe requests with selectedAPs
 */
-esp_err_t cloneStartStop(bool isStarting) {
+esp_err_t cloneStartStop(bool isStarting, int authType) {
     /* Reject startup if no selectedAPs */
     if (isStarting && gravity_sel_ap_count == 0) {
         #ifdef CONFIG_FLIPPER
@@ -28,6 +29,8 @@ esp_err_t cloneStartStop(bool isStarting) {
         return ESP_ERR_INVALID_ARG;
     }
     esp_err_t res = ESP_OK;
+
+    currentAuthType = authType;
 
     /* Update attack_status[] */
     attack_status[ATTACK_AP_CLONE] = isStarting;

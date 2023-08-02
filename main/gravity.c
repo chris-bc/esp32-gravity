@@ -12,6 +12,7 @@
 #include "common.h"
 #include "dos.h"
 #include "beacon.h"
+#include "esp_err.h"
 #include "probe.h"
 #include "scan.h"
 #include "deauth.h"
@@ -20,6 +21,7 @@
 #include "mana.h"
 #include "hop.h"
 #include "bluetooth.h"
+#include "usage_const.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -1009,8 +1011,33 @@ int cmd_ap_clone(int argc, char **argv) {
         #endif
         return ESP_OK;
     }
+    PROBE_RESPONSE_AUTH_TYPE authType = 0;
+    for (int i = 2; i < argc; ++i) {
+        if (!strcasecmp(argv[i], "OPEN")) {
+            authType |= AUTH_TYPE_NONE;
+        } else if (!strcasecmp(argv[i], "WEP")) {
+            authType |= AUTH_TYPE_WEP;
+        } else if (!strcasecmp(argv[i], "WPA")) {
+            authType |= AUTH_TYPE_WPA;
+        } else {
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid argument \"%s\"\n%s\n", argv[i], SHORT_AP_CLONE);
+            #else
+                ESP_LOGE(DOS_TAG, "Invalid argument provided: \"%s\"\n%s", argv[i], USAGE_AP_CLONE);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
+    }
+    if (authType == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("Error: No auth type specified.\n%s\n", SHORT_AP_CLONE);
+        #else
+            ESP_LOGE(DOS_TAG, "No auth type specified.\n%s", USAGE_AP_CLONE);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
 
-    esp_err_t err = cloneStartStop(strcasecmp(argv[1], "OFF"));
+    esp_err_t err = cloneStartStop(strcasecmp(argv[1], "OFF"), authType);
 
     return err;
 }

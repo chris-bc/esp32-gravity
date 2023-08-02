@@ -236,7 +236,23 @@ esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]) 
     char retVal[45];
     memset(retVal, '\0', 45); /* Fill retVal with NULL so I can use string operations */
 
+    if (authType & AUTH_TYPE_NONE) {
+        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_NONE]);
+    }
+    if (authType & AUTH_TYPE_WEP) {
+        if (strlen(retVal) > 0) {
+            strcat(retVal, ", ");
+        }
+        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_WEP]);
+    }
+    if (authType & AUTH_TYPE_WPA) {
+        if (strlen(retVal) > 0) {
+            strcat(retVal, ", ");
+        }
+        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_WPA]);
+    }
 
+    strcpy(theString, retVal);
 
     return err;
 }
