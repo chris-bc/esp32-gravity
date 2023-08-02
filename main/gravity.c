@@ -1065,7 +1065,7 @@ int cmd_ap_clone(int argc, char **argv) {
             return ESP_ERR_INVALID_ARG;
         }
     }
-    if (cloneAuthType == 0) {
+    if (cloneAuthType == 0 && strcasecmp(argv[1], "OFF")) {
         #ifdef CONFIG_FLIPPER
             printf("Error: No auth type specified.\n%s\n", SHORT_AP_CLONE);
         #else

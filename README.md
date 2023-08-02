@@ -970,22 +970,21 @@ TODO
 
 ## Bugs / Todo
 
-* Decode OUI when displaying MACs (in the same way Wireshark does)
+* Refactor modules, move everything to good design
+  * Move out of gravity.c
+    * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
 * parse additional packet types
-* Test using fuzz with multiple packet types
 * hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
+* figure out RSSI
+* Decode OUI when displaying MACs (in the same way Wireshark does)
+* Test using fuzz with multiple packet types
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * STA channels not recorded
-* figure out RSSI
 * STA channel issues - can't set channel >= 10 - type/base conversion??
 * Improve sniff implementation
 * Eventually deauth triggers "wifi:max connection, deauth!"
-* Refactor modules, move everything to good design
-  * Move out of gravity.c
-    * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
-* fix the fn that prints auth types - uses bitwise operators incorrectly I think
     
 ## Testing / Packet verification
 
