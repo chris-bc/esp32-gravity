@@ -418,9 +418,6 @@ int cmd_commands(int argc, char **argv) {
 }
 
 int cmd_beacon(int argc, char **argv) {
-    // TODO: Support specification of auth types
-    PROBE_RESPONSE_AUTH_TYPE authType = AUTH_TYPE_NONE;
-
     /* Usage beacon [ rickroll | random [ count ] | infinite | target-ssids | aps | off ] [ AUTH ( OPEN | WPA )+ ] */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
     
@@ -466,10 +463,40 @@ int cmd_beacon(int argc, char **argv) {
         ESP_ERROR_CHECK(cmd_hop(2, args));
     }
 
+    /* What auth type(s) are we using? */
+    PROBE_RESPONSE_AUTH_TYPE specAuthType = 0;
+    int authIdx = 0;
+    for (authIdx = 1; authIdx < (argc - 1) && strcasecmp(argv[authIdx], "AUTH"); ++authIdx) { }
+    if (authIdx == (argc - 1)) {
+        /* Not present - Use default */
+        specAuthType = AUTH_TYPE_NONE;
+    } else {
+        /* Found "AUTH" in argument authIdx - Loop through subsequent arguments collecting valid authTypes */
+        int typeIdx = authIdx + 1;
+        while (typeIdx < argc) {
+            if (!strcasecmp(argv[typeIdx], "OPEN")) {
+                /* Look for open networks */
+                specAuthType |= AUTH_TYPE_NONE;
+            } else if (!strcasecmp(argv[typeIdx], "WPA")) {
+                /* Look for secured networks */
+                specAuthType |= AUTH_TYPE_WPA;
+            } else if (specAuthType == 0) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid argument \"%s\"\n", argv[typeIdx]);
+                #else
+                    ESP_LOGE(BEACON_TAG, "Invalid argument \"%s\"", argv[typeIdx]);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            ++typeIdx;
+        }
+    }
+    /* specAuthType should now contain a valid authType based on user input */
+
     /* Handle arguments to beacon */
     int ssidCount = DEFAULT_SSID_COUNT;
     if (!strcasecmp(argv[1], "rickroll")) {
-        ret = beacon_start(ATTACK_BEACON_RICKROLL, &authType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_RICKROLL, &specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
             SSID_LEN_MIN = 8;
@@ -477,19 +504,19 @@ int cmd_beacon(int argc, char **argv) {
         if (SSID_LEN_MAX == 0) {
             SSID_LEN_MAX = 32;
         }
-        if (argc == 3) {
+        if (argc >= 3) {
             ssidCount = atoi(argv[2]);
             if (ssidCount == 0) {
                 ssidCount = DEFAULT_SSID_COUNT;
             }
         }
-        ret = beacon_start(ATTACK_BEACON_RANDOM, &authType, 1, ssidCount);
+        ret = beacon_start(ATTACK_BEACON_RANDOM, &specAuthType, 1, ssidCount);
     } else if (!strcasecmp(argv[1], "target-ssids")) {
-        ret = beacon_start(ATTACK_BEACON_USER, &authType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_USER, &specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "aps")) {
-        ret = beacon_start(ATTACK_BEACON_AP, &authType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_AP, &specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "infinite")) {
-        ret = beacon_start(ATTACK_BEACON_INFINITE, &authType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_INFINITE, &specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {

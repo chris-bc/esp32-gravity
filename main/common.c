@@ -1,4 +1,5 @@
 #include "common.h"
+#include "esp_err.h"
 
 const char *TAG = "GRAVITY";
 const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
@@ -236,16 +237,16 @@ esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]) 
     char retVal[45];
     memset(retVal, '\0', 45); /* Fill retVal with NULL so I can use string operations */
 
-    if (authType & AUTH_TYPE_NONE) {
+    if ((authType & AUTH_TYPE_NONE) == AUTH_TYPE_NONE) {
         strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_NONE]);
     }
-    if (authType & AUTH_TYPE_WEP) {
+    if ((authType & AUTH_TYPE_WEP) == AUTH_TYPE_WEP) {
         if (strlen(retVal) > 0) {
             strcat(retVal, ", ");
         }
         strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_WEP]);
     }
-    if (authType & AUTH_TYPE_WPA) {
+    if ((authType & AUTH_TYPE_WPA) == AUTH_TYPE_WPA) {
         if (strlen(retVal) > 0) {
             strcat(retVal, ", ");
         }
@@ -321,6 +322,52 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount) {
 	/* Return length */
 	*staCount = resCount;
 	return resPassOne;
+}
+
+/* Extract and return the individual components of the specified authType */
+/* outputCount should be a pointer to an integer (&myInteger) where the number
+   of PROBE_RESPONSE_AUTH_TYPEs extracted from input is recorded */
+PROBE_RESPONSE_AUTH_TYPE *unpackAuthType(PROBE_RESPONSE_AUTH_TYPE input, int *outputCount) {
+    int count = 0;
+    if ((input & AUTH_TYPE_NONE) == AUTH_TYPE_NONE) {
+        ++count;
+    }
+    if ((input & AUTH_TYPE_WEP) == AUTH_TYPE_WEP) {
+        ++count;
+    }
+    if ((input & AUTH_TYPE_WPA) == AUTH_TYPE_WPA) {
+        ++count;
+    }
+    if (count == 0) {
+        return NULL;
+    }
+
+    /* Initialise the return value */
+    PROBE_RESPONSE_AUTH_TYPE *retVal = malloc(sizeof(PROBE_RESPONSE_AUTH_TYPE) * count);
+    if (retVal == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory to decompose authTypes\n");
+        #else
+            ESP_LOGE(TAG, "Unable to allocate memory to decompose an authType into its component PROBE_RESPONSE_AUTH_TYPEs.");
+        #endif
+        return NULL;
+    }
+
+    /* Populate the return value */
+    count = 0;
+    if ((input & AUTH_TYPE_NONE) == AUTH_TYPE_NONE) {
+        retVal[count++] = AUTH_TYPE_NONE;
+    }
+    if ((input & AUTH_TYPE_WEP) == AUTH_TYPE_WEP) {
+        retVal[count++] = AUTH_TYPE_WEP;
+    }
+    if ((input & AUTH_TYPE_WPA) == AUTH_TYPE_WPA) {
+        retVal[count++] = AUTH_TYPE_WPA;
+    }
+
+    /* Return it */
+    *outputCount = count;
+    return retVal;
 }
 
 

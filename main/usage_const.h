@@ -26,7 +26,7 @@ const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
 const char USAGE_INFO[] = "Provide help information for the specified command. Usage: info <cmd>";
 
 const char SHORT_BT[] = "bluetooth [ ON | OFF ]";
-const char SHORT_BEACON[] = "beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ] [ AUTH ( OPEN | WPA )+ ]";
+const char SHORT_BEACON[] = "beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF] [ AUTH ( OPEN | WPA )+ ]";
 const char SHORT_TARGET_SSIDS[] = "(ADD | REMOVE) <apName>";
 const char SHORT_PROBE[] = "probe ANY | TARGET-SSIDs | APs | OFF";
 const char SHORT_FUZZ[] = "fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )";

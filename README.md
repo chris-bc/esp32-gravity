@@ -985,6 +985,7 @@ TODO
 * Refactor modules, move everything to good design
   * Move out of gravity.c
     * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
+* fix the fn that prints auth types - uses bitwise operators incorrectly I think
     
 ## Testing / Packet verification
 

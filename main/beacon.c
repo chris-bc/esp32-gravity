@@ -26,8 +26,8 @@ char **attack_ssids = NULL;
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 beacon_attack_t beaconAttackType = ATTACK_BEACON_NONE;
-PROBE_RESPONSE_AUTH_TYPE *beaconAuthTypes = NULL;
-int beaconAuthCount = 0;
+static PROBE_RESPONSE_AUTH_TYPE *beaconAuthTypes = NULL;
+static int beaconAuthCount = 0;
 static int SSID_COUNT;
 
 static TaskHandle_t beaconTask = NULL;
@@ -129,25 +129,42 @@ void beaconSpam(void *pvParameter) {
 		beacon_send[BEACON_SRCADDR_OFFSET + 5] = line;
 		beacon_send[BEACON_BSSID_OFFSET + 5] = line;
 
-		/* Set privacy bit as appropriate */
-		// if (isSecure) {
-		// 	beacon_send[BEACON_PRIVACY_OFFSET] = 0x31;
-		// } else {
-		// 	beacon_send[BEACON_PRIVACY_OFFSET] = 0x21;
-		// }
+		/* Work out how many iterations are needed to cover all specified auth types */
+		int authTypeCount = 0;
+		PROBE_RESPONSE_AUTH_TYPE thisAuthType = 0;
+		if (beaconAuthCount == 1) {
+			thisAuthType = beaconAuthTypes[0];
+		} else {
+			thisAuthType = beaconAuthTypes[line]; /* I think this works ... But I also thought the var was named i ...*/
+		}
+		PROBE_RESPONSE_AUTH_TYPE *selectedAuthTypes = unpackAuthType(thisAuthType, &authTypeCount);
 
-		// Update sequence number
-		beacon_send[BEACON_SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
-		beacon_send[BEACON_SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
-		seqnum[line]++;
-		if (seqnum[line] > 0xfff)
-			seqnum[line] = 0;
+		for (int authLoop = 0; authLoop < authTypeCount; ++authLoop) {
+			/* Set privacy bit as appropriate */
+			switch (selectedAuthTypes[authLoop]) {
+				case AUTH_TYPE_WEP:
+				case AUTH_TYPE_WPA:
+					beacon_send[BEACON_PRIVACY_OFFSET] = 0x31;
+					break;
+				case AUTH_TYPE_NONE:
+				default:
+					beacon_send[BEACON_PRIVACY_OFFSET] = 0x21;
+					break;
+			}
 
-		esp_wifi_80211_tx(WIFI_IF_AP, beacon_send, sizeof(beacon_raw) + strlen(attack_ssids[line]), false);
+			// Update sequence number
+			beacon_send[BEACON_SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
+			beacon_send[BEACON_SEQNUM_OFFSET + 1] = (seqnum[line] & 0xff0) >> 4;
+			seqnum[line]++;
+			if (seqnum[line] > 0xfff)
+				seqnum[line] = 0;
 
-		#ifdef CONFIG_DEBUG_VERBOSE
-			printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
-		#endif
+			esp_wifi_80211_tx(WIFI_IF_AP, beacon_send, sizeof(beacon_raw) + strlen(attack_ssids[line]), false);
+
+			#ifdef CONFIG_DEBUG_VERBOSE
+				printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
+			#endif
+		}
 
 		if (++line >= SSID_COUNT) {
 			line = 0;
@@ -313,11 +330,12 @@ esp_err_t beacon_stop() {
 		for (int i = 0; i < SSID_COUNT; ++i) {
 			free(attack_ssids[i]);
 		}
-		// TODO: Is there a reason I don't free attack_ssids here?
 	}
-	if (beaconAttackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
-		free(currentSsid);
-		// TODO: Is there a reason I don't free attack_ssids here?
+	if (beaconAttackType == ATTACK_BEACON_INFINITE) {
+		if (currentSsid != NULL) {
+			free(currentSsid);
+		}
+// Maybe		free(attack_ssids);
 	} else if (beaconAttackType == ATTACK_BEACON_RANDOM) {
 		/* Free attack_ssids[i] */
 		for (int i = 0; i < SSID_COUNT; ++i) {
@@ -446,6 +464,17 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
 	}
 	for (int i = 0; i < beaconAuthCount; ++i) {
 		beaconAuthTypes[i] = authentication[i];
+		#ifdef CONFIG_DEBUG
+			char authTypeStr[45];
+			if (authTypeToString(beaconAuthTypes[i], authTypeStr) != ESP_OK) {
+				sprintf(authTypeStr, "Unknown (%d)", beaconAuthTypes[i]);
+			}
+			#ifdef CONFIG_FLIPPER
+				printf("Adding auth type: %s\n", authTypeStr);
+			#else
+				ESP_LOGI(BEACON_TAG, "Adding auth type: %s", authTypeStr);
+			#endif
+		#endif
 	}
 
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &beaconTask);
