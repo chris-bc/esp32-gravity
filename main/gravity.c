@@ -418,14 +418,24 @@ int cmd_commands(int argc, char **argv) {
 }
 
 int cmd_beacon(int argc, char **argv) {
-    /* rickroll | random | target-ssids | ap | off | status */
+    // TODO: Support specification of auth types
+    PROBE_RESPONSE_AUTH_TYPE authType = AUTH_TYPE_NONE;
+
+    /* Usage beacon [ rickroll | random [ count ] | infinite | target-ssids | aps | off ] [ AUTH ( OPEN | WPA )+ ] */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
-    /* argc must be 1 or 2 - no arguments, or rickroll/random/user/infinite/off */
-    if (argc < 1 || argc > 3) {
+    
+    /* Validate arguments:
+       * 1: Status
+       * 2 onwards: loop through looking for specified keywords.
+          * If RANDOM is found then look for and handle COUNT at the same time
+          * If AUTH is found then look for and handle authType at the same time
+       * Absolute maximum argc: beacon random 42 auth open wpa 
+    */
+    if (argc > 6) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_BEACON);
         #else
-            ESP_LOGE(TAG, "Invalid arguments specified. Expected 0 or 1, received %d.", argc - 1);
+            ESP_LOGE(TAG, "Invalid arguments specified. Expected fewer than six, received %d.", argc - 1);
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -459,7 +469,7 @@ int cmd_beacon(int argc, char **argv) {
     /* Handle arguments to beacon */
     int ssidCount = DEFAULT_SSID_COUNT;
     if (!strcasecmp(argv[1], "rickroll")) {
-        ret = beacon_start(ATTACK_BEACON_RICKROLL, 0);
+        ret = beacon_start(ATTACK_BEACON_RICKROLL, &authType, 1, 0);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
             SSID_LEN_MIN = 8;
@@ -473,13 +483,13 @@ int cmd_beacon(int argc, char **argv) {
                 ssidCount = DEFAULT_SSID_COUNT;
             }
         }
-        ret = beacon_start(ATTACK_BEACON_RANDOM, ssidCount);
+        ret = beacon_start(ATTACK_BEACON_RANDOM, &authType, 1, ssidCount);
     } else if (!strcasecmp(argv[1], "target-ssids")) {
-        ret = beacon_start(ATTACK_BEACON_USER, 0);
+        ret = beacon_start(ATTACK_BEACON_USER, &authType, 1, 0);
     } else if (!strcasecmp(argv[1], "aps")) {
-        ret = beacon_start(ATTACK_BEACON_AP, 0);
+        ret = beacon_start(ATTACK_BEACON_AP, &authType, 1, 0);
     } else if (!strcasecmp(argv[1], "infinite")) {
-        ret = beacon_start(ATTACK_BEACON_INFINITE, 0);
+        ret = beacon_start(ATTACK_BEACON_INFINITE, &authType, 1, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {

@@ -34,6 +34,7 @@ extern int BEACON_SRCADDR_OFFSET;
 extern int BEACON_DESTADDR_OFFSET;
 extern int BEACON_BSSID_OFFSET;
 extern int BEACON_SEQNUM_OFFSET;
+extern int BEACON_PRIVACY_OFFSET;
 
 typedef enum {
     ATTACK_BEACON_NONE,
@@ -43,6 +44,7 @@ typedef enum {
 	ATTACK_BEACON_AP,
 	ATTACK_BEACON_INFINITE
 } beacon_attack_t;
+extern beacon_attack_t beaconAttackType;
 
 extern int DEFAULT_SSID_COUNT;
 extern int SSID_LEN_MIN;
@@ -50,7 +52,6 @@ extern int SSID_LEN_MAX;
 const char* BEACON_TAG = "beacon@GRAVITY";
 
 extern char **user_ssids;
-extern int user_ssid_count;
 
 extern uint8_t beacon_raw[];
 
@@ -60,7 +61,7 @@ char *getRandomWord();
 esp_err_t randomSsidWithWords(char *ssid, int len);
 esp_err_t randomSsidWithChars(char *ssid, int len);
 
-esp_err_t beacon_start(beacon_attack_t type, int ssidCount);
+esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authenticationCount, int ssidCount);
 esp_err_t beacon_stop();
 
 /* extern functions - defined in main.c */

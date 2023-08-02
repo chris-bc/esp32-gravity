@@ -522,10 +522,25 @@ some use verifying the absence of buffer overflows when developing modules that
 scan for wireless networks.
 
 ```c
-Syntax: beacon [ RICKROLL | RANDOM [COUNT] | INFINITE | TARGET-SSIDs | APs | OFF ]
+Syntax: beacon [ RICKROLL | RANDOM [COUNT] | INFINITE | TARGET-SSIDs | APs | OFF ] [ AUTH ( OPEN | WPA )+ ]
 ```
 
 Run `beacon` with no parameters to display the current status.
+
+`AUTH ( OPEN | WPA )+`
+
+This optional sub-command specifies the type(s) of authentication Gravity should advertise
+the APs as having. Functionally, a beacon only advertises whether or not an AP has privacy
+enabled, meaning that there is no need to differentiate between `WEP` and `WPA`; both
+have the same effect - causing the beacon to advertise itself as *secure* rather than *open*.
+
+Multiple authentication types can be specified by joining them together - `auth open wpa`. In
+this case Gravity will send two beacon frames for every one that it would otherwise have
+sent - one beacon frame advertising an open network and one advertising a secured network.
+
+As soon as I can come up with a clever way to specify a list of authentication types on the
+command line we can allow specifying a different authentication type per AP, but that's a
+nut I'm yet to crack.
 
 `RICKROLL`
 

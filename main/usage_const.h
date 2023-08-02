@@ -3,7 +3,7 @@
 
 /* Command usage string - SHORT_* is compressed help text for Flipper */
 const char USAGE_BT[] = "Bluetooth Test Module. bluetooth [ ON | OFF ]";
-const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ]";
+const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ] [ AUTH ( OPEN | WPA )+ ]";
 const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
 const char USAGE_PROBE[] = "Probe flood attack. Usage: probe [ ANY | TARGET-SSIDs | APs | OFF ]";
 const char USAGE_FUZZ[] = "Various invalid packets. Usage: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )";
@@ -26,7 +26,7 @@ const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
 const char USAGE_INFO[] = "Provide help information for the specified command. Usage: info <cmd>";
 
 const char SHORT_BT[] = "bluetooth [ ON | OFF ]";
-const char SHORT_BEACON[] = "beacon RANDOM <count>";
+const char SHORT_BEACON[] = "beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ] [ AUTH ( OPEN | WPA )+ ]";
 const char SHORT_TARGET_SSIDS[] = "(ADD | REMOVE) <apName>";
 const char SHORT_PROBE[] = "probe ANY | TARGET-SSIDs | APs | OFF";
 const char SHORT_FUZZ[] = "fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )";

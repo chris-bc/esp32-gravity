@@ -117,6 +117,8 @@ typedef enum PROBE_RESPONSE_AUTH_TYPE {
 } PROBE_RESPONSE_AUTH_TYPE;
 extern const char *AUTH_TYPE_NAMES[];
 
+/* Declared here because I get an error trying to use this enum in beacon.h (but it's fine in beacon.c) */
+extern PROBE_RESPONSE_AUTH_TYPE authTypes[];
 
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;

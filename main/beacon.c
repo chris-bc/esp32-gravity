@@ -1,4 +1,6 @@
 #include "beacon.h"
+#include "common.h"
+#include "esp_err.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
@@ -10,6 +12,7 @@ int BEACON_SRCADDR_OFFSET = 10;
 int BEACON_DESTADDR_OFFSET = 4;
 int BEACON_BSSID_OFFSET = 16;
 int BEACON_SEQNUM_OFFSET = 22;
+int BEACON_PRIVACY_OFFSET = 34; /* 0x31 set, 0x21 unset */
 
 
 char **attack_ssids = NULL;
@@ -22,7 +25,9 @@ char **attack_ssids = NULL;
  */
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
-static beacon_attack_t attackType = ATTACK_BEACON_NONE;
+beacon_attack_t beaconAttackType = ATTACK_BEACON_NONE;
+PROBE_RESPONSE_AUTH_TYPE *beaconAuthTypes = NULL;
+int beaconAuthCount = 0;
 static int SSID_COUNT;
 
 static TaskHandle_t beaconTask = NULL;
@@ -42,7 +47,7 @@ uint8_t beacon_raw[] = {
 	0x00, 0x00,				    		// 22-23: Sequence / fragment number
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,     // 24-31: Timestamp (GETS OVERWRITTEN TO 0 BY HARDWARE)
 	0x64, 0x00,			    			// 32-33: Beacon interval
-	0x31, 0x04,		    				// 34-35: Capability info
+	0x31, 0x04,		    				// 34-35: Capability info: 0x31 0x04 => Privacy bit set  0x21 0x04 => Privacy bit not set
 	0x00, 0x00, /* FILL CONTENT HERE */	// 36-38: SSID parameter set, 0x00:length:content
 	0x01, 0x08, 0x82, 0x84,	0x8b, 0x96, 0x0c, 0x12, 0x18, 0x24,	// 39-48: Supported rates
 	0x03, 0x01, 0x01,				// 49-51: DS Parameter set, current channel 1 (= 0x01),
@@ -72,7 +77,7 @@ void beaconSpam(void *pvParameter) {
 		/* Enforce the use of CONFIG_MIN_ATTACK_MILLIS if not Infinite Beacon spam and
 		   ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS
 		*/
-		if (attackType != ATTACK_BEACON_INFINITE && ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS) {
+		if (beaconAttackType != ATTACK_BEACON_INFINITE && ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS) {
 			vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
 		} else {
 			vTaskDelay(ATTACK_MILLIS / portTICK_PERIOD_MS);
@@ -80,7 +85,7 @@ void beaconSpam(void *pvParameter) {
 
 		// Pull the current SSID and SSID length into variables to more
 		//   easily implement infinite beacon spam
-		if (attackType == ATTACK_BEACON_INFINITE) {
+		if (beaconAttackType == ATTACK_BEACON_INFINITE) {
 			if (currentSsid != NULL) {
 				free(currentSsid);
 			}
@@ -123,6 +128,13 @@ void beaconSpam(void *pvParameter) {
 		// Last byte of source address / BSSID will be line number - emulate multiple APs broadcasting one SSID each
 		beacon_send[BEACON_SRCADDR_OFFSET + 5] = line;
 		beacon_send[BEACON_BSSID_OFFSET + 5] = line;
+
+		/* Set privacy bit as appropriate */
+		// if (isSecure) {
+		// 	beacon_send[BEACON_PRIVACY_OFFSET] = 0x31;
+		// } else {
+		// 	beacon_send[BEACON_PRIVACY_OFFSET] = 0x21;
+		// }
 
 		// Update sequence number
 		beacon_send[BEACON_SEQNUM_OFFSET] = (seqnum[line] & 0x0f) << 4;
@@ -270,14 +282,14 @@ char **generateRandomSSids() {
 			#endif
 
 			/* Free memory if required */
-			if (attackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
+			if (beaconAttackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
 				free(currentSsid);
-			} else if (attackType == ATTACK_BEACON_RANDOM || attackType == ATTACK_BEACON_AP) {
+			} else if (beaconAttackType == ATTACK_BEACON_RANDOM || beaconAttackType == ATTACK_BEACON_AP) {
 				for (int j = 0; j < SSID_COUNT; ++j) {
 					free(attack_ssids[j]);
 				}
 				free(attack_ssids);
-			} else if (attackType == ATTACK_BEACON_AP) {
+			} else if (beaconAttackType == ATTACK_BEACON_AP) {
 				for (int j = 0; j < SSID_COUNT; ++j) {
 					free(attack_ssids[i]);
 				}
@@ -297,40 +309,60 @@ esp_err_t beacon_stop() {
 
 	/* Clean up generated SSIDs */
 	/* For AP free the individual strings */
-	if (attackType == ATTACK_BEACON_AP) {
+	if (beaconAttackType == ATTACK_BEACON_AP) {
 		for (int i = 0; i < SSID_COUNT; ++i) {
 			free(attack_ssids[i]);
 		}
+		// TODO: Is there a reason I don't free attack_ssids here?
 	}
-	if (attackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
+	if (beaconAttackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
 		free(currentSsid);
-	} else if (attackType == ATTACK_BEACON_RANDOM) {
+		// TODO: Is there a reason I don't free attack_ssids here?
+	} else if (beaconAttackType == ATTACK_BEACON_RANDOM) {
 		/* Free attack_ssids[i] */
 		for (int i = 0; i < SSID_COUNT; ++i) {
 			free(attack_ssids[i]);
 		}
 		free(attack_ssids);
-	} else if (attackType == ATTACK_BEACON_AP) {
+	} else if (beaconAttackType == ATTACK_BEACON_AP) {
 		free(attack_ssids);
 	}
-	attackType = ATTACK_BEACON_NONE;
+	beaconAttackType = ATTACK_BEACON_NONE;
 
     return ESP_OK;
 }
 
-esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
+/* Start a beacon spam attack
+   Start an attack of the specified attack type
+   The optional parameter ssidCount can be used for the Random Beacon attack,
+      where it specifies the number of random SSIDs to generate. Where defaults
+	  are desired specify 0.
+   authentication is a PROBE_RESPONSE_AUTH_TYPE array. This array must have either:
+      * A single element containing a PROBE_RESPONSE_AUTH_TYPE value.
+	  	This value is used to determine authentication type(s) advertised in all beacons.
+		NOTE that a single value can be provided like so:
+				PROBE_RESPONSE_AUTH_TYPE authType = AUTH_TYPE_NONE | AUTH_TYPE_WPA;
+				beacon_start(type, &authType, 1, 0);
+	  * Exactly the same number of elements as there are SSIDs being broadcast.
+	  	Element i of authentication provides the authType for SSID i.
+		All attack modes, excluding infinite, support this model.
+	  * Note: Because PROBE_RESPONSE_AUTH_TYPE is a bitwise enum, an SSID may
+		specify both open and secured authentication types. If this occurs
+		Gravity will send two beacons, one advertising privacy and one without.
+*/
+esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authenticationCount, int ssidCount) {
     /* Stop an existing beacon attack if one exists */
-    if (attackType != ATTACK_BEACON_NONE) {
+    if (beaconAttackType != ATTACK_BEACON_NONE) {
         beacon_stop();
     }
 	// And initialise the random number generator
 	// It'll happen more than once here, but that's OK
 	srand(time(NULL));
 
-    attackType = type;
+    beaconAttackType = type;
 
 	// Prepare the appropriate beacon array
-	if (attackType == ATTACK_BEACON_RICKROLL) {
+	if (beaconAttackType == ATTACK_BEACON_RICKROLL) {
 		SSID_COUNT = RICK_SSID_COUNT;
 		attack_ssids = rick_ssids;
 		#ifdef CONFIG_FLIPPER
@@ -338,7 +370,7 @@ esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
 		#else
 			ESP_LOGI(BEACON_TAG, "Starting RickRoll: %d SSIDs", SSID_COUNT);
 		#endif
-	} else if (attackType == ATTACK_BEACON_RANDOM) {
+	} else if (beaconAttackType == ATTACK_BEACON_RANDOM) {
 		SSID_COUNT = (ssidCount>0)?ssidCount:DEFAULT_SSID_COUNT;
 		attack_ssids = generateRandomSSids();
 		#ifdef CONFIG_FLIPPER
@@ -346,7 +378,7 @@ esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
 		#else
 			ESP_LOGI(BEACON_TAG, "Starting %d random SSIDs", SSID_COUNT);
 		#endif
-	} else if (attackType == ATTACK_BEACON_USER) {
+	} else if (beaconAttackType == ATTACK_BEACON_USER) {
 		SSID_COUNT = user_ssid_count;
 		attack_ssids = user_ssids;
 		#ifdef CONFIG_FLIPPER
@@ -354,7 +386,7 @@ esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
 		#else
 			ESP_LOGI(BEACON_TAG, "Starting %d SSIDs", SSID_COUNT);
 		#endif
-	} else if (attackType == ATTACK_BEACON_AP) {
+	} else if (beaconAttackType == ATTACK_BEACON_AP) {
 		attack_ssids = apListToStrings(gravity_selected_aps, gravity_sel_ap_count);
 		SSID_COUNT = gravity_sel_ap_count;
 		#ifdef CONFIG_FLIPPER
@@ -362,7 +394,7 @@ esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
 		#else
 			ESP_LOGI(BEACON_TAG, "Starting %d scanned SSIDs", SSID_COUNT);
 		#endif
-	} else if (attackType == ATTACK_BEACON_INFINITE) {
+	} else if (beaconAttackType == ATTACK_BEACON_INFINITE) {
 		SSID_COUNT = 1;
 		attack_ssids = malloc(sizeof(char *));
 		if (attack_ssids == NULL) {
@@ -375,9 +407,48 @@ esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
 			ESP_LOGI(BEACON_TAG, "Starting infinite SSIDs. Good luck!");
 		#endif
 	}
-    
+
+	/* Validate authentication[] */
+	if (authenticationCount != SSID_COUNT && authenticationCount != 1) {
+		#ifdef CONFIG_FLIPPER
+			printf("ERROR: SSID Count (%d) does not match authType Count (%d)\n", SSID_COUNT, authenticationCount);
+		#else
+			ESP_LOGE(BEACON_TAG, "SSID Count (%d) does not match authentication type count (%d)", SSID_COUNT, authenticationCount);
+		#endif
+		return ESP_ERR_INVALID_ARG;
+	}
+	for (int i = 0; i < authenticationCount; ++i) {
+		/* Validate authentication[i] */
+		if ((authentication[i] & AUTH_TYPE_NONE) != AUTH_TYPE_NONE &&
+				(authentication[i] & AUTH_TYPE_WPA) != AUTH_TYPE_WPA) {
+			#ifdef CONFIG_FLIPPER
+				printf("ERROR: Invalid authType \"%d\"\n", authentication[i]);
+			#else
+				ESP_LOGE(BEACON_TAG, "Invalid authentication type provided in element %d: %d", i, authentication[i]);
+			#endif
+			return ESP_ERR_INVALID_ARG;
+		}
+	}
+
+	/* Store the new authentication types */
+	if (beaconAuthTypes != NULL) {
+		free(beaconAuthTypes);
+	}
+	beaconAuthCount = authenticationCount;
+	beaconAuthTypes = malloc(sizeof(PROBE_RESPONSE_AUTH_TYPE) * beaconAuthCount);
+	if (beaconAuthTypes == NULL) {
+		#ifdef CONFIG_FLIPPER
+			printf("Unable to allocate memory for authTypes\n");
+		#else
+			ESP_LOGE(BEACON_TAG, "Unable to allocate memory for authentication types");
+		#endif
+		return ESP_ERR_NO_MEM;
+	}
+	for (int i = 0; i < beaconAuthCount; ++i) {
+		beaconAuthTypes[i] = authentication[i];
+	}
+
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &beaconTask);
-    
 
     return ESP_OK;
 }
