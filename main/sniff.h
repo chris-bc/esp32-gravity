@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <esp_err.h>
+#include "common.h"
 
 extern const char *SNIFF_TAG;
 

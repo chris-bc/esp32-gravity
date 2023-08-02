@@ -1,6 +1,4 @@
 #include "beacon.h"
-#include "common.h"
-#include "esp_err.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
@@ -14,16 +12,7 @@ int BEACON_BSSID_OFFSET = 16;
 int BEACON_SEQNUM_OFFSET = 22;
 int BEACON_PRIVACY_OFFSET = 34; /* 0x31 set, 0x21 unset */
 
-
 char **attack_ssids = NULL;
-
-/*
- * This is the (currently unofficial) 802.11 raw frame TX API,
- * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
- *
- * This declaration is all you need for using esp_wifi_80211_tx in your own application.
- */
-esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 beacon_attack_t beaconAttackType = ATTACK_BEACON_NONE;
 static PROBE_RESPONSE_AUTH_TYPE *beaconAuthTypes = NULL;
@@ -52,7 +41,6 @@ uint8_t beacon_raw[] = {
 	0x01, 0x08, 0x82, 0x84,	0x8b, 0x96, 0x0c, 0x12, 0x18, 0x24,	// 39-48: Supported rates
 	0x03, 0x01, 0x01,				// 49-51: DS Parameter set, current channel 1 (= 0x01),
 	0x05, 0x04, 0x01, 0x02, 0x00, 0x00,		// 52-57: Traffic Indication Map
-	
 };
 
 char *currentSsid = NULL;
@@ -165,7 +153,6 @@ void beaconSpam(void *pvParameter) {
 				printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
 			#endif
 		}
-
 		if (++line >= SSID_COUNT) {
 			line = 0;
 		}
@@ -213,7 +200,6 @@ esp_err_t randomSsidWithWords(char *ssid, int len) {
 
     return ESP_OK;
 }
-
 
 
 esp_err_t randomSsidWithChars(char *newSsid, int len) {

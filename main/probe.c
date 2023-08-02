@@ -1,4 +1,6 @@
 #include "probe.h"
+#include "mana.h" /* To import PRIVACY_ON_BYTES and PRIVACY_OFF_BYTES */
+
 
 int PROBE_SSID_OFFSET = 26;
 int PROBE_SRCADDR_OFFSET = 10;
@@ -97,8 +99,7 @@ char **probeList = NULL;
 int probeListCount = 0;
 
 void probeCallback(void *pvParameter) {
-    //
-    // For directed probes we need to track which SSID we're up to
+    /* For directed probes we need to track which SSID we're up to */
     static int ssid_idx = 0;
     int curr_ssid_len;
     /* Move the packet off the heap */
@@ -175,13 +176,8 @@ void probeCallback(void *pvParameter) {
             probeBuffer[PROBE_BSSID_OFFSET + addr] = probeBuffer[PROBE_SRCADDR_OFFSET + addr];
         }
 
-        // Do I need to do anything with sequence numbers?
-        // TODO: Check in case of problem - last arg to 80211_tx is en_sys_seq
-        //       so I set it to true to see what happens
-
         // transmit
         esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, sizeof(probe_raw) + curr_ssid_len, true);
-//        esp_wifi_80211_tx(WIFI_IF_AP, probe_raw, sizeof(probe_raw), false);
         // increment ssid
         ++ssid_idx;
         if (ssid_idx >= probeListCount) {
@@ -244,4 +240,122 @@ int probe_start(probe_attack_t type) {
     //   dealt with in lower level functions
     xTaskCreate(&probeCallback, "probeCallback", 2048, NULL, 5, &probeTask);
     return ESP_OK;
+}
+
+/* seqNum == 0 to let IDF handle seq num */
+esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum) {
+    uint8_t *probeBuffer;
+
+    #ifdef CONFIG_DEBUG_VERBOSE
+        printf("send_probe_response(): ");
+        char strSrcAddr[18];
+        char strDestAddr[18];
+        char strAuthType[15];
+        mac_bytes_to_string(srcAddr, strSrcAddr);
+        mac_bytes_to_string(destAddr, strDestAddr);
+        switch (authType) {
+        case AUTH_TYPE_NONE:
+            strcpy(strAuthType, "AUTH_TYPE_NONE");
+            break;
+        case AUTH_TYPE_WEP:
+            strcpy(strAuthType, "AUTH_TYPE_WEP");
+            break;
+        case AUTH_TYPE_WPA:
+            strcpy(strAuthType, "AUTH_TYPE_WPA");
+            break;
+        }
+        printf("srcAddr: %s\tdestAddr: %s\tSSID: \"%s\"\tauthType: %s\n", strSrcAddr, strDestAddr, ssid, strAuthType);
+    #endif
+
+    probeBuffer = malloc(sizeof(uint8_t) * 208);
+    if (probeBuffer == NULL) {
+        ESP_LOGE(PROBE_TAG, "Failed to register probeBuffer on the stack");
+        return ESP_ERR_NO_MEM;
+    }
+    /* Copy bytes to SSID (correct src/dest later) */
+    memcpy(probeBuffer, probe_response_raw, PROBE_RESPONSE_SSID_OFFSET - 1);
+    /* Replace SSID length and append SSID */
+    probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1] = strlen(ssid);
+    //memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
+    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, sizeof(char) * strlen(ssid));
+    /* Append the remainder of the packet */
+    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET + strlen(ssid)], &probe_response_raw[PROBE_RESPONSE_SSID_OFFSET], PROBE_REQUEST_LEN - PROBE_RESPONSE_SSID_OFFSET);
+    
+    /* Set source and dest MACs */
+    memcpy(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], srcAddr, 6);
+    memcpy(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], srcAddr, 6);
+    memcpy(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], destAddr, 6);
+
+    /* Set authentication method */
+    uint8_t *bAuthType = NULL;
+    switch (authType) {
+    case AUTH_TYPE_NONE:
+        bAuthType = PRIVACY_OFF_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x00;
+        break;
+    case AUTH_TYPE_WEP:
+        bAuthType = PRIVACY_ON_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x01;
+        break;
+    case AUTH_TYPE_WPA:
+        bAuthType = PRIVACY_ON_BYTES;
+        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x02;
+        break;
+    default:
+        ESP_LOGE(PROBE_TAG, "Unrecognised authentication type: %d\n", authType);
+        return ESP_ERR_INVALID_ARG;
+    }
+    memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
+
+    /* Decode, increment and recode seqNum */
+    bool sys_queue = false;
+    if (seqNum == 0) {
+        sys_queue = true;
+    } else {
+        uint16_t seq = seqNum >> 4;
+        ++seq;
+        uint16_t newSeq = seq << 4 | (seq & 0x000f);
+        uint8_t finalSeqNum[2];
+        finalSeqNum[0] = (newSeq & 0x00FF);
+        finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
+        memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
+    }
+
+    #ifdef CONFIG_DEBUG_VERBOSE
+        char debugOut[1024];
+        int debugLen=0;
+        strcpy(debugOut, "SSID: \"");
+        debugLen += strlen("SSID: \"");
+        strncpy(&debugOut[debugLen], (char*)&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1]);
+        debugLen += probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1];
+        sprintf(&debugOut[debugLen], "\"\tsrcAddr: ");
+        debugLen += strlen("\"\tsrcAddr: ");
+        char strMac[18];
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tBSSID: ");
+        debugLen += strlen("\tBSSID: ");
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tdestAddr: ");
+        debugLen += strlen("\tdestAddr: ");
+        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], strMac);
+        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
+        debugLen += strlen(strMac);
+        sprintf(&debugOut[debugLen], "\tAuthType: \"0x%02x 0x%02x\"", probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET+1]);
+        debugLen += strlen("\tAuthType: \"0x 0x\"\n") + 4;
+        sprintf(&debugOut[debugLen], "\tSeqNum: \"0x%02x 0x%02x\"\n", probeBuffer[PROBE_SEQNUM_OFFSET], probeBuffer[PROBE_SEQNUM_OFFSET+1]);
+        debugLen += strlen("\tSeqNum: \"0x 0x\"\n") + 4;
+        debugOut[debugLen] = '\0';
+        printf("About to transmit %s\n", debugOut);
+    #endif
+
+    // Send the frame
+    /* Pause for ATTACK_MILLIS first */
+    vTaskDelay((ATTACK_MILLIS / portTICK_PERIOD_MS) + 1);
+    esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), sys_queue);
+    free(probeBuffer);
+    return e;
 }

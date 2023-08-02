@@ -158,7 +158,6 @@ esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uin
             networkCount = newCount;
         }
     }
-
     /* Send probe response */
     return send_probe_response(bCurrentMac, bDestMac, ssid, mana_auth, seqNum);
 }

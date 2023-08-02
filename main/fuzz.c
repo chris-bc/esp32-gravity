@@ -14,7 +14,6 @@ bool firstCallback = true;
 bool malformedPartOne = true;
 /* Defines whether we used a sequence of random characters, rather
    than a sequence of random words.
-   YAGNI: This doesn't belong in FUZZ, but it belongs with getRandomWord()
 */
 
 const char *FUZZ_TAG = "fuzz@GRAVITY";
@@ -42,7 +41,7 @@ esp_err_t fuzzModeAsString(char *result) {
             #ifdef CONFIG_FLIPPER
                 printf("Unknown mode %d!\n", fuzzMode);
             #else
-                ESP_LOGE(FUZZ_TAG, "Unknonw mode found: %d", fuzzMode);
+                ESP_LOGE(FUZZ_TAG, "Unknown mode found: %d", fuzzMode);
             #endif
             result = "";
             return ESP_ERR_INVALID_STATE;

@@ -1,27 +1,35 @@
-/* Basic console example (esp_console_repl API)
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+/* ********************** ESP32 Gravity ***********************
+ * Gravity started life as a way to learn how to assemble and *
+ * send wireless packets. I started with the 'RickRoll' beacon*
+ * attack, and continued the theme.                           *
+ * I like to think that Gravity differentiates itself from    *
+ * Marauder in that Marauder feels to me like it's about      *
+ * gathering information - scanning, capturing handshakes,    *
+ * etc. - whereas Gravity is all about sending stuff down the *
+ * wire. I'm fascinated by the possibilities of combining Mana*
+ * with other attacks, so my initial drive was to develop a   *
+ * Mana process from the ground up.                           *
+ *                                                            *
+ * Flipper-Gravity, a companion Flipper Zero app, can be      *
+ * downloaded from https://github.com/chris-bc/Flipper-Gravity*
+ *                                                            *
+ * ESP32-Gravity: https://github.com/chris-bc/esp32-gravity   *
+ *                                                            *
+ * Licensed under the MIT Open Source License.                *
+ **************************************************************/
 
 #include "gravity.h"
 
-#include "common.h"
-#include "dos.h"
 #include "beacon.h"
-#include "esp_err.h"
+#include "bluetooth.h"
+#include "deauth.h"
+#include "dos.h"
+#include "fuzz.h"
+#include "hop.h"
+#include "mana.h"
 #include "probe.h"
 #include "scan.h"
-#include "deauth.h"
-#include "fuzz.h"
 #include "sniff.h"
-#include "mana.h"
-#include "hop.h"
-#include "bluetooth.h"
-#include "usage_const.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -44,8 +52,8 @@ int *hop_millis_defaults;
 #define HISTORY_PATH MOUNT_PATH "/history.txt"
 
 /* Over-ride the default implementation so we can send deauth frames */
-int ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
-    return 0;
+esp_err_t ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
+    return ESP_OK;
 }
 
 /* Functions to manage target-ssids */
@@ -57,7 +65,10 @@ char **lsSsid() {
 	return user_ssids;
 }
 
-int addSsid(char *ssid) {
+/* The prototype for these functions are in beacon.h because if they're in any
+   other file beacon.h won't find them.
+*/
+esp_err_t addSsid(char *ssid) {
 	#ifdef CONFIG_DEBUG_VERBOSE
 		printf("Commencing addSsid(\"%s\"). target-ssids contains %d values:\n", ssid, user_ssid_count);
 		for (int i=0; i < user_ssid_count; ++i) {
@@ -101,7 +112,7 @@ int addSsid(char *ssid) {
 	return ESP_OK;
 }
 
-int rmSsid(char *ssid) {
+esp_err_t rmSsid(char *ssid) {
 	int idx;
 
 	// Get index of ssid if it exists
@@ -133,7 +144,7 @@ int rmSsid(char *ssid) {
 }
 
 /* Run bluetooth test module */
-int cmd_bluetooth(int argc, char **argv) {
+esp_err_t cmd_bluetooth(int argc, char **argv) {
     #if defined(CONFIG_IDF_TARGET_ESP32)
         testBT();
     #else
@@ -151,7 +162,7 @@ int cmd_bluetooth(int argc, char **argv) {
    that are invalid.
    USage: info <command>+
 */
-int cmd_info(int argc, char **argv) {
+esp_err_t cmd_info(int argc, char **argv) {
     if (argc == 1) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_INFO);
@@ -187,7 +198,7 @@ int cmd_info(int argc, char **argv) {
    Overflow: ssid_len has an accurate length, but it's greater than 32. Start with 33 and increment.
    Malformed: ssid_len does not match the SSID's length. Alternate counting down and up.
 */
-int cmd_fuzz(int argc, char **argv) {
+esp_err_t cmd_fuzz(int argc, char **argv) {
     esp_err_t err;
     /* Flexible input parameters - loop through them to validate them */
     FuzzPacketType newPacketType = FUZZ_PACKET_NONE;
@@ -279,7 +290,7 @@ int cmd_fuzz(int argc, char **argv) {
    Usage: hop [ MILLIS ] [ ON | OFF | DEFAULT | KILL ]
    Not specifying a parameter will report the status. KILL terminates the event loop.
 */
-int cmd_hop(int argc, char **argv) {
+esp_err_t cmd_hop(int argc, char **argv) {
     if (argc > 3) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_HOP);
@@ -405,7 +416,7 @@ int cmd_hop(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_commands(int argc, char **argv) {
+esp_err_t cmd_commands(int argc, char **argv) {
     ESP_LOGI(TAG, "Generating command summary...");
     for (int i=0; i < CMD_COUNT - 1; ++i) { /* -1 because they already know about this command */
         #ifdef CONFIG_FLIPPER
@@ -417,7 +428,7 @@ int cmd_commands(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_beacon(int argc, char **argv) {
+esp_err_t cmd_beacon(int argc, char **argv) {
     /* Usage beacon [ rickroll | random [ count ] | infinite | target-ssids | aps | off ] [ AUTH ( OPEN | WPA )+ ] */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
     
@@ -531,7 +542,7 @@ int cmd_beacon(int argc, char **argv) {
 }
 
 /* This feature does not modify channel hopping settings */
-int cmd_target_ssids(int argc, char **argv) {
+esp_err_t cmd_target_ssids(int argc, char **argv) {
     int ssidCount = countSsid();
     // Must have no args (return current value) or two (add/remove SSID)
     if ((argc != 1 && argc != 3) || (argc == 1 && ssidCount == 0)) {
@@ -586,7 +597,7 @@ int cmd_target_ssids(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_probe(int argc, char **argv) {
+esp_err_t cmd_probe(int argc, char **argv) {
     // Syntax: PROBE [ ANY | TARGET-SSIDs | APs | OFF ]
     if ((argc > 3) || (argc > 1 && strcasecmp(argv[1], "ANY") && strcasecmp(argv[1], "TARGET-SSIDs") && strcasecmp(argv[1], "APs") && strcasecmp(argv[1], "OFF")) || (argc == 3 && !strcasecmp(argv[1], "OFF"))) {
         #ifdef CONFIG_FLIPPER
@@ -654,7 +665,7 @@ int cmd_probe(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_sniff(int argc, char **argv) {
+esp_err_t cmd_sniff(int argc, char **argv) {
     // Usage: sniff [ ON | OFF ]
     if (argc > 2) {
         #ifdef CONFIG_FLIPPER
@@ -699,7 +710,7 @@ int cmd_sniff(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_deauth(int argc, char **argv) {
+esp_err_t cmd_deauth(int argc, char **argv) {
     /* Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | AP | BROADCAST | OFF ] */
     if (argc > 4 || (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "BROADCAST") &&
                 strcasecmp(argv[3], "AP") && strcasecmp(argv[3], "OFF")) || 
@@ -843,7 +854,7 @@ int cmd_deauth(int argc, char **argv) {
            associations.
 
  */
-int cmd_mana(int argc, char **argv) {
+esp_err_t cmd_mana(int argc, char **argv) {
     if (argc > 3) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_MANA);
@@ -976,14 +987,14 @@ int cmd_mana(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_stalk(int argc, char **argv) {
+esp_err_t cmd_stalk(int argc, char **argv) {
 
     return ESP_OK;
 }
 
 /* Enable or disable AP Denial-of-service attack mode */
 /* Usage ap-dos [ ON | OFF ] */
-int cmd_ap_dos(int argc, char **argv) {
+esp_err_t cmd_ap_dos(int argc, char **argv) {
     if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_AP_DOS);
@@ -1026,7 +1037,7 @@ int cmd_ap_dos(int argc, char **argv) {
 /* AP-Clone :  Composite denial of service attack
    USAGE    :  ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]
 */
-int cmd_ap_clone(int argc, char **argv) {
+esp_err_t cmd_ap_clone(int argc, char **argv) {
     if (argc > 5 || (argc >= 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
             (argc >= 3 && strcasecmp(argv[2], "OPEN") && strcasecmp(argv[2], "WEP") &&
                 strcasecmp(argv[2], "WPA")) || (argc >= 4 && strcasecmp(argv[3], "OPEN") &&
@@ -1079,7 +1090,7 @@ int cmd_ap_clone(int argc, char **argv) {
     return err;
 }
 
-int cmd_scan(int argc, char **argv) {
+esp_err_t cmd_scan(int argc, char **argv) {
     if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32)) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
@@ -1191,7 +1202,7 @@ int cmd_scan(int argc, char **argv) {
       SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
       MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY | HOP_MODE */
 /* Channel hopping is not catered for in this feature */
-int cmd_set(int argc, char **argv) {
+esp_err_t cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
             printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_SET);
@@ -1388,7 +1399,7 @@ int cmd_set(int argc, char **argv) {
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL, HOP_MODE
       MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS */
 /* Channel hopping is not catered for in this feature */
-int cmd_get(int argc, char **argv) {
+esp_err_t cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
             printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_GET);
@@ -1535,7 +1546,7 @@ int cmd_get(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-int cmd_view(int argc, char **argv) {
+esp_err_t cmd_view(int argc, char **argv) {
     if (argc < 2 || argc > 5) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_VIEW);
@@ -1589,7 +1600,7 @@ int cmd_view(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-int cmd_select(int argc, char **argv) {
+esp_err_t cmd_select(int argc, char **argv) {
     if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SELECT);
@@ -1633,7 +1644,7 @@ int cmd_select(int argc, char **argv) {
 
 /* Display selected STAs and/or APs. Usage: selected ( AP | STA ). Call with no arguments to display both */
 /* Adding selected AP STA as well as no args because I keep forgetting I can use no args */
-int cmd_selected(int argc, char **argv) {
+esp_err_t cmd_selected(int argc, char **argv) {
     int retVal = ESP_OK;
     int retVal2 = ESP_OK;
 
@@ -1665,7 +1676,7 @@ int cmd_selected(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-int cmd_clear(int argc, char **argv) {
+esp_err_t cmd_clear(int argc, char **argv) {
     if (argc != 2 && argc != 3) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_CLEAR);
@@ -1693,7 +1704,7 @@ int cmd_clear(int argc, char **argv) {
     return ESP_OK;
 }
 
-int cmd_handshake(int argc, char **argv) {
+esp_err_t cmd_handshake(int argc, char **argv) {
     /* TODO: Set attack_status appropriately */
 
     /* Start hopping task loop if hopping is on by default */
@@ -1707,124 +1718,6 @@ int cmd_handshake(int argc, char **argv) {
     }
 
     return ESP_OK;
-}
-
-/* seqNum == 0 to let IDF handle seq num */
-esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum) {
-    uint8_t *probeBuffer;
-
-    #ifdef CONFIG_DEBUG_VERBOSE
-        printf("send_probe_response(): ");
-        char strSrcAddr[18];
-        char strDestAddr[18];
-        char strAuthType[15];
-        mac_bytes_to_string(srcAddr, strSrcAddr);
-        mac_bytes_to_string(destAddr, strDestAddr);
-        switch (authType) {
-        case AUTH_TYPE_NONE:
-            strcpy(strAuthType, "AUTH_TYPE_NONE");
-            break;
-        case AUTH_TYPE_WEP:
-            strcpy(strAuthType, "AUTH_TYPE_WEP");
-            break;
-        case AUTH_TYPE_WPA:
-            strcpy(strAuthType, "AUTH_TYPE_WPA");
-            break;
-        }
-        printf("srcAddr: %s\tdestAddr: %s\tSSID: \"%s\"\tauthType: %s\n", strSrcAddr, strDestAddr, ssid, strAuthType);
-    #endif
-
-    probeBuffer = malloc(sizeof(uint8_t) * 208);
-    if (probeBuffer == NULL) {
-        ESP_LOGE(MANA_TAG, "Failed to register probeBuffer on the stack");
-        return ESP_ERR_NO_MEM;
-    }
-    /* Copy bytes to SSID (correct src/dest later) */
-    memcpy(probeBuffer, probe_response_raw, PROBE_RESPONSE_SSID_OFFSET - 1);
-    /* Replace SSID length and append SSID */
-    probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1] = strlen(ssid);
-    //memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, strlen(ssid));
-    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], ssid, sizeof(char) * strlen(ssid));
-    /* Append the remainder of the packet */
-    memcpy(&probeBuffer[PROBE_RESPONSE_SSID_OFFSET + strlen(ssid)], &probe_response_raw[PROBE_RESPONSE_SSID_OFFSET], PROBE_REQUEST_LEN - PROBE_RESPONSE_SSID_OFFSET);
-    
-    /* Set source and dest MACs */
-    memcpy(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], srcAddr, 6);
-    memcpy(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], srcAddr, 6);
-    memcpy(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], destAddr, 6);
-
-    /* Set authentication method */
-    uint8_t *bAuthType = NULL;
-    switch (authType) {
-    case AUTH_TYPE_NONE:
-        bAuthType = PRIVACY_OFF_BYTES;
-        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x00;
-        break;
-    case AUTH_TYPE_WEP:
-        bAuthType = PRIVACY_ON_BYTES;
-        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x01;
-        break;
-    case AUTH_TYPE_WPA:
-        bAuthType = PRIVACY_ON_BYTES;
-        probeBuffer[PROBE_RESPONSE_AUTH_TYPE_OFFSET + probeBuffer[PROBE_RESPONSE_SSID_OFFSET - 1]] = 0x02;
-        break;
-    default:
-        ESP_LOGE(MANA_TAG, "Unrecognised authentication type: %d\n", authType);
-        return ESP_ERR_INVALID_ARG;
-    }
-    memcpy(&probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], bAuthType, 2);
-
-    /* Decode, increment and recode seqNum */
-    bool sys_queue = false;
-    if (seqNum == 0) {
-        sys_queue = true;
-    } else {
-        uint16_t seq = seqNum >> 4;
-        ++seq;
-        uint16_t newSeq = seq << 4 | (seq & 0x000f);
-        uint8_t finalSeqNum[2];
-        finalSeqNum[0] = (newSeq & 0x00FF);
-        finalSeqNum[1] = (newSeq & 0xFF00) >> 8;
-        memcpy(&probeBuffer[PROBE_SEQNUM_OFFSET], finalSeqNum, 2);
-    }
-
-    #ifdef CONFIG_DEBUG_VERBOSE
-        char debugOut[1024];
-        int debugLen=0;
-        strcpy(debugOut, "SSID: \"");
-        debugLen += strlen("SSID: \"");
-        strncpy(&debugOut[debugLen], (char*)&probeBuffer[PROBE_RESPONSE_SSID_OFFSET], probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1]);
-        debugLen += probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1];
-        sprintf(&debugOut[debugLen], "\"\tsrcAddr: ");
-        debugLen += strlen("\"\tsrcAddr: ");
-        char strMac[18];
-        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], strMac);
-        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
-        debugLen += strlen(strMac);
-        sprintf(&debugOut[debugLen], "\tBSSID: ");
-        debugLen += strlen("\tBSSID: ");
-        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_BSSID_OFFSET], strMac);
-        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
-        debugLen += strlen(strMac);
-        sprintf(&debugOut[debugLen], "\tdestAddr: ");
-        debugLen += strlen("\tdestAddr: ");
-        mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_DEST_ADDR_OFFSET], strMac);
-        strncpy(&debugOut[debugLen], strMac, strlen(strMac));
-        debugLen += strlen(strMac);
-        sprintf(&debugOut[debugLen], "\tAuthType: \"0x%02x 0x%02x\"", probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET], probeBuffer[PROBE_RESPONSE_PRIVACY_OFFSET+1]);
-        debugLen += strlen("\tAuthType: \"0x 0x\"\n") + 4;
-        sprintf(&debugOut[debugLen], "\tSeqNum: \"0x%02x 0x%02x\"\n", probeBuffer[PROBE_SEQNUM_OFFSET], probeBuffer[PROBE_SEQNUM_OFFSET+1]);
-        debugLen += strlen("\tSeqNum: \"0x 0x\"\n") + 4;
-        debugOut[debugLen] = '\0';
-        printf("About to transmit %s\n", debugOut);
-    #endif
-
-    // Send the frame
-    /* Pause for ATTACK_MILLIS first */
-    vTaskDelay((ATTACK_MILLIS / portTICK_PERIOD_MS) + 1);
-    esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), sys_queue);
-    free(probeBuffer);
-    return e;
 }
 
 /* Does Gravity need to monitor frames as they arrive?
@@ -2118,10 +2011,6 @@ void app_main(void)
                 return;
         }
     }
-    /* BEACON, PROBE, FUZZ, SNIFF, DEAUTH, MANA, MANA_VERBOSE, AP_DOS, AP_CLONE, SCAN, HANDSHAKE, RAND_MAC */
-/*    bool attack_status[ATTACKS_COUNT] = {false, false, false, false, false, false, false, false, false, false, false, false, true};
-    bool  hop_defaults[ATTACKS_COUNT] = {true, true, true, true, true, false, false, false, false, false, true, false, false };
-*/
 
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
@@ -2139,11 +2028,16 @@ void app_main(void)
     /* In Flipper mode remove all use of ESP logging except for errors (the line prefix is too long) */
     #ifdef CONFIG_FLIPPER
         esp_log_level_set(BEACON_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(BT_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(DEAUTH_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(DOS_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(FUZZ_TAG, ESP_LOG_ERROR);
         esp_log_level_set(TAG, ESP_LOG_ERROR);
         esp_log_level_set(MANA_TAG, ESP_LOG_ERROR);
         esp_log_level_set(HOP_TAG, ESP_LOG_ERROR);
         esp_log_level_set(PROBE_TAG, ESP_LOG_ERROR);
         esp_log_level_set(SCAN_TAG, ESP_LOG_ERROR);
+        esp_log_level_set(SNIFF_TAG, ESP_LOG_ERROR);
     #endif
 
 

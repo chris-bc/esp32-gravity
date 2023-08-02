@@ -1,13 +1,8 @@
 #include "sniff.h"
-#include "common.h"
 
 const char *SNIFF_TAG = "sniff@GRAVITY";
 
 esp_err_t sniffPacket(uint8_t *payload) {
-    if (payload[0] == WIFI_FRAME_PROBE_REQ) {
-        printf("inner probe req\n");
-    }
-
     switch (payload[0]) {
         case WIFI_FRAME_ASSOC_REQ:
             return sniffAssocReq(payload);

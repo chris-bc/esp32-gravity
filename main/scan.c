@@ -13,7 +13,6 @@ ScanResultAP **gravity_selected_aps = NULL;
 ScanResultSTA **gravity_selected_stas = NULL;
 double scanResultExpiry = 0; /* Do not expire packets by default */
 
-
 enum GravityScanType {
     GRAVITY_SCAN_AP,
     GRAVITY_SCAN_STA,
@@ -143,7 +142,6 @@ esp_err_t update_links() {
             }
         }
     }
-
     return ESP_OK;
 }
 
@@ -205,7 +203,6 @@ esp_err_t gravity_select_ap(int selIndex) {
                 ++targetIndex;
             }
         }
-
         free(gravity_selected_aps);
         gravity_selected_aps = newSel;
     }
@@ -258,7 +255,6 @@ esp_err_t gravity_select_sta(int selIndex) {
                 ++targetIndex;
             }
         }
-
         free(gravity_selected_stas);
         gravity_selected_stas = newSel;
     }
@@ -384,7 +380,6 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
                     aps[i]->espRecord.primary, (aps[i]->espRecord.wps<<5 != 0)?"Yes":"No");
         #endif
     }
-
     return ESP_OK;
 }
 
@@ -429,7 +424,6 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
                     stas[i]->strMac, strAp, stas[i]->channel, strTime);
         #endif
     }    
-
     return ESP_OK;
 }
 
@@ -530,7 +524,7 @@ printf("checking new AP \"%s\"\n", (char *)newAPs[i].espRecord.ssid);
 
 esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
     /* Don't store the broadcast address */
-    if (!memcmp(bBroadcast, newAP, 6)) {
+    if (!memcmp(BROADCAST, newAP, 6)) {
         return ESP_OK;
     }
     /* First make sure the MAC doesn't exist (multiple APs can share a SSID) */
@@ -604,13 +598,12 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         }
         gravity_aps = newAPs;
     }
-
     return update_links();
 }
 
 esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
     /* Don't store the broadcast address */
-    if (!memcmp(bBroadcast, newSTA, 6)) {
+    if (!memcmp(BROADCAST, newSTA, 6)) {
         return ESP_OK;
     }
     /* First make sure the MAC doesn't exist */
@@ -678,7 +671,6 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         }
         gravity_stas = newSTAs;
     }
-
     return update_links();
 }
 
@@ -686,7 +678,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
    Record this association in: ap.stations, sta.apMac, sta.ap */
 esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
     /* Don't store the broadcast address */
-    if (!memcmp(bBroadcast, sta, 6) || !memcmp(bBroadcast, ap, 6)) {
+    if (!memcmp(BROADCAST, sta, 6) || !memcmp(BROADCAST, ap, 6)) {
         return ESP_OK;
     }
 
@@ -948,7 +940,6 @@ esp_err_t parse_data(uint8_t *payload) {
         ESP_ERROR_CHECK(gravity_add_ap(adding_ap, NULL, 0));
         ESP_ERROR_CHECK(gravity_add_sta(adding_sta, 0));
         ESP_ERROR_CHECK(gravity_add_sta_ap(adding_sta, adding_ap));
-
     }
     return ESP_OK;
 }
@@ -1089,6 +1080,5 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         return parse_data(payload);
         break;
     }
-
     return ESP_OK;
 }

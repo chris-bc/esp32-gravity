@@ -51,22 +51,8 @@ extern int PROBE_RESPONSE_GROUP_CIPHER_OFFSET;
 extern int PROBE_RESPONSE_PAIRWISE_CIPHER_OFFSET;
 extern int PROBE_RESPONSE_AUTH_TYPE_OFFSET;
 
-/*
- * This is the (currently unofficial) 802.11 raw frame TX API,
- * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
- *
- * This declaration is all you need for using esp_wifi_80211_tx in your own application.
- */
-esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
+esp_err_t probe_stop();
+esp_err_t probe_start(probe_attack_t type);
 
-int probe_stop();
-int probe_start(probe_attack_t type);
-
-/* extern functions - defined in gravity.c */
-int addSsid(char *ssid);
-int rmSsid(char *ssid);
-int countSsid();
-char **lsSsid();
-char *generate_random_ssid();
 
 #endif

@@ -3,29 +3,29 @@
 
 #define GRAVITY_VERSION "0.2.2b"
 
-#include <esp_wifi.h>
-#include <esp_err.h>
-#include <esp_system.h>
-#include <esp_log.h>
-#include <esp_console.h>
-#include <esp_vfs_dev.h>
-#include <esp_vfs_fat.h>
-#include <nvs.h>
-#include <nvs_flash.h>
+#include <cmd_nvs.h>
 #include <cmd_system.h>
 #include <cmd_wifi.h>
-#include <cmd_nvs.h>
+#include <esp_console.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <esp_system.h>
+#include <esp_vfs_dev.h>
+#include <esp_vfs_fat.h>
+#include <esp_wifi.h>
 #include <esp_wifi_types.h>
 #include <freertos/portmacro.h>
+#include <nvs.h>
+#include <nvs_flash.h>
 
-#include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "usage_const.h"
 #include "common.h"
+#include "usage_const.h"
 
 /* Command usage strings */
 extern const char USAGE_BT[];
@@ -50,28 +50,28 @@ extern const char USAGE_HANDSHAKE[];
 extern const char USAGE_COMMANDS[];
 
 /* Command specifications */
-int cmd_bluetooth(int argc, char **argv);
-int cmd_beacon(int argc, char **argv);
-int cmd_probe(int argc, char **argv);
-int cmd_fuzz(int argc, char **argv);
-int cmd_sniff(int argc, char **argv);
-int cmd_deauth(int argc, char **argv);
-int cmd_mana(int argc, char **argv);
-int cmd_stalk(int argc, char **argv);
-int cmd_ap_dos(int argc, char **argv);
-int cmd_ap_clone(int argc, char **argv);
-int cmd_scan(int argc, char **argv);
-int cmd_set(int argc, char **argv);
-int cmd_get(int argc, char **argv);
-int cmd_view(int argc, char **argv);
-int cmd_select(int argc, char **argv);
-int cmd_selected(int argc, char **argv);
-int cmd_clear(int argc, char **argv);
-int cmd_handshake(int argc, char **argv);
-int cmd_target_ssids(int argc, char **argv);
-int cmd_commands(int argc, char **argv);
-int cmd_hop(int argc, char **argv);
-int cmd_info(int argc, char **argv);
+esp_err_t cmd_bluetooth(int argc, char **argv);
+esp_err_t cmd_beacon(int argc, char **argv);
+esp_err_t cmd_probe(int argc, char **argv);
+esp_err_t cmd_fuzz(int argc, char **argv);
+esp_err_t cmd_sniff(int argc, char **argv);
+esp_err_t cmd_deauth(int argc, char **argv);
+esp_err_t cmd_mana(int argc, char **argv);
+esp_err_t cmd_stalk(int argc, char **argv);
+esp_err_t cmd_ap_dos(int argc, char **argv);
+esp_err_t cmd_ap_clone(int argc, char **argv);
+esp_err_t cmd_scan(int argc, char **argv);
+esp_err_t cmd_set(int argc, char **argv);
+esp_err_t cmd_get(int argc, char **argv);
+esp_err_t cmd_view(int argc, char **argv);
+esp_err_t cmd_select(int argc, char **argv);
+esp_err_t cmd_selected(int argc, char **argv);
+esp_err_t cmd_clear(int argc, char **argv);
+esp_err_t cmd_handshake(int argc, char **argv);
+esp_err_t cmd_target_ssids(int argc, char **argv);
+esp_err_t cmd_commands(int argc, char **argv);
+esp_err_t cmd_hop(int argc, char **argv);
+esp_err_t cmd_info(int argc, char **argv);
 
 bool gravitySniffActive();
 
@@ -84,14 +84,6 @@ static bool WIFI_INITIALISED = false;
 
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-/*
- * This is the (currently unofficial) 802.11 raw frame TX API,
- * defined in esp32-wifi-lib's libnet80211.a/ieee80211_output.o
- *
- * This declaration is all you need for using esp_wifi_80211_tx in your own application.
- */
-esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len, bool en_sys_seq);
 
 #define CMD_COUNT 22
 esp_console_cmd_t commands[CMD_COUNT] = {
