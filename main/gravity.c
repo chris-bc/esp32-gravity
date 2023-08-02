@@ -1030,10 +1030,10 @@ int cmd_ap_clone(int argc, char **argv) {
     if (argc > 5 || (argc >= 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
             (argc >= 3 && strcasecmp(argv[2], "OPEN") && strcasecmp(argv[2], "WEP") &&
                 strcasecmp(argv[2], "WPA")) || (argc >= 4 && strcasecmp(argv[3], "OPEN") &&
-                strcasecmp(argv[2], "WEP") && strcasecmp(argv[2], "WPA")) || (argc == 5 &&
+                strcasecmp(argv[3], "WEP") && strcasecmp(argv[3], "WPA")) || (argc == 5 &&
                 strcasecmp(argv[4], "OPEN") && strcasecmp(argv[4], "WEP") && strcasecmp(argv[4], "WPA"))) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\n", SHORT_AP_DOS);
+            printf("%s\n", SHORT_AP_CLONE);
         #else
             ESP_LOGE(DOS_TAG, "Invalid arguments: %s", USAGE_AP_DOS);
         #endif
@@ -1048,14 +1048,14 @@ int cmd_ap_clone(int argc, char **argv) {
         #endif
         return ESP_OK;
     }
-    PROBE_RESPONSE_AUTH_TYPE authType = 0;
+    PROBE_RESPONSE_AUTH_TYPE cloneAuthType = 0;
     for (int i = 2; i < argc; ++i) {
         if (!strcasecmp(argv[i], "OPEN")) {
-            authType |= AUTH_TYPE_NONE;
+            cloneAuthType |= AUTH_TYPE_NONE;
         } else if (!strcasecmp(argv[i], "WEP")) {
-            authType |= AUTH_TYPE_WEP;
+            cloneAuthType |= AUTH_TYPE_WEP;
         } else if (!strcasecmp(argv[i], "WPA")) {
-            authType |= AUTH_TYPE_WPA;
+            cloneAuthType |= AUTH_TYPE_WPA;
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("Invalid argument \"%s\"\n%s\n", argv[i], SHORT_AP_CLONE);
@@ -1065,7 +1065,7 @@ int cmd_ap_clone(int argc, char **argv) {
             return ESP_ERR_INVALID_ARG;
         }
     }
-    if (authType == 0) {
+    if (cloneAuthType == 0) {
         #ifdef CONFIG_FLIPPER
             printf("Error: No auth type specified.\n%s\n", SHORT_AP_CLONE);
         #else
@@ -1074,7 +1074,7 @@ int cmd_ap_clone(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    esp_err_t err = cloneStartStop(strcasecmp(argv[1], "OFF"), authType);
+    esp_err_t err = cloneStartStop(strcasecmp(argv[1], "OFF"), cloneAuthType);
 
     return err;
 }

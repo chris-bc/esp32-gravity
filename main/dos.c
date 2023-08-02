@@ -18,7 +18,7 @@ static PROBE_RESPONSE_AUTH_TYPE currentAuthType = 0;
    * Enables Beacon: Broadcast beacon frames advertising selectedAPs
    * Responds to probe requests with selectedAPs
 */
-esp_err_t cloneStartStop(bool isStarting, int authType) {
+esp_err_t cloneStartStop(bool isStarting, int useAuthType) {
     /* Reject startup if no selectedAPs */
     if (isStarting && gravity_sel_ap_count == 0) {
         #ifdef CONFIG_FLIPPER
@@ -30,7 +30,7 @@ esp_err_t cloneStartStop(bool isStarting, int authType) {
     }
     esp_err_t res = ESP_OK;
 
-    currentAuthType = authType;
+    currentAuthType = useAuthType;
 
     /* Update attack_status[] */
     attack_status[ATTACK_AP_CLONE] = isStarting;
@@ -50,7 +50,7 @@ esp_err_t cloneStartStop(bool isStarting, int authType) {
     /* Initialise/Clean-up Beacon attack as required */
     if (isStarting) {
         // TODO: authType properly
-        res |= beacon_start(ATTACK_BEACON_AP, &authType, 1, 0);
+        res |= beacon_start(ATTACK_BEACON_AP, &currentAuthType, 1, 0);
     } else {
         res |= beacon_stop();
     }
