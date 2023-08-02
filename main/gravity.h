@@ -143,7 +143,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "ap-clone",
         .hint = USAGE_AP_CLONE,
-        .help = "If no argument is provided returns the current state of the module. Syntax: ap-clone [ ON | OFF ]  Clone the selected AP(s) and attempt to coerce STAs to connect to the cloned AP instead of the authentic one. The success of this attack will be improved by being able to provide stations a more powerful signal than the genuine AP. The attack will set Gravity's MAC to match the AP's.",
+        .help = "If no argument is provided returns the current state of the module. Syntax: ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]  Clone the selected AP(s) and attempt to coerce STAs to connect to the cloned AP instead of the authentic one. The success of this attack will be improved by being able to provide stations a more powerful signal than the genuine AP. The attack will set Gravity's MAC to match the AP's.",
         .func = cmd_ap_clone
     }, {
         .command = "scan",

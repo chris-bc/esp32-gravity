@@ -289,7 +289,7 @@ char **generateRandomSSids() {
 	return ret;
 }
 
-int beacon_stop() {
+esp_err_t beacon_stop() {
 	if (beaconTask != NULL) {
 		vTaskDelete(beaconTask);
 		beaconTask = NULL;
@@ -318,7 +318,7 @@ int beacon_stop() {
     return ESP_OK;
 }
 
-int beacon_start(beacon_attack_t type, int ssidCount) {
+esp_err_t beacon_start(beacon_attack_t type, int ssidCount) {
     /* Stop an existing beacon attack if one exists */
     if (attackType != ATTACK_BEACON_NONE) {
         beacon_stop();

@@ -148,7 +148,6 @@ Work on Gravity continues on a few fronts, depending on the mood I'm in at the t
     * Additional management packets
     * Data packets
     * Control packets
-* ap-clone attack described in the original feature list
 * General improvements/bugfixes as I go
 
 
@@ -841,16 +840,20 @@ Syntax: ap-dos [ ON | OFF ]
 
 This feature is intended to simulate a 'clone-and-takeover' attack on the selected
 AP. At a general level you could say that it combines `AP-DOS`'s `deauthentication`
-and `disassociation` messages with `Mana`'s ability to sneak its way into a station's
-Preferred Network List (PNL). The hoped-for result is to trick stations to
-disconnect from their existing access point and, not necessarily connect to Gravity,
-but **NOT** reconnect to their original AP.
+and `disassociation` messages, `beacon`'s forged beacon frames, and `Mana`'s
+ability to sneak its way into a station's Preferred Network List (PNL). The
+hoped-for result is to trick stations to disconnect from their existing access
+point and, not necessarily connect to Gravity, but **NOT** reconnect to their original AP.
 
 `AP-CLONE` operates on `selectedAPs` - that is, the Access Points that were
 identified using `scan` and selected using `select ap`.
 
+Any number of authentication types can be specified. Where multiple authentication
+types are provided Gravity will send a packet for each authentication type. This
+may be detected by some routers as an attack.
+
 ```c
-Syntax: ap-clone [ ON | OFF ]
+Syntax: ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]
 ```
 
 
@@ -922,6 +925,15 @@ TODO
         * disassoc to AP using STA's MAC
       * Respond to frames between STAs, where one STA is known to be associated with a selectedAP
         * deauth to both STAs using AP's MAC
+    * ap-clone
+      * composite attack
+      * AP-DOS: Clone AP - Use target's MAC, respond to messages with deauth and APs with disassoc
+      * Beacon: Send forged beacon frames
+      * Mana (almost): Send forged probe responses
+      * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
+      * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
+        * No way to get the target's configured auth type
+        * Command line parameter - can specify multiple
 
 
 * **ONGOING** Receive and parse 802.11 frames
@@ -934,13 +946,6 @@ TODO
 * TODO: additional option to show hidden SSIDs
 * stalk
   * Homing attack (Focus on RSSI for selected STA(s) or AP)
-* ap-clone
-  * Clone AP
-  * Use target's MAC
-  * Respond to probe requests with forged responses, send beacon frames
-  * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
-  * Respond to frames directed at AP - who are not currently connected to ESP - with deauth packet
-  * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking

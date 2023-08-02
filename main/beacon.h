@@ -60,8 +60,8 @@ char *getRandomWord();
 esp_err_t randomSsidWithWords(char *ssid, int len);
 esp_err_t randomSsidWithChars(char *ssid, int len);
 
-int beacon_start(beacon_attack_t type, int ssidCount);
-int beacon_stop();
+esp_err_t beacon_start(beacon_attack_t type, int ssidCount);
+esp_err_t beacon_stop();
 
 /* extern functions - defined in main.c */
 int addSsid(char *ssid);

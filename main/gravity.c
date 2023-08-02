@@ -436,7 +436,7 @@ int cmd_beacon(int argc, char **argv) {
         return ESP_OK;
     }
 
-    int ret = ESP_OK;
+    esp_err_t ret = ESP_OK;
     // Update attack_status[ATTACK_BEACON] appropriately
     if (!strcasecmp(argv[1], "off")) {
         attack_status[ATTACK_BEACON] = false;
@@ -984,8 +984,15 @@ int cmd_ap_dos(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* AP-Clone :  Composite denial of service attack
+   USAGE    :  ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]
+*/
 int cmd_ap_clone(int argc, char **argv) {
-    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF"))) {
+    if (argc > 5 || (argc >= 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF")) ||
+            (argc >= 3 && strcasecmp(argv[2], "OPEN") && strcasecmp(argv[2], "WEP") &&
+                strcasecmp(argv[2], "WPA")) || (argc >= 4 && strcasecmp(argv[3], "OPEN") &&
+                strcasecmp(argv[2], "WEP") && strcasecmp(argv[2], "WPA")) || (argc == 5 &&
+                strcasecmp(argv[4], "OPEN") && strcasecmp(argv[4], "WEP") && strcasecmp(argv[4], "WPA"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_AP_DOS);
         #else

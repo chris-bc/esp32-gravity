@@ -2,6 +2,7 @@
 
 const char *TAG = "GRAVITY";
 const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+const char *AUTH_TYPE_NAMES[] = {"none", "AUTH_TYPE_OPEN", "AUTH_TYPE_WEP", "none", "AUTH_TYPE_WPA"};
 
 int max(int one, int two) {
     if (one >= two) {
@@ -215,6 +216,29 @@ esp_err_t gravity_set_mac(uint8_t *newMac) {
     #endif
     memcpy(current_mac, newMac, 6);
     return ESP_OK;
+}
+
+/* Generate a string representing the specified PROBE_RESPONSE_AUTH_TYPE
+   PROBE_RESPONSE_AUTH_TYPE is a binary enum:
+   * Multiple auth types can be specified with bitwise 'or'
+      doSomething(AUTH_TYPE_WEP | AUTH_TYPE_WPA)
+   * Multiple auth types can be read with bitwise 'and'
+      if (authType & AUTH_TYPE_WPA) // Is WPA one of the specified types?
+   theString is a char array initialised with enough space to hold the spacified authType
+    * That's 45 bytes, including the NULL terminator 
+*/
+esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]) {
+    esp_err_t err = ESP_OK;
+    /* Build the string in my own variable and copy it into theString - otherwise
+       I'll need to NULL out theString in order for strcat to work, and I can't
+       do that without knowing its length
+    */
+    char retVal[45];
+    memset(retVal, '\0', 45); /* Fill retVal with NULL so I can use string operations */
+
+
+
+    return err;
 }
 
 /* For "APs" beacon mode we need a set of all STAs that are clients of the selected APs

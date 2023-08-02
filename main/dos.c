@@ -27,6 +27,8 @@ esp_err_t cloneStartStop(bool isStarting) {
         #endif
         return ESP_ERR_INVALID_ARG;
     }
+    esp_err_t res = ESP_OK;
+
     /* Update attack_status[] */
     attack_status[ATTACK_AP_CLONE] = isStarting;
     attack_status[ATTACK_AP_DOS] = isStarting;
@@ -36,23 +38,23 @@ esp_err_t cloneStartStop(bool isStarting) {
     hop_millis = dwellTime();
     char *args[] = {"hop","on"};
     if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+         res |= cmd_hop(2, args);
     } else {
         args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+        res |= cmd_hop(2, args);
     }
 
     /* Initialise/Clean-up Beacon attack as required */
     if (isStarting) {
-        beacon_start(ATTACK_BEACON_AP, 0);
+        res |= beacon_start(ATTACK_BEACON_AP, 0);
     } else {
-        beacon_stop();
+        res |= beacon_stop();
     }
 
     /* Sending probe responses in response to relevant
        requests is handled by dosParseFrame() */
 
-    return ESP_OK;
+    return res;
 }
 
 /* Final parsing of wireless frame prior to calling the deauth module to send the packet */

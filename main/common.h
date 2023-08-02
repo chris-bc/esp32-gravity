@@ -137,11 +137,13 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
 esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets);
 
 typedef enum PROBE_RESPONSE_AUTH_TYPE {
-    AUTH_TYPE_NONE,
-    AUTH_TYPE_WEP,
-    AUTH_TYPE_WPA
+    AUTH_TYPE_NONE = 1,
+    AUTH_TYPE_WEP = 2,
+    AUTH_TYPE_WPA = 4
 } PROBE_RESPONSE_AUTH_TYPE;
+extern const char *AUTH_TYPE_NAMES[];
 
+esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]);
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum);
 
 
