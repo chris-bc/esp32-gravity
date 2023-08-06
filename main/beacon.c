@@ -478,6 +478,13 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
 /* SSIDs are prefixed by prefix (e.g. " >  ")
    Auth Types, where included, are specified after SSID names, for example:
     >  Whymper                          : AUTH_TYPE_OPEN
+   Thoughts on options/config as I go:
+	- Use %32s as a format spec for SSID in console mode
+	- Flipper mode go ssid\n\t\tauthType
+   Format strings: flipper, auth: %s%s\n\t\t%s\n, pre, ssid, authType
+	  			   flipper, no auth: %s%s\n, pre, ssid
+				   console, auth: %s%32s :  %s, pre, ssid, authType
+				   console, no auth: %s%s, pre, ssid
 */
 esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 	char *pre = prefix;
@@ -490,6 +497,28 @@ esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 		#else
 			ESP_LOGI(BEACON_TAG, "%s%s", pre, attack_ssids[i]);
 		#endif
+
+		if (includeAuthTypes) {
+			char thisAuthType[45] = "";
+			
+			#ifdef CONFIG_FLIPPER
+				if (authTypeToString(beaconAuthTypes[i], thisAuthType, true) != ESP_OK) {
+					// TODO
+				}
+				printf("%s%s\n\t\t%s\n", pre, attack_ssids[i], thisAuthType);
+			#else
+				if (authTypeToString(beaconAuthTypes[i], thisAuthType, false) != ESP_OK) {
+					// TODO
+				}
+				ESP_LOGI(BEACON_TAG, "%s%32s :  %s", pre, attack_ssids[i], thisAuthType);
+			#endif
+		} else {
+			#ifdef CONFIG_FLIPPER
+				printf("%s%s\n", pre, attack_ssids[i]);
+			#else
+				ESP_LOGI(BEACON_TAG, "%s%s", pre, attack_ssids[i]);
+			#endif
+		}
 	}
 	return ESP_OK;
 }
