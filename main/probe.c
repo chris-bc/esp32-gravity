@@ -156,11 +156,11 @@ void probeCallback(void *pvParameter) {
             char newMac[18];
             mac_bytes_to_string(&probeBuffer[PROBE_SRCADDR_OFFSET], newMac);
             // Also set device MAC here to fool devices
-// TODO: Re-implement MAC randomisation here
-            // esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
-            // if (err != ESP_OK) {
-            //     ESP_LOGW(PROBE_TAG, "Failed to set MAC: %s. Using default MAC", esp_err_to_name(err));
-            // }
+            esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
+            if (err != ESP_OK) {
+                ESP_LOGW(PROBE_TAG, "Failed to set MAC: %s. Using default MAC", esp_err_to_name(err));
+            }
+            vTaskDelay(1);
         } else {
             // Get device MAC and use it
             uint8_t bMac[6];
