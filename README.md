@@ -974,7 +974,6 @@ TODO
   * Move out of gravity.c
     * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
 * parse additional packet types
-* hop auto start/stop functionality - because it sends 'hop on' and 'hop off' it may now be overriding HOP_STATUS_DEFAULT??
 * figure out RSSI
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * Test using fuzz with multiple packet types

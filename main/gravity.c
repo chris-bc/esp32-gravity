@@ -452,7 +452,7 @@ esp_err_t cmd_beacon(int argc, char **argv) {
         #else
             ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
         #endif
-        return ESP_OK;
+        return beacon_status();
     }
 
     esp_err_t ret = ESP_OK;

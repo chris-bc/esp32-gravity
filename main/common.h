@@ -116,6 +116,7 @@ typedef enum PROBE_RESPONSE_AUTH_TYPE {
     AUTH_TYPE_WPA = 4
 } PROBE_RESPONSE_AUTH_TYPE;
 extern const char *AUTH_TYPE_NAMES[];
+extern const char *AUTH_TYPE_FLIPPER_NAMES[];
 
 /* Declared here because I get an error trying to use this enum in beacon.h (but it's fine in beacon.c) */
 extern PROBE_RESPONSE_AUTH_TYPE authTypes[];
@@ -149,7 +150,7 @@ esp_err_t gravity_list_all_aps(bool hideExpiredPackets);
 esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredPackets);
 esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets);
 
-esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]);
+esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[], bool flipperStrings);
 esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, enum PROBE_RESPONSE_AUTH_TYPE authType, uint16_t seqNum);
 
 

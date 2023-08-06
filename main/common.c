@@ -4,6 +4,7 @@
 const char *TAG = "GRAVITY";
 const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 const char *AUTH_TYPE_NAMES[] = {"none", "AUTH_TYPE_OPEN", "AUTH_TYPE_WEP", "none", "AUTH_TYPE_WPA"};
+const char *AUTH_TYPE_FLIPPER_NAMES[] = { "N/A", "Open", "WEP", "N/A", "WPA" };
 
 int max(int one, int two) {
     if (one >= two) {
@@ -228,29 +229,35 @@ esp_err_t gravity_set_mac(uint8_t *newMac) {
    theString is a char array initialised with enough space to hold the spacified authType
     * That's 45 bytes, including the NULL terminator 
 */
-esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[]) {
+esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[], bool flipperStrings) {
     esp_err_t err = ESP_OK;
     /* Build the string in my own variable and copy it into theString - otherwise
        I'll need to NULL out theString in order for strcat to work, and I can't
        do that without knowing its length
     */
     char retVal[45];
+    char **nameSource = NULL;
+    if (flipperStrings) {
+        nameSource = (char **)AUTH_TYPE_FLIPPER_NAMES;
+    } else {
+        nameSource = (char **)AUTH_TYPE_NAMES;
+    }
     memset(retVal, '\0', 45); /* Fill retVal with NULL so I can use string operations */
 
     if ((authType & AUTH_TYPE_NONE) == AUTH_TYPE_NONE) {
-        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_NONE]);
+        strcat(retVal, nameSource[AUTH_TYPE_NONE]);
     }
     if ((authType & AUTH_TYPE_WEP) == AUTH_TYPE_WEP) {
         if (strlen(retVal) > 0) {
             strcat(retVal, ", ");
         }
-        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_WEP]);
+        strcat(retVal, nameSource[AUTH_TYPE_WEP]);
     }
     if ((authType & AUTH_TYPE_WPA) == AUTH_TYPE_WPA) {
         if (strlen(retVal) > 0) {
             strcat(retVal, ", ");
         }
-        strcat(retVal, AUTH_TYPE_NAMES[AUTH_TYPE_WPA]);
+        strcat(retVal, nameSource[AUTH_TYPE_WPA]);
     }
 
     strcpy(theString, retVal);

@@ -455,12 +455,15 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
 		beaconAuthTypes[i] = authentication[i];
 		#ifdef CONFIG_DEBUG
 			char authTypeStr[45];
-			if (authTypeToString(beaconAuthTypes[i], authTypeStr) != ESP_OK) {
-				sprintf(authTypeStr, "Unknown (%d)", beaconAuthTypes[i]);
-			}
 			#ifdef CONFIG_FLIPPER
+				if (authTypeToString(beaconAuthTypes[i], authTypeStr, true) != ESP_OK) {
+					sprintf(authTypeStr, "Unknown (%d)", beaconAuthTypes[i]);
+				}
 				printf("Adding auth type: %s\n", authTypeStr);
 			#else
+				if (authTypeToString(beaconAuthTypes[i], authTypeStr, false) != ESP_OK) {
+					sprintf(authTypeStr, "Unknown (%d)", beaconAuthTypes[i]);
+				}
 				ESP_LOGI(BEACON_TAG, "Adding auth type: %s", authTypeStr);
 			#endif
 		#endif
@@ -472,8 +475,11 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
 }
 
 /* Display the SSIDs that are currently being targeted by beacon (attack_ssids) */
-/* SSIDs are prefixed by prefix (e.g. " >  ") */
-esp_err_t displayBeaconSsids(char *prefix) {
+/* SSIDs are prefixed by prefix (e.g. " >  ")
+   Auth Types, where included, are specified after SSID names, for example:
+    >  Whymper                          : AUTH_TYPE_OPEN
+*/
+esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 	char *pre = prefix;
 	if (pre == NULL) {
 		pre = "";
@@ -488,6 +494,14 @@ esp_err_t displayBeaconSsids(char *prefix) {
 	return ESP_OK;
 }
 
+esp_err_t displayBeaconSsidsWithoutAuth(char *prefix) {
+	return displayBeaconSsids(prefix, false);
+}
+
+esp_err_t displayBeaconSsidsWithAuth(char *prefix) {
+	return displayBeaconSsids(prefix, true);
+}
+
 /* Display information about the current beacon attack mode */
 esp_err_t displayBeaconMode() {
 	esp_err_t err = ESP_OK;
@@ -497,10 +511,6 @@ esp_err_t displayBeaconMode() {
 				printf("Beacon Mode is Running selectedAPs\n");
 			#else
 				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running selectedAPs");
-			#endif
-			#ifdef CONFIG_DEBUG
-				/* Also list selectedAPs */
-				err |= gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
 			#endif
 			break;
 		case ATTACK_BEACON_INFINITE:
@@ -515,9 +525,6 @@ esp_err_t displayBeaconMode() {
 				printf("Beacon Mode is Running: %d random SSIDs\n", SSID_COUNT);
 			#else
 				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running: Beacons for %d randomly-named SSIDs being transmitted", SSID_COUNT);
-			#endif
-			#ifdef CONFIG_DEBUG
-				/* TODO: print all the SSIDs */
 			#endif
 			break;
 		case ATTACK_BEACON_NONE:
@@ -540,9 +547,6 @@ esp_err_t displayBeaconMode() {
 			#else
 				ESP_LOGI(BEACON_TAG, "Beacon Mode is Current Running: Beacons for %d user-specified SSIDs being transmitted", SSID_COUNT);
 			#endif
-			#ifdef CONFIG_DEBUG
-				/* print target-ssids */
-			#endif
 			break;
 		default:
 			#ifdef CONFIG_FLIPPER
@@ -553,7 +557,6 @@ esp_err_t displayBeaconMode() {
 			err = ESP_ERR_INVALID_ARG;
 			break;
 	}
-
 	return err;
 }
 
@@ -570,6 +573,32 @@ esp_err_t beacon_status() {
 	/* Display additional info if Beacon is running */
 	if (attack_status[ATTACK_BEACON]) {
 		err |= displayBeaconMode();
+	}
+
+	/* Display info on configured auth types */
+	if (beaconAuthCount == 1) {
+		char authType[45];
+		#ifdef CONFIG_FLIPPER
+			authTypeToString(beaconAuthTypes[0], authType, true);
+			printf("Auth Type: %s\n", authType);
+		#else
+			authTypeToString(beaconAuthTypes[0], authType, false);
+			ESP_LOGI(BEACON_TAG, "Authentication Type :  %s", authType);
+		#endif
+	} else {
+		/* SSID-specific auth counts must be specified */
+		#ifdef CONFIG_FLIPPER
+			printf("Auth Type: VARIOUS\n");
+		#else
+			ESP_LOGI(BEACON_TAG, "Authentication Type :  VARIOUS");
+		#endif
+	}
+
+	/* Only NOW, that we have both SSID and auth info, can we display the SSIDs (with authType alongside if needed) */
+	if (beaconAuthCount == 1) {
+		err |= displayBeaconSsidsWithoutAuth(" >  ");
+	} else {
+		err |= displayBeaconSsidsWithAuth(" >  ");
 	}
 
 	return err;
