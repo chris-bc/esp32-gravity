@@ -353,9 +353,9 @@ PROBE_RESPONSE_AUTH_TYPE *unpackAuthType(PROBE_RESPONSE_AUTH_TYPE input, int *ou
     PROBE_RESPONSE_AUTH_TYPE *retVal = malloc(sizeof(PROBE_RESPONSE_AUTH_TYPE) * count);
     if (retVal == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory to decompose authTypes\n");
+            printf("Unable to allocate memory to decompose %d authTypes\n", count);
         #else
-            ESP_LOGE(TAG, "Unable to allocate memory to decompose an authType into its component PROBE_RESPONSE_AUTH_TYPEs.");
+            ESP_LOGE(TAG, "Unable to allocate memory to decompose an authType into its %d component PROBE_RESPONSE_AUTH_TYPEs.", count);
         #endif
         return NULL;
     }

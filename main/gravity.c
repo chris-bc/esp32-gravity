@@ -30,6 +30,7 @@
 #include "mana.h"
 #include "probe.h"
 #include "scan.h"
+#include "sdkconfig.h"
 #include "sniff.h"
 
 char **user_ssids = NULL;
@@ -504,10 +505,10 @@ esp_err_t cmd_beacon(int argc, char **argv) {
         ret = beacon_start(ATTACK_BEACON_RICKROLL, &specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
-            SSID_LEN_MIN = 8;
+            SSID_LEN_MIN = CONFIG_SSID_LEN_MIN;
         }
         if (SSID_LEN_MAX == 0) {
-            SSID_LEN_MAX = 32;
+            SSID_LEN_MAX = CONFIG_SSID_LEN_MAX;
         }
         if (argc >= 3) {
             ssidCount = atoi(argv[2]);
@@ -587,7 +588,6 @@ esp_err_t cmd_target_ssids(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "remove")) {
         return rmSsid(argv[2]);
     }
-
     return ESP_OK;
 }
 
@@ -603,12 +603,7 @@ esp_err_t cmd_probe(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("Probe %s\n", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
-        #else
-            ESP_LOGI(PROBE_TAG, "Probe Status: %s", (attack_status[ATTACK_PROBE])?"Running":"Not Running");
-        #endif
-        return ESP_OK;
+        return display_probe_status();
     }
 
     /* Set attack_status[ATTACK_PROBE] before checking channel hopping or starting/stopping */
@@ -1208,7 +1203,9 @@ esp_err_t cmd_set(int argc, char **argv) {
         #endif
         return ESP_ERR_INVALID_ARG;
     }
-    if (!strcasecmp(argv[1], "SCRAMBLE_WORDS")) {
+    if (!strcasecmp(argv[1], "WIFI")) {
+        initPromiscuous();
+    } else if (!strcasecmp(argv[1], "SCRAMBLE_WORDS")) {
         if (!strcasecmp(argv[2], "TRUE") || !strcasecmp(argv[2], "YES") || !strcasecmp(argv[2], "ON")) {
             scrambledWords = true;
         } else if (!strcasecmp(argv[2], "FALSE") || !strcasecmp(argv[2], "NO") || !strcasecmp(argv[2], "OFF")) {
@@ -1820,39 +1817,43 @@ int initialise_wifi() {
         ESP_ERROR_CHECK(esp_event_loop_create_default());
         esp_netif_create_default_wifi_ap();
 
-        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-
-        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-        ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
-
-        /* Init dummy AP to specify a channel and get WiFi hardware into a
-           mode where we can send the actual fake beacon frames. */
-        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-        wifi_config_t ap_config = {
-            .ap = {
-                .ssid = "ManagementAP",
-                .ssid_len = 12,
-                .password = "management",
-                .channel = 1,
-                .authmode = WIFI_AUTH_OPEN,
-                .ssid_hidden = 0,
-                .max_connection = 128,
-                .beacon_interval = 5000
-            }
-        };
-
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
-        ESP_ERROR_CHECK(esp_wifi_start());
-        ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
-
         // Set up promiscuous mode and packet callback
-        wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_CTRL | WIFI_PROMIS_FILTER_MASK_DATA };
-        esp_wifi_set_promiscuous_filter(&filter);
-        esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
-        esp_wifi_set_promiscuous(true);
+        initPromiscuous();
         WIFI_INITIALISED = true;
     }
     return ESP_OK;
+}
+
+void initPromiscuous() {
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+
+    /* Init dummy AP to specify a channel and get WiFi hardware into a
+           mode where we can send the actual fake beacon frames. */
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    wifi_config_t ap_config = {
+        .ap = {
+            .ssid = "ManagementAP",
+            .ssid_len = 12,
+            .password = "management",
+            .channel = 1,
+            .authmode = WIFI_AUTH_OPEN,
+            .ssid_hidden = 0,
+            .max_connection = 128,
+            .beacon_interval = 5000
+        }
+    };
+
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+
+    wifi_promiscuous_filter_t filter = { .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_CTRL | WIFI_PROMIS_FILTER_MASK_DATA };
+    esp_wifi_set_promiscuous_filter(&filter);
+    esp_wifi_set_promiscuous_rx_cb(wifi_pkt_rcvd);
+    esp_wifi_set_promiscuous(true);
 }
 
 static void initialize_filesystem(void)

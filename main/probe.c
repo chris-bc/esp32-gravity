@@ -1,4 +1,7 @@
 #include "probe.h"
+#include "common.h"
+#include "esp_err.h"
+#include "gravity.h"
 #include "mana.h" /* To import PRIVACY_ON_BYTES and PRIVACY_OFF_BYTES */
 
 
@@ -153,10 +156,11 @@ void probeCallback(void *pvParameter) {
             char newMac[18];
             mac_bytes_to_string(&probeBuffer[PROBE_SRCADDR_OFFSET], newMac);
             // Also set device MAC here to fool devices
-            esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
-            if (err != ESP_OK) {
-                ESP_LOGW(PROBE_TAG, "Failed to set MAC: %s. Using default MAC", esp_err_to_name(err));
-            }
+// TODO: Re-implement MAC randomisation here
+            // esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
+            // if (err != ESP_OK) {
+            //     ESP_LOGW(PROBE_TAG, "Failed to set MAC: %s. Using default MAC", esp_err_to_name(err));
+            // }
         } else {
             // Get device MAC and use it
             uint8_t bMac[6];
@@ -358,4 +362,57 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
     esp_err_t e = esp_wifi_80211_tx(WIFI_IF_AP, probeBuffer, PROBE_REQUEST_LEN + strlen(ssid), sys_queue);
     free(probeBuffer);
     return e;
+}
+
+/* Display information on the current status of the Probe Flood feature
+   When active, also displays information on destination MACs
+*/
+esp_err_t display_probe_status() {
+    esp_err_t err = ESP_OK;
+    
+    #ifdef CONFIG_FLIPPER
+        printf("Probe Flood Attack: %s\n", (attack_status[ATTACK_PROBE])?"ON":"OFF");
+    #else
+        ESP_LOGI(PROBE_TAG, "Probe Flood Attack: %sRunning", (attack_status[ATTACK_PROBE])?"":"Not ");
+    #endif
+
+    switch (attackType) {
+        case ATTACK_PROBE_DIRECTED_SCAN:
+            #ifdef CONFIG_FLIPPER
+                printf("Mode: Probe Requests for selected APs\n");
+            #else
+                ESP_LOGI(PROBE_TAG, "Mode: Transmitting Probe Requests for selected APs");
+            #endif
+            break;
+        case ATTACK_PROBE_DIRECTED_USER:
+            #ifdef CONFIG_FLIPPER
+                printf("Mode: Probe Requests for Target-SSIDs\n");
+            #else
+                ESP_LOGI(PROBE_TAG, "Mode: Transmitting Probe Requests for Target-SSIDs");
+            #endif
+            break;
+        case ATTACK_PROBE_UNDIRECTED:
+            #ifdef CONFIG_FLIPPER
+                printf("Mode: Probe Requests for Wildcard SSIDs\n");
+            #else
+                ESP_LOGI(PROBE_TAG, "Mode: Transmitting Probe Requests for Wildcard SSIDs");
+            #endif
+            break;
+        case ATTACK_PROBE_NONE:
+            #ifdef CONFIG_FLIPPER
+                printf("Mode: None\n");
+            #else
+                ESP_LOGI(PROBE_TAG, "Mode: None");
+            #endif
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid Probe Flood Mode (%d)\n", attackType);
+            #else
+                ESP_LOGE(PROBE_TAG, "Invalid Probe Flood Mode (%d)", attackType);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
+
+    return err;
 }

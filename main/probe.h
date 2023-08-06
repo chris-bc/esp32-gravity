@@ -53,6 +53,6 @@ extern int PROBE_RESPONSE_AUTH_TYPE_OFFSET;
 
 esp_err_t probe_stop();
 esp_err_t probe_start(probe_attack_t type);
-
+esp_err_t display_probe_status();
 
 #endif

@@ -3,9 +3,9 @@
 #include "esp_err.h"
 #include "probe.h"
 
-int DEFAULT_SSID_COUNT = 20;
-int SSID_LEN_MIN = 8;
-int SSID_LEN_MAX = 32;
+int DEFAULT_SSID_COUNT = CONFIG_DEFAULT_SSID_COUNT;
+int SSID_LEN_MIN = CONFIG_SSID_LEN_MIN;
+int SSID_LEN_MAX = CONFIG_SSID_LEN_MAX;
 int RICK_SSID_COUNT = 8;
 int BEACON_SSID_OFFSET = 38;
 int BEACON_PACKET_LEN = 57;
@@ -46,7 +46,7 @@ uint8_t beacon_raw[] = {
 	0x05, 0x04, 0x01, 0x02, 0x00, 0x00,		// 52-57: Traffic Indication Map
 };
 
-char *currentSsid = NULL;
+static char currentSsid[32] = "";
 int currentSsidLen = 0;
 
 /* Callback for the beacon spam attack. This will pause 50ms if ATTACK_MILLIS is < 50ms >*/
@@ -77,19 +77,7 @@ void beaconSpam(void *pvParameter) {
 		// Pull the current SSID and SSID length into variables to more
 		//   easily implement infinite beacon spam
 		if (beaconAttackType == ATTACK_BEACON_INFINITE) {
-			if (currentSsid != NULL) {
-				free(currentSsid);
-			}
 			currentSsidLen = random() % MAX_SSID_LEN;
-			currentSsid = malloc(sizeof(char) * (currentSsidLen + 1));
-			if (currentSsid == NULL) {
-				#ifdef CONFIG_FLIPPER
-					printf("Out of memory for random SSID\n");
-				#else
-					ESP_LOGE(BEACON_TAG, "Unable to allocate memory for a random %s SSID", (scrambledWords)?"chars":"words");
-				#endif
-				return;
-			}
 			if (scrambledWords) {
 				err = randomSsidWithChars(currentSsid, currentSsidLen);
 			} else {
@@ -101,11 +89,10 @@ void beaconSpam(void *pvParameter) {
 				#else
 					ESP_LOGE(BEACON_TAG, "%s SSID Generation failed: %s", (scrambledWords)?"Character":"Word", esp_err_to_name(err));
 				#endif
-				free(currentSsid);
-				return;
+				continue;
 			}
 		} else {
-			currentSsid = attack_ssids[line];
+			strcpy(currentSsid, attack_ssids[line]);
 			currentSsidLen = strlen(attack_ssids[line]);
 		}
 
@@ -156,6 +143,7 @@ void beaconSpam(void *pvParameter) {
 				printf("beaconSpam(): %s (%d)\n", currentSsid, currentSsidLen);
 			#endif
 		}
+		free(selectedAuthTypes);
 		if (++line >= SSID_COUNT) {
 			line = 0;
 		}
@@ -288,9 +276,7 @@ char **generateRandomSSids() {
 			#endif
 
 			/* Free memory if required */
-			if (beaconAttackType == ATTACK_BEACON_INFINITE && currentSsid != NULL) {
-				free(currentSsid);
-			} else if (beaconAttackType == ATTACK_BEACON_RANDOM || beaconAttackType == ATTACK_BEACON_AP) {
+			if (beaconAttackType == ATTACK_BEACON_RANDOM || beaconAttackType == ATTACK_BEACON_AP) {
 				for (int j = 0; j < SSID_COUNT; ++j) {
 					free(attack_ssids[j]);
 				}
@@ -320,12 +306,7 @@ esp_err_t beacon_stop() {
 			free(attack_ssids[i]);
 		}
 	}
-	if (beaconAttackType == ATTACK_BEACON_INFINITE) {
-		if (currentSsid != NULL) {
-			free(currentSsid);
-		}
-// Maybe		free(attack_ssids);
-	} else if (beaconAttackType == ATTACK_BEACON_RANDOM) {
+	if (beaconAttackType == ATTACK_BEACON_RANDOM) {
 		/* Free attack_ssids[i] */
 		for (int i = 0; i < SSID_COUNT; ++i) {
 			free(attack_ssids[i]);
@@ -498,6 +479,14 @@ esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 			printf("%sNo SSID Beacons being Transmitted\n", pre);
 		#else
 			ESP_LOGI(BEACON_TAG, "%sNo SSID Beacons being transmitted", pre);
+		#endif
+		return ESP_OK;
+	}
+	if (beaconAttackType == ATTACK_BEACON_INFINITE) {
+		#ifdef CONFIG_FLIPPER
+			printf("%sSending Unique SSIDs (i.e. Infinite)\n", prefix);
+		#else
+			ESP_LOGI(BEACON_TAG, "%sSending Unique SSIDs (i.e. Infinite)", prefix);
 		#endif
 		return ESP_OK;
 	}

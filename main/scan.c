@@ -1047,7 +1047,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
             }
         }
     }
-
+printf("\nfound payload beginning with %02x\n",payload[0]);
     switch (payload[0]) {
     case WIFI_FRAME_PROBE_REQ:
         return parse_probe_request(payload);

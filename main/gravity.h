@@ -74,6 +74,8 @@ esp_err_t cmd_hop(int argc, char **argv);
 esp_err_t cmd_info(int argc, char **argv);
 
 bool gravitySniffActive();
+void initPromiscuous();
+int initialise_wifi();
 
 /* Moving attack_status and hop_defaults off the heap */
 extern bool *attack_status;
