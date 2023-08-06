@@ -288,11 +288,11 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
 }
 
 /* Control channel hopping
-   Usage: hop [ MILLIS ] [ ON | OFF | DEFAULT | KILL ]
+   Usage: hop [ MILLIS ] [ ON | OFF | DEFAULT | KILL ] [ SEQUENTIAL | RANDOM ]
    Not specifying a parameter will report the status. KILL terminates the event loop.
 */
 esp_err_t cmd_hop(int argc, char **argv) {
-    if (argc > 3) {
+    if (argc > 4) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_HOP);
         #else
@@ -337,7 +337,7 @@ esp_err_t cmd_hop(int argc, char **argv) {
             ESP_LOGI(HOP_TAG, "Channel hopping %s; Gravity will dwell on each channel for approximately %ldms\nChannel hopping mode: %s", hopMsg, hop_millis, tempStr);
         #endif
     } else {
-        /* argv[1] could be a duration, "on", "default", "off", "sequential" or "random" */
+        /* argv[1] could be a duration, "on", "default", "off", "kill", "sequential" or "random" */
         /* To avoid starting hopping before updating hop_millis we need to check for duration first */
         long duration = atol(argv[1]);
         if (duration > 0) {
@@ -365,10 +365,7 @@ esp_err_t cmd_hop(int argc, char **argv) {
             #else
                 ESP_LOGI(HOP_TAG, "%s", strOutput);
             #endif
-            if (channelHopTask == NULL) {
-                ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
-                xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
-            }
+            createHopTaskIfNeeded();
         } else if (!strcasecmp(argv[1], "OFF") || (argc > 2 && !strcasecmp(argv[2], "OFF")) || (argc == 4 && !strcasecmp(argv[3], "OFF"))) {
             hopStatus = HOP_STATUS_OFF;
             #ifdef CONFIG_FLIPPER
@@ -398,6 +395,7 @@ esp_err_t cmd_hop(int argc, char **argv) {
             #else
                 ESP_LOGI(HOP_TAG, "Channel hopping will use feature defaults.");
             #endif
+            createHopTaskIfNeeded();
         } else if (!strcasecmp(argv[1], "SEQUENTIAL") || (argc > 2 && !strcasecmp(argv[2], "SEQUENTIAL")) || (argc == 4 && !strcasecmp(argv[3], "SEQUENTIAL"))) {
             hopMode = HOP_MODE_SEQUENTIAL;
         } else if (!strcasecmp(argv[1], "RANDOM") || (argc > 2 && !strcasecmp(argv[2], "RANDOM")) || (argc == 4 && !strcasecmp(argv[3], "RANDOM"))) {

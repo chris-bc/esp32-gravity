@@ -129,12 +129,23 @@ esp_err_t setHopForNewCommand() {
 
     /* Start/stop hopping task loop as needed */
     hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
+    /* Make sure the hop task is running if it needs to be */
     if (isHopEnabled()) {
-        retVal |= cmd_hop(2, args);
-    } else {
-        args[1] = "off";
-        retVal |= cmd_hop(2, args);
+        createHopTaskIfNeeded();
     }
+    #ifdef CONFIG_DEBUG
+        #ifdef CONFIG_FLIPPER
+            printf("Ch. Hop %s, Dwell %ldms\n", (isHopEnabled())?"ON":"OFF", hop_millis);
+        #else
+            ESP_LOGW(HOP_TAG, "Channel Hopping %s\t\tDwell time %ldms", (isHopEnabled())?"Enabled":"Disabled", hop_millis);
+        #endif
+    #endif
     return retVal;
+}
+
+void createHopTaskIfNeeded() {
+    if (channelHopTask == NULL) {
+        ESP_LOGI(HOP_TAG, "Gravity's channel hopping event task is not running, starting it now.");
+        xTaskCreate(&channelHopCallback, "channelHopCallback", 2048, NULL, 5, &channelHopTask);
+    }
 }
