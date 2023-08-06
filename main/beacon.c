@@ -491,13 +491,17 @@ esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 	if (pre == NULL) {
 		pre = "";
 	}
-	for (int i = 0; i < SSID_COUNT; ++i) {
-		#ifdef CONFIG_FLIPPER
-			printf("%s%s\n", pre, attack_ssids[i]);
-		#else
-			ESP_LOGI(BEACON_TAG, "%s%s", pre, attack_ssids[i]);
-		#endif
 
+	/* If Beacon is not running attack_ssids will not reflect reality - sometimes in a big way */
+	if (!attack_status[ATTACK_BEACON]) {
+		#ifdef CONFIG_FLIPPER
+			printf("%sNo SSID Beacons being Transmitted\n", pre);
+		#else
+			ESP_LOGI(BEACON_TAG, "%sNo SSID Beacons being transmitted", pre);
+		#endif
+		return ESP_OK;
+	}
+	for (int i = 0; i < SSID_COUNT; ++i) {
 		if (includeAuthTypes) {
 			char thisAuthType[45] = "";
 			
@@ -537,23 +541,23 @@ esp_err_t displayBeaconMode() {
 	switch (beaconAttackType) {
 		case ATTACK_BEACON_AP:
 			#ifdef CONFIG_FLIPPER
-				printf("Beacon Mode is Running selectedAPs\n");
+				printf("Beacon selectedAPs is Running\n");
 			#else
-				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running selectedAPs");
+				ESP_LOGI(BEACON_TAG, "Gravity is Running Beacon selectedAPs");
 			#endif
 			break;
 		case ATTACK_BEACON_INFINITE:
 			#ifdef CONFIG_FLIPPER
-				printf("Beacon Mode is Running Infinite (non-stop stream of unique Beacons)\n");
+				printf("Beacon Infinite is Running (non-stop stream of unique Beacons)\n");
 			#else
-				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running Infinite\nThis sends an unending stream of unique Beacon announcements");
+				ESP_LOGI(BEACON_TAG, "Gravity is Running Beacon Infinite\nThis sends an unending stream of unique Beacon announcements");
 			#endif
 			break;
 		case ATTACK_BEACON_RANDOM:
 			#ifdef CONFIG_FLIPPER
-				printf("Beacon Mode is Running: %d random SSIDs\n", SSID_COUNT);
+				printf("Beacon Random (%d SSIDs) is Running\n", SSID_COUNT);
 			#else
-				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running: Beacons for %d randomly-named SSIDs being transmitted", SSID_COUNT);
+				ESP_LOGI(BEACON_TAG, "Gravity is Running Beacon Random with %d randomly-named SSIDs", SSID_COUNT);
 			#endif
 			break;
 		case ATTACK_BEACON_NONE:
@@ -565,16 +569,16 @@ esp_err_t displayBeaconMode() {
 			break;
 		case ATTACK_BEACON_RICKROLL:
 			#ifdef CONFIG_FLIPPER
-				printf("Beacon Mode is Running RickRoll\n");
+				printf("Beacon RickRoll is Running\n");
 			#else
-				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running RickRoll");
+				ESP_LOGI(BEACON_TAG, "Gravity is Running Beacon RickRoll");
 			#endif
 			break;
 		case ATTACK_BEACON_USER:
 			#ifdef CONFIG_FLIPPER
-				printf("Beacon Mode is Running: %d user-specified SSIDs\n", SSID_COUNT);
+				printf("Beacon Target-SSIDs is Running with %d SSIDs\n", SSID_COUNT);
 			#else
-				ESP_LOGI(BEACON_TAG, "Beacon Mode is Current Running: Beacons for %d user-specified SSIDs being transmitted", SSID_COUNT);
+				ESP_LOGI(BEACON_TAG, "Gravity is Running Beacons Target-SSIDs with %d user-specified SSIDs", SSID_COUNT);
 			#endif
 			break;
 		default:
@@ -596,7 +600,7 @@ esp_err_t beacon_status() {
 	#ifdef CONFIG_FLIPPER
 		printf("Beacon Mode: %s\n", (attack_status[ATTACK_BEACON])?"ON":"OFF");
 	#else
-		ESP_LOGI(BEACON_TAG, "Beacon Mode: %sRunning", (attack_status[ATTACK_BEACON])?"Not ":"");
+		ESP_LOGI(BEACON_TAG, "Beacon Mode: %sRunning", (attack_status[ATTACK_BEACON])?"":"Not ");
 	#endif
 
 	/* Display additional info if Beacon is running */
@@ -605,13 +609,17 @@ esp_err_t beacon_status() {
 	}
 
 	/* Display info on configured auth types */
-	if (beaconAuthCount == 1) {
+	if (beaconAuthCount <= 1) {
 		char authType[45];
 		#ifdef CONFIG_FLIPPER
 			authTypeToString(beaconAuthTypes[0], authType, true);
 			printf("Auth Type: %s\n", authType);
 		#else
-			authTypeToString(beaconAuthTypes[0], authType, false);
+			if (beaconAuthCount == 1) {
+				authTypeToString(beaconAuthTypes[0], authType, false);
+			} else {
+				strcpy(authType, "(Unconfigured)");
+			}
 			ESP_LOGI(BEACON_TAG, "Authentication Type :  %s", authType);
 		#endif
 	} else {
@@ -624,11 +632,13 @@ esp_err_t beacon_status() {
 	}
 
 	/* Only NOW, that we have both SSID and auth info, can we display the SSIDs (with authType alongside if needed) */
-	if (beaconAuthCount == 1) {
-		err |= displayBeaconSsidsWithoutAuth(" >  ");
-	} else {
-		err |= displayBeaconSsidsWithAuth(" >  ");
-	}
+	#ifdef CONFIG_DEBUG
+		if (beaconAuthCount == 1) {
+			err |= displayBeaconSsidsWithoutAuth(" >  ");
+		} else {
+			err |= displayBeaconSsidsWithAuth(" >  ");
+		}
+	#endif
 
 	return err;
 }

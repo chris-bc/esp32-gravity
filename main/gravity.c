@@ -447,11 +447,6 @@ esp_err_t cmd_beacon(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("Beacon %s\n", (attack_status[ATTACK_BEACON])?"Running":"Not Running");
-        #else
-            ESP_LOGI(TAG, "Beacon Status: %s", attack_status[ATTACK_BEACON]?"Running":"Not Running");
-        #endif
         return beacon_status();
     }
 
