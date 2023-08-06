@@ -1,4 +1,7 @@
 #include "beacon.h"
+#include "common.h"
+#include "esp_err.h"
+#include "probe.h"
 
 int DEFAULT_SSID_COUNT = 20;
 int SSID_LEN_MIN = 8;
@@ -466,4 +469,108 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
     xTaskCreate(&beaconSpam, "beaconSpam", 2048, NULL, 5, &beaconTask);
 
     return ESP_OK;
+}
+
+/* Display the SSIDs that are currently being targeted by beacon (attack_ssids) */
+/* SSIDs are prefixed by prefix (e.g. " >  ") */
+esp_err_t displayBeaconSsids(char *prefix) {
+	char *pre = prefix;
+	if (pre == NULL) {
+		pre = "";
+	}
+	for (int i = 0; i < SSID_COUNT; ++i) {
+		#ifdef CONFIG_FLIPPER
+			printf("%s%s\n", pre, attack_ssids[i]);
+		#else
+			ESP_LOGI(BEACON_TAG, "%s%s", pre, attack_ssids[i]);
+		#endif
+	}
+	return ESP_OK;
+}
+
+/* Display information about the current beacon attack mode */
+esp_err_t displayBeaconMode() {
+	esp_err_t err = ESP_OK;
+	switch (beaconAttackType) {
+		case ATTACK_BEACON_AP:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode is Running selectedAPs\n");
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running selectedAPs");
+			#endif
+			#ifdef CONFIG_DEBUG
+				/* Also list selectedAPs */
+				err |= gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
+			#endif
+			break;
+		case ATTACK_BEACON_INFINITE:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode is Running Infinite (non-stop stream of unique Beacons)\n");
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running Infinite\nThis sends an unending stream of unique Beacon announcements");
+			#endif
+			break;
+		case ATTACK_BEACON_RANDOM:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode is Running: %d random SSIDs\n", SSID_COUNT);
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running: Beacons for %d randomly-named SSIDs being transmitted", SSID_COUNT);
+			#endif
+			#ifdef CONFIG_DEBUG
+				/* TODO: print all the SSIDs */
+			#endif
+			break;
+		case ATTACK_BEACON_NONE:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode Disabled\n");
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Disabled");
+			#endif
+			break;
+		case ATTACK_BEACON_RICKROLL:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode is Running RickRoll\n");
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Currently Running RickRoll");
+			#endif
+			break;
+		case ATTACK_BEACON_USER:
+			#ifdef CONFIG_FLIPPER
+				printf("Beacon Mode is Running: %d user-specified SSIDs\n", SSID_COUNT);
+			#else
+				ESP_LOGI(BEACON_TAG, "Beacon Mode is Current Running: Beacons for %d user-specified SSIDs being transmitted", SSID_COUNT);
+			#endif
+			#ifdef CONFIG_DEBUG
+				/* print target-ssids */
+			#endif
+			break;
+		default:
+			#ifdef CONFIG_FLIPPER
+				printf("Invalid Beacon Mode \"%d\"\n", beaconAttackType);
+			#else
+				ESP_LOGE(BEACON_TAG, "Invalid Beacon Mode \"%d\"", beaconAttackType);
+			#endif
+			err = ESP_ERR_INVALID_ARG;
+			break;
+	}
+
+	return err;
+}
+
+/* Display the current status of the beacon attack */
+esp_err_t beacon_status() {
+	esp_err_t err = ESP_OK;
+
+	#ifdef CONFIG_FLIPPER
+		printf("Beacon Mode: %s\n", (attack_status[ATTACK_BEACON])?"ON":"OFF");
+	#else
+		ESP_LOGI(BEACON_TAG, "Beacon Mode: %sRunning", (attack_status[ATTACK_BEACON])?"Not ":"");
+	#endif
+
+	/* Display additional info if Beacon is running */
+	if (attack_status[ATTACK_BEACON]) {
+		err |= displayBeaconMode();
+	}
+
+	return err;
 }

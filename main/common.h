@@ -135,6 +135,7 @@ esp_err_t gravity_set_mac(uint8_t *newMac);
 extern const uint8_t BROADCAST[];
 
 /* scan.c */
+extern double scanResultExpiry;
 extern int gravity_ap_count;
 extern int gravity_sel_ap_count;
 extern int gravity_sta_count;
@@ -166,5 +167,6 @@ int max(int one, int two);
 esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid);
 
 extern const char *TAG;
+
 
 #endif

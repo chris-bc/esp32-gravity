@@ -62,6 +62,7 @@ esp_err_t randomSsidWithChars(char *ssid, int len);
 
 esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authenticationCount, int ssidCount);
 esp_err_t beacon_stop();
+esp_err_t beacon_status();
 
 /* extern functions - defined in main.c */
 esp_err_t addSsid(char *ssid);

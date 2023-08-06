@@ -15,7 +15,6 @@
 // TODO: If there are problems with SSID filtering, scan_filter_ssid had to be changed from static to get extern working...
 extern char scan_filter_ssid[33];
 extern uint8_t scan_filter_ssid_bssid[6];
-extern double scanResultExpiry;
 
 static const char* SCAN_TAG = "scan@GRAVITY";
 

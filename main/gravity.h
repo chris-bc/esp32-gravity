@@ -80,6 +80,7 @@ extern bool *attack_status;
 extern bool *hop_defaults;
 extern int *hop_millis_defaults;
 
+
 static bool WIFI_INITIALISED = false;
 
 char scan_filter_ssid[33] = "\0";
