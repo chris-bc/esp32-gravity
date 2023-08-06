@@ -24,6 +24,7 @@
 #include "bluetooth.h"
 #include "deauth.h"
 #include "dos.h"
+#include "esp_err.h"
 #include "fuzz.h"
 #include "hop.h"
 #include "mana.h"
@@ -189,7 +190,6 @@ esp_err_t cmd_info(int argc, char **argv) {
             printf("%15s:\t%s\n%15s\t%s\n\n", commands[command].command, commands[command].hint, "", commands[command].help);
         }
     }
-
     return ESP_OK;
 }
 
@@ -256,8 +256,9 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     }
 
     /* Now that 'fuzz' with no arguments has returned, enforce the validation */
-    /* Specifying packetType can be skipped provided it's already set, specifying mood cannot */
-    if ((newPacketType == FUZZ_PACKET_NONE && fuzzPacketType == FUZZ_PACKET_NONE) || newFuzzMode == FUZZ_MODE_NONE || argc > 5) {
+    /* Specifying packetType can be skipped provided it's already set, specifying mode cannot */
+    if ((newPacketType == FUZZ_PACKET_NONE && fuzzPacketType == FUZZ_PACKET_NONE) ||
+            newFuzzMode == FUZZ_MODE_NONE || argc > 5) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_FUZZ);
         #else
@@ -269,14 +270,14 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     // Update attack_status[ATTACK_BEACON] appropriately
     attack_status[ATTACK_FUZZ] = strcasecmp(argv[argc - 1], "OFF");
 
-    /* Start/stop hopping task loop as needed */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    /* Start/stop hopping as necessary */
+    err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop state for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     if (attack_status[ATTACK_FUZZ]) {
@@ -465,13 +466,13 @@ esp_err_t cmd_beacon(int argc, char **argv) {
     }
 
     /* Start/stop hopping task loop as needed */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop state for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     /* What auth type(s) are we using? */
@@ -621,13 +622,13 @@ esp_err_t cmd_probe(int argc, char **argv) {
     attack_status[ATTACK_PROBE] = strcasecmp(argv[1], "OFF");
 
     /* Start hopping task loop if hopping is on by default */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     probe_attack_t probeType = ATTACK_PROBE_UNDIRECTED; // Default
@@ -699,13 +700,13 @@ esp_err_t cmd_sniff(int argc, char **argv) {
     }
 
     /* Start hopping task loop if hopping is on by default */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
     return ESP_OK;
 }
@@ -817,13 +818,13 @@ esp_err_t cmd_deauth(int argc, char **argv) {
     attack_status[ATTACK_DEAUTH] = (dMode != DEAUTH_MODE_OFF);
 
     /* Start/Stop channel hopping as required */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop status: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
     return deauth_start(dMode, setMAC, delay);
 }
@@ -961,13 +962,13 @@ esp_err_t cmd_mana(int argc, char **argv) {
     /* Now that attack_status has been set correctly,
        start or stop channel hopping as needed
     */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop status: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     /* Now that channel hopping has been set appropriately,
@@ -1014,13 +1015,13 @@ esp_err_t cmd_ap_dos(int argc, char **argv) {
     attack_status[ATTACK_AP_DOS] = strcasecmp(argv[1], "OFF");
 
     /* Start/Stop hopping task loop if hopping is on by default */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     if (gravity_sel_ap_count == 0) {
@@ -1183,14 +1184,15 @@ esp_err_t cmd_scan(int argc, char **argv) {
     #endif
 
     /* Start/stop hopping task loop as needed */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
+
     return ESP_OK;
 }
 
@@ -1708,13 +1710,13 @@ esp_err_t cmd_handshake(int argc, char **argv) {
     /* TODO: Set attack_status appropriately */
 
     /* Start hopping task loop if hopping is on by default */
-    hop_millis = dwellTime();
-    char *args[] = {"hop","on"};
-    if (isHopEnabled()) {
-        ESP_ERROR_CHECK(cmd_hop(2, args));
-    } else {
-        args[1] = "off";
-        ESP_ERROR_CHECK(cmd_hop(2, args));
+    esp_err_t err = setHopForNewCommand();
+    if (err != ESP_OK) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+        #else
+            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+        #endif
     }
 
     return ESP_OK;

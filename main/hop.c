@@ -120,3 +120,21 @@ int dwellTime() {
     }
     return -1;                  /* Error condition */
 }
+
+/* Using the helper functions above, figure out whether hopping should be
+   enabled and, if so, the required dwell time and make it so.
+*/
+esp_err_t setHopForNewCommand() {
+    esp_err_t retVal = ESP_OK;
+
+    /* Start/stop hopping task loop as needed */
+    hop_millis = dwellTime();
+    char *args[] = {"hop","on"};
+    if (isHopEnabled()) {
+        retVal |= cmd_hop(2, args);
+    } else {
+        args[1] = "off";
+        retVal |= cmd_hop(2, args);
+    }
+    return retVal;
+}

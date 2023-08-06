@@ -35,5 +35,6 @@ bool isHopEnabled();
 int dwellForCurrentFeatures();
 int dwellTime();
 esp_err_t hopModeToString(HopMode mode, char *str);
+esp_err_t setHopForNewCommand();
 
 #endif
