@@ -721,12 +721,7 @@ esp_err_t cmd_deauth(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("Deauth %s Delay %ldms\n", (attack_status[ATTACK_DEAUTH])?"ON":"OFF", deauth_getDelay());
-        #else
-            ESP_LOGI(DEAUTH_TAG, "Deauth is %srunning. Waiting %ldms between packets.",
-                    (attack_status[ATTACK_DEAUTH])?"":"not ", deauth_getDelay());
-        #endif
+        display_deauth_status();
         return ESP_OK;
     }
 

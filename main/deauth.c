@@ -1,4 +1,7 @@
 #include "deauth.h"
+#include "common.h"
+#include "esp_err.h"
+#include "probe.h"
 
 // ========== DEAUTH PACKET ========== //
 uint8_t deauth_pkt[26] = {
@@ -194,6 +197,88 @@ esp_err_t deauth_stop() {
     }
 
     return ESP_OK;
+}
+
+esp_err_t deauth_macSchemeToString(DeauthMAC theMac, char *theString) {
+    esp_err_t err = ESP_OK;
+    char *tmpStr;
+    switch (theMac) {
+        case DEAUTH_MAC_FRAME:
+            tmpStr = "DEAUTH_MAC_FRAME";
+            break;
+        case DEAUTH_MAC_DEVICE:
+            tmpStr = "DEAUTH_MAC_DEVICE";
+            break;
+        case DEAUTH_MAC_SPOOF:
+            tmpStr = "DEAUTH_MAC_SPOOF";
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid Deauth MAC Scheme (%d)\n", theMac);
+            #else
+                ESP_LOGE(DEAUTH_TAG, "Invalid Deauth MAC Scheme specified (%d)", theMac);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
+    strcpy(theString, tmpStr);
+    return err;
+}
+
+esp_err_t deauth_modeToString(DeauthMode theMode, char *theString) {
+    esp_err_t err = ESP_OK;
+    char *tmpStr;
+
+    switch (theMode) {
+        case DEAUTH_MODE_OFF:
+            tmpStr = "Off";
+            break;
+        case DEAUTH_MODE_AP:
+            tmpStr = "Clients of Selected APs";
+            break;
+        case DEAUTH_MODE_STA:
+            tmpStr = "Selected STAs";
+            break;
+        case DEAUTH_MODE_BROADCAST:
+            tmpStr = "Broadcast Packets";
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid Deauth Mode %d\n", theMode);
+            #else
+                ESP_LOGE(DEAUTH_TAG, "Invalid Deauth Mode %d", theMode);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
+    strcpy(theString, tmpStr);
+    return err;
+}
+
+/* Display deauth state, pause interval, mode and MAC approach */
+esp_err_t display_deauth_status() {
+    esp_err_t err = ESP_OK;
+    char modeStr[24] = "";
+    char macStr[18] = "";
+
+    err |= deauth_modeToString(mode, modeStr);
+    err |= deauth_macSchemeToString(deauthMAC, macStr);
+
+    #ifdef CONFIG_FLIPPER
+        printf("Deauth:\t\t %s\nDeauth Delay:\t%ldms\nMAC Scheme:\t%s\nDeauth Targets:\t%s\n", attack_status[ATTACK_DEAUTH]?"ON":"OFF", deauth_delay, macStr, modeStr);
+    #else
+        ESP_LOGI(DEAUTH_TAG, "Deauth is %sRunning.\t\t\tDeauth delay %ldms\n\t\t\t Deauth MAC Scheme: %s\tDeauth Targets: %s", attack_status[ATTACK_DEAUTH]?"":"Not ", deauth_delay, macStr, modeStr);
+    #endif
+
+    #ifdef CONFIG_DEBUG
+        if (mode == DEAUTH_MODE_STA) {
+            // Print selectedSTA
+            gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, false);
+        } else if (mode == DEAUTH_MODE_AP) {
+            // Print selectedAP
+            gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, false);
+        }
+    #endif
+
+    return err;
 }
 
 esp_err_t deauth_setDelay(long millis) {

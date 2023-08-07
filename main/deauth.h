@@ -36,6 +36,7 @@ esp_err_t deauth_standalone_packet(uint8_t *src, uint8_t *dest);
 esp_err_t disassoc_standalone_packet(uint8_t *src, uint8_t *dest);
 esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis);
 esp_err_t deauth_stop();
+esp_err_t display_deauth_status();
 esp_err_t deauth_setDelay(long millis);
 long deauth_getDelay();
 
