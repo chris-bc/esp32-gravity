@@ -137,7 +137,7 @@ esp_err_t setHopForNewCommand() {
         #ifdef CONFIG_FLIPPER
             printf("Ch. Hop %s, Dwell %ldms\n", (isHopEnabled())?"ON":"OFF", hop_millis);
         #else
-            ESP_LOGW(HOP_TAG, "Channel Hopping %s\t\tDwell time %ldms", (isHopEnabled())?"Enabled":"Disabled", hop_millis);
+            ESP_LOGI(HOP_TAG, "Channel Hopping %s\t\tDwell time %ldms", (isHopEnabled())?"Enabled":"Disabled", hop_millis);
         #endif
     #endif
     return retVal;

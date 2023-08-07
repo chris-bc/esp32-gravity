@@ -2024,7 +2024,9 @@ void app_main(void)
     /* In Flipper mode remove all use of ESP logging except for errors (the line prefix is too long) */
     #ifdef CONFIG_FLIPPER
         esp_log_level_set(BEACON_TAG, ESP_LOG_ERROR);
-        esp_log_level_set(BT_TAG, ESP_LOG_ERROR);
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            esp_log_level_set(BT_TAG, ESP_LOG_ERROR);
+        #endif
         esp_log_level_set(DEAUTH_TAG, ESP_LOG_ERROR);
         esp_log_level_set(DOS_TAG, ESP_LOG_ERROR);
         esp_log_level_set(FUZZ_TAG, ESP_LOG_ERROR);
