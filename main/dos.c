@@ -263,6 +263,44 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
     return ESP_OK;
 }
 
+/* Display the status of the DOS attack */
+esp_err_t dos_display_status() {
+    esp_err_t err = ESP_OK;
+
+    #ifdef CONFIG_FLIPPER
+        printf("Gravity DOS: %s\nGravity selectedAPs: %d\n", attack_status[ATTACK_AP_DOS]?"ACTIVE":"INACTIVE", gravity_sel_ap_count);
+        if (gravity_sel_ap_count > 0) {
+            gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, false);
+        }
+    #else
+        ESP_LOGI(DOS_TAG, "DOS: %s\nGravity selectedAPs: %d\n", attack_status[ATTACK_AP_DOS]?"Active":"Inactive", gravity_sel_ap_count);
+        if (gravity_sel_ap_count > 0) {
+            gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, false);
+        }
+    #endif
+
+    return err;
+}
+
+/* Display the status of the clone attack */
+esp_err_t clone_display_status() {
+    esp_err_t err = ESP_OK;
+
+    #ifdef CONFIG_FLIPPER
+        printf("Gravity Clone: %s\nGravity selectedAPs: %d\n", attack_status[ATTACK_AP_CLONE]?"ACTIVE":"INACTIVE", gravity_sel_ap_count);
+        if (gravity_sel_ap_count > 0) {
+            gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, false);
+        }
+    #else
+        ESP_LOGI(DOS_TAG, "Clone: %s\nGravity selectedAPs: %d\n", attack_status[ATTACK_AP_CLONE]?"Active":"Inactive", gravity_sel_ap_count);
+        if (gravity_sel_ap_count > 0) {
+            gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, false);
+        }
+    #endif
+
+    return err;
+}
+
 /* Determine whether we need to do anything in response to the current frame */
 /* This function provides an implementation supporting both AP-DOS and AP-Clone.
    AP-Clone needs to behave as a regular AP for the AP(s) it is emulating,

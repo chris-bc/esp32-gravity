@@ -13,6 +13,8 @@
 
 esp_err_t dosParseFrame(uint8_t *payload);
 esp_err_t cloneStartStop(bool isStarting, int authType);
+esp_err_t dos_display_status();
+esp_err_t clone_display_status();
 
 extern const char *DOS_TAG;
 extern const uint8_t INNOCENT_MAC_BYTES[];

@@ -985,12 +985,7 @@ esp_err_t cmd_ap_dos(int argc, char **argv) {
         #endif
     }
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("AP-DOS is %srunning\n", (attack_status[ATTACK_AP_DOS])?"":"not ");
-        #else
-            ESP_LOGI(DOS_TAG, "AP-DOS is %srunning", (attack_status[ATTACK_AP_DOS])?"":"not ");
-        #endif
-        return ESP_OK;
+        return dos_display_status();
     }
     /* Update attack_status[] */
     attack_status[ATTACK_AP_DOS] = strcasecmp(argv[1], "OFF");
@@ -1034,12 +1029,7 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("AP-CLONE is %srunning\n", (attack_status[ATTACK_AP_CLONE])?"":"not ");
-        #else
-            ESP_LOGI(DOS_TAG, "AP-CLONE is %srunning", (attack_status[ATTACK_AP_CLONE])?"":"not ");
-        #endif
-        return ESP_OK;
+        return clone_display_status();
     }
     PROBE_RESPONSE_AUTH_TYPE cloneAuthType = 0;
     for (int i = 2; i < argc; ++i) {
