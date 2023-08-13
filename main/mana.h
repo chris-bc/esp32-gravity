@@ -24,5 +24,6 @@ extern uint8_t PRIVACY_OFF_BYTES[];
 extern uint8_t PRIVACY_ON_BYTES[];
 
 esp_err_t mana_handleProbeRequest(uint8_t *payload, char *ssid, int ssid_len);
+esp_err_t mana_display_status();
 
 #endif

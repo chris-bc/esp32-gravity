@@ -94,7 +94,7 @@ bool isHopEnabled() {
 
 /* Calculate the default dwell time (hop_millis) based on the features that are currently active */
 /* Where multiple features are active the greatest dwell time will be returned */
-int dwellForCurrentFeatures() {
+long dwellForCurrentFeatures() {
     int retVal = 0;
     for (int i = 0; i < ATTACKS_COUNT; ++i) {
         if (attack_status[i] && hop_defaults[i] && hop_millis_defaults[i] > retVal) {
@@ -108,7 +108,7 @@ int dwellForCurrentFeatures() {
     return retVal;
 }
 
-int dwellTime() {
+long dwellTime() {
     switch (hopStatus) {
     case HOP_STATUS_ON:
         return hop_millis;
@@ -134,10 +134,12 @@ esp_err_t setHopForNewCommand() {
         createHopTaskIfNeeded();
     }
     #ifdef CONFIG_DEBUG
+        char hopModeStr[19];
+        hopModeToString(hopMode, hopModeStr);
         #ifdef CONFIG_FLIPPER
-            printf("Ch. Hop %s, Dwell %ldms\n", (isHopEnabled())?"ON":"OFF", hop_millis);
+            printf("Ch. Hop %s, Dwell %ldms\nHop Mode: %s\n", (isHopEnabled())?"ON":"OFF", hop_millis, hopModeStr);
         #else
-            ESP_LOGI(HOP_TAG, "Channel Hopping %s\t\tDwell time %ldms", (isHopEnabled())?"Enabled":"Disabled", hop_millis);
+            ESP_LOGI(HOP_TAG, "Channel Hopping %s\t\tDwell time %ldms\nHop Mode: %s", (isHopEnabled())?"Enabled":"Disabled", hop_millis, hopModeStr);
         #endif
     #endif
     return retVal;

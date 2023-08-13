@@ -1,4 +1,7 @@
 #include "mana.h"
+#include "common.h"
+#include "hop.h"
+#include "probe.h"
 
 const char *MANA_TAG = "mana@GRAVITY";
 
@@ -204,4 +207,31 @@ esp_err_t mana_handleProbeRequest(uint8_t *payload, char *ssid, int ssid_len) {
     }
     /* We shouldn't get here but if we do, call it good fortune */
     return ESP_OK;
+}
+
+/* Display Mana- and Mana-related status information */
+/* Stuff to include: ATTACK_MANA, ATTACK_MANA_VERBOSE, mana_auth (PROBE_RESPONSE_AUTH_TYPE),
+                     ATTACK_MANA_LOUD, plus ch hop status (isHopEnabled()), hopMode and
+                     hopModeToSTring() & dwellForCurrentFeatures()
+   TODO: Number of responses sent, number of association attempts,
+         number of successful associations, etc.
+*/
+esp_err_t mana_display_status() {
+    esp_err_t err = ESP_OK;
+
+    #ifdef CONFIG_FLIPPER
+        char authType[45];
+        err |= authTypeToString(mana_auth, authType, true);
+        printf("Mana: %sRunning\t\tLoud-Mana: %sRunning\nVerbose: %s\t\tMana Auth: %s\nCh. Hop: %s, %ldms, %s\n",
+                attack_status[ATTACK_MANA]?"":"Not ", attack_status[ATTACK_MANA_LOUD]?"":"Not ", attack_status[ATTACK_MANA_VERBOSE]?"ON":"OFF",
+                authType);
+    #else
+        char authType[45];
+        err |= authTypeToString(mana_auth, authType, false);
+        ESP_LOGI(MANA_TAG, "Mana is %sRunning\nLoud-Mana: %sRunning\t\tVerbose: %s\nMana Auth: %s",
+                attack_status[ATTACK_MANA]?"":"Not ", attack_status[ATTACK_MANA_LOUD]?"":"Not ",
+                attack_status[ATTACK_MANA_VERBOSE]?"ON":"OFF", authType);
+    #endif
+
+    return err;
 }

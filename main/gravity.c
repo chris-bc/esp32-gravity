@@ -827,11 +827,13 @@ esp_err_t cmd_deauth(int argc, char **argv) {
    an SSID it trusts to offer the open authentication it expects,
    the device will proceed to associate and allow Gravity to
    control its network connectivity.
-   Usage: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] )
+   Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )
+   CLEAR   :  Erase Preferred Network Lists (PNLs) cached by Mana
    VERBOSE :  Display messages as packets are sent and received,
               providing attack status
    ON | OFF:  Start or stop either the Mana attack or verbose logging
    AUTH    :  Set or display auth method
+   LOUD    :  Enable/Disable the "Loud Mana" variant of this attack.
 
    TODO :  Display status of attack - Number of responses sent,
            number of association attempts, number of successful
@@ -851,11 +853,7 @@ esp_err_t cmd_mana(int argc, char **argv) {
     bool launchMana = false; /* Not a very elegant way to restructure channel hopping... */
 
     if (argc == 1) {
-        #ifdef CONFIG_FLIPPER
-            printf("Mana is %s\n", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
-        #else
-            ESP_LOGI(MANA_TAG, "Mana is %s", (attack_status[ATTACK_MANA])?"Enabled":"Disabled");
-        #endif
+        mana_display_status();
     } else if (!strcasecmp(argv[1], "VERBOSE")) {
         if (argc == 2) {
             #ifdef CONFIG_FLIPPER
