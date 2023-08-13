@@ -325,11 +325,11 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
     // Attributes: lastSeen, index, selected, espRecord.authmode, espRecord.bssid, espRecord.primary,
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
     #ifdef CONFIG_FLIPPER
-        printf(" ID | Cli |  SSID\n");
-        printf("====|=====|========\n");
+        printf(" ID | RSSI | Cli |  SSID\n");
+        printf("====|======|=====|========\n");
     #else
-        printf(" ID | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS\n");
-        printf("====|==================================|===================|=====|==========================|====|=====\n");
+        printf(" ID | RSSI | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS \n");
+        printf("====|======|==================================|===================|=====|==========================|====|=====\n");
     #endif
     char strBssid[18];
     char strTime[26];
@@ -372,11 +372,11 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
                     memcpy(&strSsid[18], "..\0", 3);
                 }
             }
-            printf("%s%2d | %3d |\n%20s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
-                    aps[i]->stationCount, strSsid);
+            printf("%s%2d | %4d | %3d |\n%20s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
+                    aps[i]->espRecord.rssi, aps[i]->stationCount, strSsid);
         #else
-            printf("%s%2d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
-                    strSsid, strBssid, aps[i]->stationCount, strTime,
+            printf("%s%2d | %4d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
+                    aps[i]->espRecord.rssi, strSsid, strBssid, aps[i]->stationCount, strTime, 
                     aps[i]->espRecord.primary, (aps[i]->espRecord.wps<<5 != 0)?"Yes":"No");
         #endif
     }

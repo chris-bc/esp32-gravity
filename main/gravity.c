@@ -1646,11 +1646,12 @@ esp_err_t cmd_clear(int argc, char **argv) {
             #endif
             return ESP_ERR_INVALID_ARG;
         }
+        esp_err_t err = ESP_OK;
         if (!(strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "ALL"))) {
-            ESP_ERROR_CHECK(gravity_clear_ap());
+            err |= gravity_clear_ap();
         }
         if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
-            ESP_ERROR_CHECK(gravity_clear_sta());
+            err |= gravity_clear_sta();
         }
     }
     return ESP_OK;

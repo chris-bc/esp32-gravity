@@ -1,6 +1,25 @@
 #ifndef GRAVITY_H
 #define GRAVITY_H
 
+/* ********************** ESP32 Gravity ***********************
+ * Gravity started life as a way to learn how to assemble and *
+ * send wireless packets. I started with the 'RickRoll' beacon*
+ * attack, and continued the theme.                           *
+ * I like to think that Gravity differentiates itself from    *
+ * Marauder in that Marauder feels to me like it's about      *
+ * gathering information - scanning, capturing handshakes,    *
+ * etc. - whereas Gravity is all about sending stuff down the *
+ * wire. I'm fascinated by the possibilities of combining Mana*
+ * with other attacks, so my initial drive was to develop a   *
+ * Mana process from the ground up.                           *
+ *                                                            *
+ * Flipper-Gravity, a companion Flipper Zero app, can be      *
+ * downloaded from https://github.com/chris-bc/Flipper-Gravity*
+ *                                                            *
+ * ESP32-Gravity: https://github.com/chris-bc/esp32-gravity   *
+ *                                                            *
+ * Licensed under the MIT Open Source License.                *
+ **************************************************************/
 #define GRAVITY_VERSION "0.2.2b"
 
 #include <cmd_nvs.h>

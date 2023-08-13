@@ -970,16 +970,18 @@ TODO
 
 ## Bugs / Todo
 
-* Clear ALL returns warnings
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
-    * Probably need to re-initialise wifi?
+    * Which bits to re-init?
   * Fix MAC randomisation for Probe
   * Implement MAC randomisation for beacon
   * Re-implement MAC spoofing for deauth
   * Re-implement MAC spoofing for DOS (Used in 5 places)
 * parse additional packet types
 * figure out RSSI
+  * bt
+  * AP (ScanResultAP.espRecord.rssi)
+  * STA
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * Test using fuzz with multiple packet types
 * Add non-broadcast targets to fuzz
