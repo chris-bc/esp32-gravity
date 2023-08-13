@@ -475,6 +475,8 @@ esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
     for (int i = 0; i < gravity_ap_count; ++i) {
         retVal[i] = &(gravity_aps[i]);
     }
+    // Sort?
+
     esp_err_t err = gravity_list_ap(retVal, gravity_ap_count, hideExpiredPackets);
     free(retVal);
     return err;
@@ -529,6 +531,10 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
     unsigned long nowTime;
     unsigned long elapsed;
     double minutes;
+
+    /* Apply the sort to selectedAPs */
+    qsort(aps, apCount, sizeof(ScanResultAP *), &ap_comparator);
+
     for (int i=0; i < apCount; ++i) {
         ESP_ERROR_CHECK(mac_bytes_to_string(aps[i]->espRecord.bssid, strBssid));
 

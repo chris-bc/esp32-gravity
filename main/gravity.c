@@ -1589,9 +1589,6 @@ esp_err_t cmd_view(int argc, char **argv) {
         }
     #endif
 
-    /* Apply the sort to selectedAPs */
-    qsort(gravity_selected_aps, gravity_sel_ap_count, sizeof(ScanResultAP *), &ap_comparator);
-
     bool success = true;
     for (i=1; i < argc; ++i) {
         /* Hide expired packets for display if scanResultExpiry has been set */
