@@ -1073,33 +1073,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        char strMsg[128];
-        char working[64];
-        #ifdef CONFIG_FLIPPER
-            sprintf(strMsg, "Scan %s; ", (attack_status[ATTACK_SCAN])?"ON":"OFF");
-        #else
-            sprintf(strMsg, "Scanning is %s. Network selection is configured to sniff ", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
-        #endif
-        if (strlen(scan_filter_ssid) == 0) {
-            #ifdef CONFIG_FLIPPER
-                strcat(strMsg, "all nets");
-            #else
-                strcat(strMsg, "packets from all networks.");
-            #endif
-        } else {
-            #ifdef CONFIG_FLIPPER
-                strcat(strMsg, "user SSID");
-            #else
-                sprintf(working, "packets from the SSID \"%s\"", scan_filter_ssid);
-                strcat(strMsg, working);
-            #endif
-        }
-        #ifdef CONFIG_FLIPPER
-            printf("%s\n", strMsg);
-        #else
-            ESP_LOGI(TAG, "%s", strMsg);
-        #endif
-        return ESP_OK;
+        return scan_display_status();
     }
 
     /* Zero out SSID filter */
@@ -1306,8 +1280,11 @@ esp_err_t cmd_set(int argc, char **argv) {
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("set MAC_RAND ON|OFF\n");
+                printf("\n\nNOTE: Mac Randomisation may be causing packet loss\non ESP32 devices. Currently being investigated.\n");
             #else
                 ESP_LOGE(TAG, "Usage: set MAC_RAND [ ON | OFF ]");
+                printf("\n\n");
+                ESP_LOGW(TAG, "NOTE: MAC randomisation may be causing packet loss on ESP32 devices. Currently being looked into.");
             #endif
             return ESP_ERR_INVALID_ARG;
         }

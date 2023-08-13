@@ -1081,3 +1081,34 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
     }
     return ESP_OK;
 }
+
+esp_err_t scan_display_status() {
+    char strMsg[128];
+    char working[64];
+    #ifdef CONFIG_FLIPPER
+        sprintf(strMsg, "Scan %s; ", (attack_status[ATTACK_SCAN])?"ON":"OFF");
+    #else
+        sprintf(strMsg, "Scanning is %s. Network selection is configured to sniff ", (attack_status[ATTACK_SCAN])?"Active":"Inactive");
+    #endif
+    if (strlen(scan_filter_ssid) == 0) {
+        #ifdef CONFIG_FLIPPER
+            strcat(strMsg, "all nets");
+        #else
+            strcat(strMsg, "packets from all networks.");
+        #endif
+    } else {
+        #ifdef CONFIG_FLIPPER
+            strcat(strMsg, "user SSID");
+        #else
+            sprintf(working, "packets from the SSID \"%s\"", scan_filter_ssid);
+            strcat(strMsg, working);
+        #endif
+    }
+    #ifdef CONFIG_FLIPPER
+        printf("%s\n", strMsg);
+    #else
+        ESP_LOGI(TAG, "%s", strMsg);
+    #endif
+
+    return ESP_OK;
+}

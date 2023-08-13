@@ -978,9 +978,6 @@ TODO
   * Implement MAC randomisation for beacon
   * Re-implement MAC spoofing for deauth
   * Re-implement MAC spoofing for DOS (Used in 5 places)
-* Refactor modules, move everything to good design
-  * Move out of gravity.c
-    * Many cmd_XXXX blocks have chunks of logic in them that should be moved to a separate function
 * parse additional packet types
 * figure out RSSI
 * Decode OUI when displaying MACs (in the same way Wireshark does)

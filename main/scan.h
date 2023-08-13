@@ -34,5 +34,6 @@ bool gravity_sta_isSelected(int index);
 bool gravity_ap_isSelected(int index);
 
 esp_err_t scan_wifi_parse_frame(uint8_t *payload);
+esp_err_t scan_display_status();
 
 #endif
