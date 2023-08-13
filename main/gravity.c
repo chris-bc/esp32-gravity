@@ -22,6 +22,7 @@
 
 #include "beacon.h"
 #include "bluetooth.h"
+#include "common.h"
 #include "deauth.h"
 #include "dos.h"
 #include "esp_err.h"
@@ -1498,8 +1499,10 @@ esp_err_t cmd_get(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
+/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | SORT ( AGE | RSSI | SSID ) )+
+*/
 esp_err_t cmd_view(int argc, char **argv) {
-    if (argc < 2 || argc > 5) {
+    if (argc < 2 || argc > 11) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_VIEW);
         #else
@@ -1507,8 +1510,90 @@ esp_err_t cmd_view(int argc, char **argv) {
         #endif
         return ESP_ERR_INVALID_ARG;
     }
+    /* Scan arguments to see if sort criteria have been specified */
+    int i = 1;
+    GRAVITY_SORT_TYPE currentSortTypes[] = { GRAVITY_SORT_NONE, GRAVITY_SORT_NONE, GRAVITY_SORT_NONE };
+    int currentSortCount = 0;
+    while (i < argc) {
+        for (; i < argc && strcasecmp(argv[i], "SORT"); ++i) { }
+        /* Here i is either argc and we're done, or not */
+        if (i < argc) {
+            /* argv[i+1] should contain AGE, RSSI or SSID */
+            if (!strcasecmp(argv[i + 1], "AGE")) {
+                currentSortTypes[currentSortCount++] = GRAVITY_SORT_AGE;
+            } else if (!strcasecmp(argv[i + 1], "RSSI")) {
+                currentSortTypes[currentSortCount++] = GRAVITY_SORT_RSSI;
+            } else if (!strcasecmp(argv[i + 1], "SSID")) {
+                currentSortTypes[currentSortCount++] = GRAVITY_SORT_SSID;
+            } else {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid sort specifier: \"%s\"\n", argv[i + 1]);
+                #else
+                    ESP_LOGE(TAG, "Invalid sort specifier: \"%s\"", argv[i + 1]);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+        }
+        i += 2; /* Jump past "SORT xxx" */
+    }
+    /* Have now captured all sort criteria */
+    sortCount = currentSortCount;
+    sortResults[0] = currentSortTypes[0];
+    sortResults[1] = currentSortTypes[1];
+    sortResults[2] = currentSortTypes[2];
+
+    #ifdef CONFIG_DEBUG
+        if (currentSortCount > 0) {
+            char sortCriteria[25] = "";
+            strcpy(sortCriteria, "Sort by: ");
+            for (int j = 0; j < currentSortCount; ++j) {
+                switch (currentSortTypes[j]) {
+                    case GRAVITY_SORT_NONE:
+                        if (j > 0) {
+                            strcat(sortCriteria, ", ");
+                        }
+                        strcat(sortCriteria, "NONE");
+                        break;
+                    case GRAVITY_SORT_AGE:
+                        if (j > 0) {
+                            strcat(sortCriteria, ", ");
+                        }
+                        strcat(sortCriteria, "AGE");
+                        break;
+                    case GRAVITY_SORT_RSSI:
+                        if (j > 0) {
+                            strcat(sortCriteria, ", ");
+                        }
+                        strcat(sortCriteria, "RSSI");
+                        break;
+                    case GRAVITY_SORT_SSID:
+                        if (j > 0) {
+                            strcat(sortCriteria, ", ");
+                        }
+                        strcat(sortCriteria, "SSID");
+                        break;
+                    default:
+                        #ifdef CONFIG_FLIPPER
+                            printf("Unknown sort criterion '%d'\n", currentSortTypes[j]);
+                        #else
+                            ESP_LOGE(TAG, "Unknown sort criterion '%d'", currentSortTypes[j]);
+                        #endif
+                        return ESP_ERR_INVALID_ARG;
+                }
+            }
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", sortCriteria);
+            #else
+                ESP_LOGI(TAG, "%s", sortCriteria);
+            #endif
+        }
+    #endif
+
+    /* Apply the sort to selectedAPs */
+    qsort(gravity_selected_aps, gravity_sel_ap_count, sizeof(ScanResultAP *), &ap_comparator);
+
     bool success = true;
-    for (int i=1; i < argc; ++i) {
+    for (i=1; i < argc; ++i) {
         /* Hide expired packets for display if scanResultExpiry has been set */
         if (!strcasecmp(argv[i], "AP")) {
             /* Is this looking for APs, or for APs associated with selected STAs? */
@@ -1536,6 +1621,8 @@ esp_err_t cmd_view(int argc, char **argv) {
             } else {
                 success = (success && (gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK));
             }
+        } else if (!strcasecmp(argv[i], "SORT")) {
+            ++i; /* Skip "SORT" and specifier */
         } else {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_VIEW);

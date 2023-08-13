@@ -118,6 +118,13 @@ typedef enum PROBE_RESPONSE_AUTH_TYPE {
 extern const char *AUTH_TYPE_NAMES[];
 extern const char *AUTH_TYPE_FLIPPER_NAMES[];
 
+typedef enum GRAVITY_SORT_TYPE {
+    GRAVITY_SORT_NONE,
+    GRAVITY_SORT_AGE,
+    GRAVITY_SORT_RSSI,
+    GRAVITY_SORT_SSID
+} GRAVITY_SORT_TYPE;
+
 /* Declared here because I get an error trying to use this enum in beacon.h (but it's fine in beacon.c) */
 extern PROBE_RESPONSE_AUTH_TYPE authTypes[];
 

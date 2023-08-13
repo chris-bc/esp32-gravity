@@ -13,12 +13,204 @@ ScanResultAP **gravity_selected_aps = NULL;
 ScanResultSTA **gravity_selected_stas = NULL;
 double scanResultExpiry = 0; /* Do not expire packets by default */
 
+GRAVITY_SORT_TYPE sortResults[] = {GRAVITY_SORT_NONE, GRAVITY_SORT_NONE, GRAVITY_SORT_NONE};
+int sortCount = 1;
+
 enum GravityScanType {
     GRAVITY_SCAN_AP,
     GRAVITY_SCAN_STA,
     GRAVITY_SCAN_WIFI,
     GRAVITY_SCAN_BLE
 };
+
+/* Comparison function for sorting of ScanResultAPs */
+/* Provides a sort function that uses sortResults
+*/
+int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
+    /* Return 0 if they're identical */
+    if (sortCount == 0) {
+        return 0;
+    }
+    if (sortCount == 1) {
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen == two->lastSeen) {
+                return 0;
+            } else if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->espRecord.rssi == two->espRecord.rssi) {
+                return 0;
+            } else if (one->espRecord.rssi < two->espRecord.rssi) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+        }
+    } else if (sortCount == 2) {
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else if (one->lastSeen > two->lastSeen) {
+                return 1;
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                    if (one->espRecord.rssi == two->espRecord.rssi) {
+                        return 0;
+                    } else if (one->espRecord.rssi < two->espRecord.rssi) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                }
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->espRecord.rssi < two->espRecord.rssi) {
+                return -1;
+            } else if (one->espRecord.rssi > two->espRecord.rssi) {
+                return 1;
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_AGE) {
+                    if (one->lastSeen == two->lastSeen) {
+                        return 0;
+                    } else if (one->lastSeen < two->lastSeen) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                }
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_AGE) {
+                    if (one->lastSeen == two->lastSeen) {
+                        return 0;
+                    } else if (one->lastSeen < two->lastSeen) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                    if (one->espRecord.rssi == two->espRecord.rssi) {
+                        return 0;
+                    } else if (one->espRecord.rssi < two->espRecord.rssi) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
+            }
+        }
+    } else { /* sortCount == 3 */
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else if (one->lastSeen > two->lastSeen) {
+                return 1;
+            }
+            if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                if (one->espRecord.rssi < two->espRecord.rssi) {
+                    return -1;
+                } else if (one->espRecord.rssi > two->espRecord.rssi) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_RSSI) {
+                if (one->espRecord.rssi == two->espRecord.rssi) {
+                    return 0;
+                } else if (one->espRecord.rssi < two->espRecord.rssi) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_SSID) {
+                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->espRecord.rssi < two->espRecord.rssi) {
+                return -1;
+            } else if (one->espRecord.rssi > two->espRecord.rssi) {
+                return 1;
+            }
+            if (sortResults[1] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else if (one->lastSeen > two->lastSeen) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen == two->lastSeen) {
+                    return 0;
+                } else if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_SSID) {
+                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            } else if (sortResults[1] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else if (one->lastSeen > two->lastSeen) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                if (one->espRecord.rssi < two->espRecord.rssi) {
+                    return -1;
+                } else if (one->espRecord.rssi > two->espRecord.rssi) {
+                    return 1;
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen == two->lastSeen) {
+                    return 0;
+                } else if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_RSSI) {
+                if (one->espRecord.rssi == two->espRecord.rssi) {
+                    return 0;
+                } else if (one->espRecord.rssi < two->espRecord.rssi) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0; // TODO: Confirm no gaps?
+}
 
 /* A compact display of STAs */
 /* TODO: Needs RSSI */

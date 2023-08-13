@@ -20,7 +20,7 @@
  *                                                            *
  * Licensed under the MIT Open Source License.                *
  **************************************************************/
-#define GRAVITY_VERSION "0.2.2b"
+#define GRAVITY_VERSION "0.3.0"
 
 #include <cmd_nvs.h>
 #include <cmd_system.h>
@@ -182,7 +182,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "view",
         .hint = USAGE_VIEW,
-        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command using, for example, VIEW STA AP or VIEW AP selectedSTA.",
+        .help = "VIEW is a fundamental command in this framework, with the typical workflow being Scan-View-Select-Attack. Multiple result sets can be viewed in a single command, along with sort if desired using, for example, VIEW STA AP or VIEW AP selectedSTA SORT RSSI. Available SORT options are AGE, RSSI and SSID.",
         .func = cmd_view
     }, {
         .command = "select",
