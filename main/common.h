@@ -21,6 +21,7 @@
 #include "hop.h"
 #include "probe.h"
 #include "sniff.h"
+#include "stalk.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
@@ -64,6 +65,7 @@ enum AttackMode {
     ATTACK_HANDSHAKE,
     ATTACK_RANDOMISE_MAC, // True
     ATTACK_BT,
+    ATTACK_STALK,
     ATTACKS_COUNT
 };
 typedef enum AttackMode AttackMode;

@@ -34,6 +34,8 @@
 #include "scan.h"
 #include "sdkconfig.h"
 #include "sniff.h"
+#include "stalk.h"
+#include "usage_const.h"
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
@@ -971,7 +973,35 @@ esp_err_t cmd_mana(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Start/Stop the homing feature (stalking is such an emotive word) */
+/* Usage : stalk [ ON | OFF ]
+   This feature monitors the RSSI of selected wireless radios, presenting both unit
+   and aggregate data in an effort to simplify following a set of signals to their source
+*/
 esp_err_t cmd_stalk(int argc, char **argv) {
+    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF"))) {
+        #ifdef CONFIG_FLIPPER
+            printf("%s\n", SHORT_STALK);
+        #else
+            ESP_LOGE(STALK_TAG, "%s", USAGE_STALK);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (argc == 1) {
+        #ifdef CONFIG_FLIPPER
+            printf("Gravity-Homing is %sRunning\n", attack_status[ATTACK_STALK]?"":"Not ");
+        #else
+            ESP_LOGI(STALK_TAG, "Gravity-Homing is %sRunning", attack_status[ATTACK_STALK]?"":"Not ");
+        #endif
+        return ESP_OK;
+    }
+    /* If we reach this point argv == 2 */
+    attack_status[ATTACK_STALK] = strcasecmp(argv[1], "OFF");
+    if (attack_status[ATTACK_STALK]) {
+        stalk_begin();
+    } else {
+        stalk_end();
+    }
 
     return ESP_OK;
 }
@@ -1768,7 +1798,7 @@ bool gravitySniffActive() {
 
     return (attack_status[ATTACK_AP_DOS] || attack_status[ATTACK_AP_CLONE] ||
         attack_status[ATTACK_SNIFF] || attack_status[ATTACK_MANA] || attack_status[ATTACK_SCAN] ||
-        attack_status[ATTACK_MANA_LOUD]);
+        attack_status[ATTACK_MANA_LOUD] || attack_status[ATTACK_STALK]);
 }
 
 /* Monitor mode callback
@@ -1796,6 +1826,9 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
     /* Just send the whole packet to the scanner */
     if (attack_status[ATTACK_SCAN]) {
         scan_wifi_parse_frame(payload, data->rx_ctrl);
+    }
+    if (attack_status[ATTACK_STALK]) {
+        stalk_frame(payload, data->rx_ctrl);
     }
     /* Ditto for the sniffer */
     if (attack_status[ATTACK_SNIFF]) {
@@ -1984,6 +2017,7 @@ void app_main(void)
             case ATTACK_AP_CLONE:
             case ATTACK_HANDSHAKE:
             case ATTACK_BT:
+            case ATTACK_STALK:
                 attack_status[i] = false;
                 break;
             case ATTACK_RANDOMISE_MAC:
@@ -2007,6 +2041,7 @@ void app_main(void)
             case ATTACK_MANA:
             case ATTACK_AP_DOS:
             case ATTACK_AP_CLONE:
+            case ATTACK_STALK:
                 hop_defaults[i] = true;
                 break;
             case ATTACK_DEAUTH:
@@ -2044,6 +2079,9 @@ void app_main(void)
             case ATTACK_RANDOMISE_MAC: 
             case ATTACK_BT:                             /* treated differently somehow? */
                 hop_millis_defaults[i] = CONFIG_DEFAULT_HOP_MILLIS;
+                break;
+            case ATTACK_STALK:
+                hop_millis_defaults[i] = 250; // TODO: make a variable
                 break;
             default:
                 ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
