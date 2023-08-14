@@ -3,6 +3,7 @@
 #include "common.h"
 #include "freertos/portmacro.h"
 #include "probe.h"
+#include <time.h>
 
 static TaskHandle_t stalkTask = NULL;
 const char *STALK_TAG = "stalk@GRAVITY";
@@ -16,22 +17,37 @@ esp_err_t drawStalk() {
 
     CLEAR();
     /* Display selectedSTA */
+    GOTOXY(1, 2);
+    printf("Stations          | dB  | Age\n");
+    printf("------------------|-----|------");
     for (int i = 0; i < gravity_sel_sta_count; ++i) {
-        GOTOXY(1, i + 2);
+        GOTOXY(1, i + 4);
         printf("%s", gravity_selected_stas[i]->strMac);
-        GOTOXY(20, i + 2);
-        printf("%d", gravity_selected_stas[i]->rssi);
+        GOTOXY(19, i + 4);
+        printf("| %3d |", gravity_selected_stas[i]->rssi);
+        GOTOXY(26, i + 4);
+        /* Stringify timestamp */
+        clock_t nowTime = clock();
+        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        printf(" %2lds", elapsed);
     }
+    GOTOXY(1, gravity_sel_sta_count + 4);
+    printf("\nAccess Points     | dB  | Age\n");
+    printf("------------------|-----|------\n");
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
-        GOTOXY(1, gravity_sel_sta_count + i + 2);
+        GOTOXY(1, gravity_sel_sta_count + i + 7);
         char bssidStr[18] = "";
         mac_bytes_to_string(gravity_selected_aps[i]->espRecord.bssid, bssidStr);
         printf("%s", bssidStr);
-        GOTOXY(20, gravity_sel_sta_count + i + 2);
-        printf("%d", gravity_selected_aps[i]->espRecord.rssi);
+        GOTOXY(19, gravity_sel_sta_count + i + 7);
+        printf("| %3d |", gravity_selected_aps[i]->espRecord.rssi);
+        GOTOXY(26, gravity_sel_sta_count + i + 7);
+        /* Stringify timestamp */
+        clock_t nowTime = clock();
+        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        printf("%2lds\n", elapsed);
     }
-    GOTOXY(1,1);
-    fflush(stdout);
+    printf("\n\033[1;1H");
 
     return err;
 }

@@ -2,6 +2,7 @@
 #define STALK_H
 
 #include "common.h"
+#include <time.h>
 #include "esp_wifi_types.h"
 
 esp_err_t stalk_begin();
