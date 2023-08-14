@@ -49,7 +49,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                 return 1;
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
         }
     } else if (sortCount == 2) {
         if (sortResults[0] == GRAVITY_SORT_AGE) {
@@ -68,7 +68,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
@@ -87,12 +87,12 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
-                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
+                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
             } else {
                 /* Return based on sortResults[1] */
                 if (sortResults[1] == GRAVITY_SORT_AGE) {
@@ -128,8 +128,8 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
-                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
+                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
                 }
             }
             /* Third layer of comparison */
@@ -142,7 +142,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
             if (one->espRecord.rssi < two->espRecord.rssi) {
@@ -157,8 +157,8 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
-                    return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
+                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
                 }
             }
             /* Third layer of comparison */
@@ -171,11 +171,11 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
-                return strcasecmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
+            if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
+                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
             } else if (sortResults[1] == GRAVITY_SORT_AGE) {
                 if (one->lastSeen < two->lastSeen) {
                     return -1;
@@ -570,6 +570,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
                     memcpy(&strSsid[18], "..\0", 3);
                 }
             }
+            /* Am I using freed/no-longer-allocated memory here? That could be why I have strings and byte[]s but weird rssi values */
             printf("%s%2d | %4d | %3d |\n%20s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
                     aps[i]->espRecord.rssi, aps[i]->stationCount, strSsid);
         #else
