@@ -1794,7 +1794,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
 
     /* Just send the whole packet to the scanner */
     if (attack_status[ATTACK_SCAN]) {
-        scan_wifi_parse_frame(payload);
+        scan_wifi_parse_frame(payload, data->rx_ctrl);
     }
     /* Ditto for the sniffer */
     if (attack_status[ATTACK_SNIFF]) {

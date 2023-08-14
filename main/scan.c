@@ -1,5 +1,7 @@
 #include "scan.h"
 #include "common.h"
+#include "esp_err.h"
+#include "esp_wifi_types.h"
 
 #define CHANNEL_TAG 0x03
 
@@ -1087,6 +1089,12 @@ esp_err_t parse_probe_response(uint8_t *payload) {
 }
 
 esp_err_t parse_data(uint8_t *payload) {
+    #ifdef CONFIG_DEBUG_VERBOSE
+        char thePayload[18] = "";
+        mac_bytes_to_string(&payload[10], thePayload);
+        printf("parse_data(%s)\n", thePayload);
+    #endif
+
     // Get AP, STA, and associated AP
     int sta_offset = 4; // Rx
     int ap_offset = 10; // Tx
@@ -1144,17 +1152,47 @@ esp_err_t parse_data(uint8_t *payload) {
 }
 
 esp_err_t parse_rts(uint8_t *payload) {
+    #ifdef CONFIG_DEBUG_VERBOSE
+        char thePayload[18] = "";
+        mac_bytes_to_string(&payload[10], thePayload);
+        printf("parse_rts(%s)\n", thePayload);
+    #endif
+
     /* RTS is sent from STA to AP */
-    int sta_offset = 0;
+    int sta_offset = 10;
     int ap_offset = 0;
+
+    uint8_t sta[6];
+
+    memcpy(sta, &payload[sta_offset], 6);
+    int channel = parseChannel(payload);
+    gravity_add_sta(sta, channel);
 
     return ESP_OK;
 }
 
 esp_err_t parse_cts(uint8_t *payload) {
+    #ifdef CONFIG_DEBUG_VERBOSE
+        char thePayload[18] = "";
+        mac_bytes_to_string(&payload[10], thePayload);
+        printf("parse_cts(%s)\n", thePayload);
+    #endif
+
     /* CTS is sent from AP to STA */
-    int ap_offset = 0;
-    // Does it contain STA?
+    int ap_offset = 10;
+    int sta_offset = 4; /* Probably */
+    // Does it contain STA or BROADCAST?
+
+    uint8_t sta[6], ap[6];
+    memcpy(sta, &payload[sta_offset], 6);
+    memcpy(ap, &payload[ap_offset], 6);
+    int channel = parseChannel(payload);
+    ESP_ERROR_CHECK(gravity_add_sta(sta, channel));
+    if (memcmp(ap, BROADCAST, 6)) {
+        /* Destination was not BROADCAST so it must be an AP */
+        ESP_ERROR_CHECK(gravity_add_ap(ap, "", channel));
+        ESP_ERROR_CHECK(gravity_add_sta_ap(sta, ap));
+    }
 
     return ESP_OK;
 }
@@ -1167,7 +1205,7 @@ esp_err_t parse_cts(uint8_t *payload) {
         CTS has receiver address, may not even have source address
 
 */
-esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
+esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
     //
     /* TODO: Scan a specified SSID
     Given SSID, check data model for a match. If so great.
@@ -1246,15 +1284,18 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
             }
         }
     }
+    /* Process the packet and then retrofit RSSI, channel, channel extension, CSI, etc. */
+    /* That way the ScanResultAP and ScanResultSTA objects already exist & are in place */
+    esp_err_t err = ESP_OK;
     switch (payload[0]) {
     case WIFI_FRAME_PROBE_REQ:
-        return parse_probe_request(payload);
+        err = parse_probe_request(payload);
         break;
     case WIFI_FRAME_PROBE_RESP:
-        return parse_probe_response(payload);
+        err = parse_probe_response(payload);
         break;
     case WIFI_FRAME_BEACON:
-        return parse_beacon(payload);
+        err = parse_beacon(payload);
         break;
     case 0xB4:
         #ifdef CONFIG_FLIPPER
@@ -1262,7 +1303,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         #else
             ESP_LOGI(SCAN_TAG, "Received RTS frame");
         #endif
-        return parse_rts(payload);
+        err = parse_rts(payload);
         break;
     case 0xC4:
         #ifdef CONFIG_FLIPPER
@@ -1270,15 +1311,49 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload) {
         #else
             ESP_LOGI(SCAN_TAG, "Received CTS frame");
         #endif
-        return parse_cts(payload);
+        err = parse_cts(payload);
         break;
     case 0x88:
     case 0x08:
         //ESP_LOGI(SCAN_TAG, "Data frame");
-        return parse_data(payload);
+        err = parse_data(payload);
         break;
     }
-    return ESP_OK;
+
+    /* YAGNI: Improve the efficiency of this */
+    /* Now that the packet has been parsed we can be certain there's a ScanResultSTA
+       or ScanResultAP for the source MAC of the payload.
+       Find the struct with MAC payload[10] and set its values based on rx_ctrl
+    */
+    int i = 0;
+    /* Look for the MAC in gravityAPs[] */
+    for( ; i < gravity_ap_count && memcmp(&payload[10], gravity_aps[i].espRecord.bssid, 6); ++i) { }
+    if (i < gravity_ap_count) {
+        /* Found the AP in index i. Update it */
+        gravity_aps[i].espRecord.primary = rx_ctrl.channel;
+        gravity_aps[i].espRecord.rssi = rx_ctrl.rssi;
+        gravity_aps[i].espRecord.second = rx_ctrl.secondary_channel;
+    } else {
+        for (i = 0; i < gravity_sta_count && memcmp(&payload[10], gravity_stas[i].mac, 6); ++i) { }
+        if (i < gravity_sta_count) {
+            /* Found the STA in index i. Update it */
+            gravity_stas[i].channel = rx_ctrl.channel;
+            gravity_stas[i].rssi = rx_ctrl.rssi;
+            gravity_stas[i].second = rx_ctrl.secondary_channel;
+        } else {
+            #ifdef CONFIG_DEBUG_VERBOSE
+                char theMac[18] = "";
+                mac_bytes_to_string(&payload[10], theMac); // TODO: check result
+                #ifdef CONFIG_FLIPPER
+                    printf("Packet from %s has not been parsed!\n", theMac);
+                #else
+                    ESP_LOGE(SCAN_TAG, "Packet from %s has not been parsed!", theMac);
+                #endif
+            #endif
+        }
+    }
+
+    return err;
 }
 
 esp_err_t scan_display_status() {

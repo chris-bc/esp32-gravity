@@ -911,6 +911,7 @@ TODO
       * Fix bug with hidden SSIDs being included in network scan and getting garbled names
       * Update client count when new STAs are found
       * Format timestamps for display
+      * RSSI, channel, secondary channel and WPS now being displayed reliably
     * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
       * Options to get/set MAC hopping between frames
       * Options to get/set EXPIRY - When set (value in minutes) Gravity will not use packets of the specified age or older.
@@ -970,6 +971,7 @@ TODO
 
 ## Bugs / Todo
 
+* Convert RTS only goes *TO* AP and CTS *FROM* AP
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
     * Which bits to re-init?
@@ -978,7 +980,6 @@ TODO
   * Re-implement MAC spoofing for deauth
   * Re-implement MAC spoofing for DOS (Used in 5 places)
 * parse additional packet types
-* figure out RSSI for STA for homing/stalk
 * Decode OUI when displaying MACs (in the same way Wireshark does)
 * Test using fuzz with multiple packet types
 * Add non-broadcast targets to fuzz

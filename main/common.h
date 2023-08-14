@@ -43,6 +43,8 @@ struct ScanResultSTA {
     uint8_t apMac[6];
     ScanResultAP *ap;
     int channel;
+    wifi_second_chan_t second;
+    int8_t rssi;
 };
 typedef struct ScanResultSTA ScanResultSTA;
 

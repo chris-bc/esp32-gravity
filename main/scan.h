@@ -10,6 +10,7 @@
 #include <time.h>
 #include <string.h>
 #include "common.h"
+#include "esp_wifi_he_types.h"
 
 
 // TODO: If there are problems with SSID filtering, scan_filter_ssid had to be changed from static to get extern working...
@@ -36,7 +37,7 @@ esp_err_t gravity_select_sta(int selIndex);
 bool gravity_sta_isSelected(int index);
 bool gravity_ap_isSelected(int index);
 
-esp_err_t scan_wifi_parse_frame(uint8_t *payload);
+esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl);
 esp_err_t scan_display_status();
 
 int ap_comparator(ScanResultAP *one, ScanResultAP *two);
