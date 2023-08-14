@@ -971,7 +971,7 @@ TODO
 
 ## Bugs / Todo
 
-* Convert RTS only goes *TO* AP and CTS *FROM* AP
+* Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
     * Which bits to re-init?
@@ -985,8 +985,6 @@ TODO
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
-* STA channels not recorded
-* STA channel issues - can't set channel >= 10 - type/base conversion??
 * Improve sniff implementation
 * Eventually deauth triggers "wifi:max connection, deauth!"
     

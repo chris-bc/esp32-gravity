@@ -9,7 +9,7 @@
 #include <freertos/portmacro.h>
 #include "common.h"
 
-#define MAX_CHANNEL 9
+#define MAX_CHANNEL 11
 
 enum HopStatus {
     HOP_STATUS_OFF,

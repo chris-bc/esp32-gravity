@@ -28,11 +28,13 @@ enum GravityScanType {
 /* Comparison function for sorting of ScanResultAPs */
 /* Provides a sort function that uses sortResults
 */
-int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
+static int ap_comparator(const void *varOne, const void *varTwo) {
     /* Return 0 if they're identical */
     if (sortCount == 0) {
         return 0;
     }
+    ScanResultAP *one = (ScanResultAP *)varOne;
+    ScanResultAP *two = (ScanResultAP *)varTwo;
     if (sortCount == 1) {
         if (sortResults[0] == GRAVITY_SORT_AGE) {
             if (one->lastSeen == two->lastSeen) {
@@ -51,7 +53,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                 return 1;
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+            return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
         }
     } else if (sortCount == 2) {
         if (sortResults[0] == GRAVITY_SORT_AGE) {
@@ -70,7 +72,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                    return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
@@ -89,12 +91,12 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                    return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
-                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+            if (strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
             } else {
                 /* Return based on sortResults[1] */
                 if (sortResults[1] == GRAVITY_SORT_AGE) {
@@ -130,8 +132,8 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
-                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                if (strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                    return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
                 }
             }
             /* Third layer of comparison */
@@ -144,7 +146,7 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
             if (one->espRecord.rssi < two->espRecord.rssi) {
@@ -159,8 +161,8 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
-                    return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                if (strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                    return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
                 }
             }
             /* Third layer of comparison */
@@ -173,11 +175,11 @@ int ap_comparator(ScanResultAP *one, ScanResultAP *two) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+                return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid))) {
-                return strcmp(strupr((char *)one->espRecord.ssid), strupr((char *)two->espRecord.ssid));
+            if (strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid)) {
+                return strcmp((char *)one->espRecord.ssid, (char *)two->espRecord.ssid);
             } else if (sortResults[1] == GRAVITY_SORT_AGE) {
                 if (one->lastSeen < two->lastSeen) {
                     return -1;

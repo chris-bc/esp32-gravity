@@ -26,6 +26,7 @@
 #include "deauth.h"
 #include "dos.h"
 #include "esp_err.h"
+#include "esp_wifi_types.h"
 #include "fuzz.h"
 #include "hop.h"
 #include "mana.h"
@@ -1241,7 +1242,7 @@ esp_err_t cmd_set(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "CHANNEL")) {
         //
         uint8_t channel = atoi(argv[2]);
-        wifi_second_chan_t chan2 = WIFI_SECOND_CHAN_ABOVE;
+        wifi_second_chan_t chan2 = WIFI_SECOND_CHAN_NONE;
         esp_err_t err = esp_wifi_set_channel(channel, chan2);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Error while setting channel: %s", esp_err_to_name(err));
