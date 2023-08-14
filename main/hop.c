@@ -39,7 +39,7 @@ void channelHopCallback(void *pvParameter) {
                     ch -= (MAX_CHANNEL - 1);
                 }
             }
-            if (esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_ABOVE) != ESP_OK) {
+            if (esp_wifi_set_channel(ch, WIFI_SECOND_CHAN_NONE) != ESP_OK) {
                 ESP_LOGW(TAG, "Failed to change to channel %d", ch);
             }
         }

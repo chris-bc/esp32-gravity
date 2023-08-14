@@ -13,11 +13,25 @@ const char *STALK_TAG = "stalk@GRAVITY";
 /* Clear the screen and redraw stalking UI with latest data */
 esp_err_t drawStalk() {
     esp_err_t err = ESP_OK;
+
     CLEAR();
-    GOTOXY(1,2);
-    printf("(1,2) foo");
-    GOTOXY(1,3);
-    printf("(1,3)bar");
+    /* Display selectedSTA */
+    for (int i = 0; i < gravity_sel_sta_count; ++i) {
+        GOTOXY(1, i + 2);
+        printf("%s", gravity_selected_stas[i]->strMac);
+        GOTOXY(20, i + 2);
+        printf("%d", gravity_selected_stas[i]->rssi);
+    }
+    for (int i = 0; i < gravity_sel_ap_count; ++i) {
+        GOTOXY(1, gravity_sel_sta_count + i + 2);
+        char bssidStr[18] = "";
+        mac_bytes_to_string(gravity_selected_aps[i]->espRecord.bssid, bssidStr);
+        printf("%s", bssidStr);
+        GOTOXY(20, gravity_sel_sta_count + i + 2);
+        printf("%d", gravity_selected_aps[i]->espRecord.rssi);
+    }
+    GOTOXY(1,1);
+    fflush(stdout);
 
     return err;
 }

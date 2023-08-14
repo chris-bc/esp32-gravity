@@ -962,6 +962,10 @@ TODO
 * TODO: additional option to show hidden SSIDs
 * stalk
   * Homing attack (Focus on RSSI for selected STA(s) or AP)
+  * Stalk: Effectively blank screen with some key data:
+    * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
+    * Average
+    * Median (or trimmed mean)
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking

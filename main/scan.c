@@ -593,11 +593,11 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
     unsigned long elapsed;
 
     #ifdef CONFIG_FLIPPER
-        printf(" ID |  MAC  | AP\n");
-        printf("====|=======|=======\n");
+        printf(" ID | RSSI |  MAC  | AP\n");
+        printf("====|======|=======|=======\n");
     #else
-        printf(" ID | MAC               | Access Point      | Ch | Last Seen               \n");
-        printf("====|===================|===================|====|=========================\n");
+        printf(" ID | RSSI | MAC               | Access Point      | Ch | Last Seen               \n");
+        printf("====|======|===================|===================|====|=========================\n");
     #endif
 
     for (int i=0; i < staCount; ++i) {
@@ -618,13 +618,13 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             ESP_ERROR_CHECK(mac_bytes_to_string(stas[i]->apMac, strAp));
         }
         #ifdef CONFIG_FLIPPER
-            printf("%s%2d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (stas[i]->selected)?"*":" ",
-                stas[i]->index, stas[i]->mac[0], stas[i]->mac[1],
+            printf("%s%2d | %4d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (stas[i]->selected)?"*":" ",
+                stas[i]->index, stas[i]->rssi, stas[i]->mac[0], stas[i]->mac[1],
                 stas[i]->mac[2], stas[i]->mac[3], stas[i]->mac[4],
                 stas[i]->mac[5], strAp);
         #else
-            printf("%s%2d | %-17s | %-17s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
-                    stas[i]->strMac, strAp, stas[i]->channel, strTime);
+            printf("%s%2d | %4d | %-17s | %-17s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
+                    stas[i]->rssi, stas[i]->strMac, strAp, stas[i]->channel, strTime);
         #endif
     }    
     return ESP_OK;

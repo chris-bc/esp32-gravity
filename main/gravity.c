@@ -996,6 +996,13 @@ esp_err_t cmd_stalk(int argc, char **argv) {
         return ESP_OK;
     }
     /* If we reach this point argv == 2 */
+    if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("You don't have any selected APs or STAs, you probably don't want to stalk those nonexistent things.");
+        #else
+            ESP_LOGI(TAG, "No selectedAPs or selectedSTAs, you need some of those to do some stalking.");
+        #endif
+    }
     attack_status[ATTACK_STALK] = strcasecmp(argv[1], "OFF");
     if (attack_status[ATTACK_STALK]) {
         stalk_begin();
@@ -1729,6 +1736,7 @@ esp_err_t cmd_selected(int argc, char **argv) {
     /* Hide expired packets only if scanResultExpiry has been set */
     if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "AP")) || (argc == 3 && !strcasecmp(argv[2], "AP"))) {
         retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
+        printf("\n");
     }
     if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "STA")) || (argc == 3 && !strcasecmp(argv[2], "STA"))) {
         retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
