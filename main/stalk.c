@@ -45,9 +45,12 @@ esp_err_t drawStalk() {
         /* Stringify timestamp */
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
-        printf("%2lds\n", elapsed);
+        printf(" %2lds\n", elapsed);
     }
-    printf("\n\033[1;1H");
+    GOTOXY(1,1);
+    printf("\n");
+    GOTOXY(1,1);
+    fflush(stdout);
 
     return err;
 }
