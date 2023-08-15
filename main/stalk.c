@@ -3,6 +3,7 @@
 #include "common.h"
 #include "freertos/portmacro.h"
 #include "probe.h"
+#include <stdio.h>
 #include <time.h>
 
 static TaskHandle_t stalkTask = NULL;
@@ -10,6 +11,10 @@ const char *STALK_TAG = "stalk@GRAVITY";
 
 #define CLEAR() printf("\033[H\033[J")
 #define GOTOXY(x,y) printf("\033[%d;%dH", (y), (x))
+#define CURSOR_UP(n) printf("\033[%dA", (n))
+#define CURSOR_DOWN(n) printf("\033[%dB", (n))
+#define CURSOR_RIGHT(n) printf("\033[%dC", (n))
+#define CURSOR_LEFT(n) printf("\033[%dD", (n))
 
 /* Clear the screen and redraw stalking UI with latest data */
 esp_err_t drawStalk() {
@@ -18,7 +23,8 @@ esp_err_t drawStalk() {
     CLEAR();
     /* Display selectedSTA */
     GOTOXY(1, 2);
-    printf("Stations          | dB  | Age\n");
+    printf("Stations          | dB  | Age");
+    GOTOXY(1, 3);
     printf("------------------|-----|------");
     for (int i = 0; i < gravity_sel_sta_count; ++i) {
         GOTOXY(1, i + 4);
@@ -31,9 +37,10 @@ esp_err_t drawStalk() {
         unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
-    GOTOXY(1, gravity_sel_sta_count + 4);
-    printf("\nAccess Points     | dB  | Age\n");
-    printf("------------------|-----|------\n");
+    GOTOXY(1, gravity_sel_sta_count + 5);
+    printf("Access Points     | dB  | Age");
+    GOTOXY(1, gravity_sel_sta_count + 6); // TODO: Look up cursor up/down commands
+    printf("------------------|-----|------");
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
         GOTOXY(1, gravity_sel_sta_count + i + 7);
         char bssidStr[18] = "";
@@ -45,12 +52,10 @@ esp_err_t drawStalk() {
         /* Stringify timestamp */
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
-        printf(" %2lds\n", elapsed);
+        printf(" %2lds", elapsed);
     }
     GOTOXY(1,1);
-    printf("\n");
-    GOTOXY(1,1);
-    fflush(stdout);
+    printf("Try to get dB up to zero:\n");
 
     return err;
 }
@@ -59,6 +64,7 @@ esp_err_t drawStalk() {
 /* vTaskDelay for 2/300ms - If scan is running in a separate task do I still get results, with this loop being UI only?
 */
 void stalkLoop(void *pvParameter) {
+    /* Unbuffer stdout so we can control refreshes */
     while (true) {
         /* Delay specified milliseconds, allowing the watchdog to do some things */
         vTaskDelay(hop_millis_defaults[ATTACK_STALK] / portTICK_PERIOD_MS);
@@ -131,6 +137,10 @@ esp_err_t stalk_end() {
         vTaskDelete(stalkTask);
         stalkTask = NULL;
     }
+
+    CLEAR();
+    GOTOXY(1,1);
+    printf("Stalk disabled\n\n");
 
     return err;
 }

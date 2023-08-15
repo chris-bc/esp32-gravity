@@ -2089,7 +2089,7 @@ void app_main(void)
                 hop_millis_defaults[i] = CONFIG_DEFAULT_HOP_MILLIS;
                 break;
             case ATTACK_STALK:
-                hop_millis_defaults[i] = 200; // TODO: make a variable
+                hop_millis_defaults[i] = 100; // TODO: make a variable
                 break;
             default:
                 ESP_LOGE(TAG, "ATTACKS_COUNT has incorrect length");
