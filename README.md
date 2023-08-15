@@ -252,7 +252,7 @@ MAC is known.
 by `scan`.
 
 ```c
-Syntax: view ( ( AP [ selectedSTA ] ) | ( STA [ selectedAP ] ) )+
+Syntax: view ( ( AP [ selectedSTA ] ) | ( STA [ selectedAP ] ) | SORT ( AGE | RSSI | SSID ) )+
 ```
 
 `view ap`
@@ -966,6 +966,12 @@ TODO
     * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
     * Average
     * Median (or trimmed mean)
+  * Console UI displaying selectedSTA and selectedAP RSSIs working
+  * TODO: Flipper UI
+    * Hopefully I won't need to get fancy and develop a signalling protocol
+    * Try this first: \n\n\n\n\n\n\nStatus Information
+      * Might even be able to stop automatic buffer flushing, so it's all displayed at once
+  * TODO: Bluetooth
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking
@@ -975,10 +981,15 @@ TODO
 
 ## Bugs / Todo
 
+* error from select ap when it is being deselected (due to null malloc)
+* Occasionally selecting a STA will give the STA a BIG_INT-like value
+  * deselecting and reselecting fixes it.
+  * Problem *likely* just with display...
 * Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
     * Which bits to re-init?
+    * Currently disabled MAC randomisation
   * Fix MAC randomisation for Probe
   * Implement MAC randomisation for beacon
   * Re-implement MAC spoofing for deauth
@@ -991,7 +1002,6 @@ TODO
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * Improve sniff implementation
 * Eventually deauth triggers "wifi:max connection, deauth!"
-* Occasionally selecting a STA will givet the STA a BIG_INT-like value
     
 ## Testing / Packet verification
 
