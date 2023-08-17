@@ -200,11 +200,11 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
     memcpy(strSsid, ssid, payload[PROBE_SSID_OFFSET - 1]);
     strSsid[payload[PROBE_SSID_OFFSET - 1]] = '\0';
 
+    char srcStr[18];
+    char destStr[18];
+    mac_bytes_to_string(srcAddr, srcStr);
+    mac_bytes_to_string(destAddr, destStr);
     #ifdef CONFIG_DEBUG
-        char srcStr[18];
-        char destStr[18];
-        mac_bytes_to_string(srcAddr, srcStr);
-        mac_bytes_to_string(destAddr, destStr);
         #ifdef CONFIG_FLIPPER
             printf("%s probe req for\n%25s\n", (memcmp(destAddr, BROADCAST, 6))?"Directed":"Wildcard", ssid);
         #else
