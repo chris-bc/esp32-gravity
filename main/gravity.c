@@ -163,6 +163,18 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
     return ESP_OK;
 }
 
+/* Display version info for esp32-Gravity */
+esp_err_t cmd_version(int argc, char **argv) {
+    esp_err_t err = ESP_OK;
+
+    #ifdef CONFIG_FLIPPER
+        printf("esp32-Gravity v%s\n", GRAVITY_VERSION);
+    #else
+        ESP_LOGI(TAG, "esp32-Gravity v%s\n", GRAVITY_VERSION);
+    #endif
+    return err;
+}
+
 /* Display help information for the specified command.
    Permit the specification of multiple commands, skip any
    that are invalid.

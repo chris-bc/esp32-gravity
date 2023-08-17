@@ -16,6 +16,34 @@ const char *STALK_TAG = "stalk@GRAVITY";
 #define CURSOR_RIGHT(n) printf("\033[%dC", (n))
 #define CURSOR_LEFT(n) printf("\033[%dD", (n))
 
+/* (Hopefully) create a workable UI without cursor positioning commands */
+/* MAC takes up an entire row - 20% of the screen
+   Need to get creative with space-saving:
+   STA1 | -63dB  |  5s
+   STA2 | -84dB  | 42s
+   HCI1 | -43dB  | 21s
+   BLE1 | -54dB  |  7s
+    AP1 | -96dB  |118s
+*/
+esp_err_t drawStalkFlipper() {
+    printf("\n\n\n\n\n\n\n");
+    for (int i = 0; i < gravity_sel_sta_count; ++i) {
+        clock_t nowTime = clock();
+        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
+
+        printf("STA%d | %3ddB  |%3lds\n", i, gravity_selected_stas[i]->rssi, elapsed);
+    }
+
+    for (int i = 0; i < gravity_sel_ap_count; ++i) {
+        /* Stringify timestamp */
+        clock_t nowTime = clock();
+        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
+
+        printf(" AP%d | %3ddB  |%3lds\n", i, gravity_selected_aps[i]->espRecord.rssi, elapsed);
+    }
+    return ESP_OK;
+}
+
 /* Clear the screen and redraw stalking UI with latest data */
 esp_err_t drawStalk() {
     esp_err_t err = ESP_OK;
@@ -23,32 +51,32 @@ esp_err_t drawStalk() {
     CLEAR();
     /* Display selectedSTA */
     GOTOXY(1, 2);
-    printf("Stations          | dB  | Age");
+    printf("Stations          |  dB  | Age");
     GOTOXY(1, 3);
-    printf("------------------|-----|------");
+    printf("------------------|------|------");
     for (int i = 0; i < gravity_sel_sta_count; ++i) {
         GOTOXY(1, i + 4);
         printf("%s", gravity_selected_stas[i]->strMac);
-        GOTOXY(19, i + 4);
+        GOTOXY(20, i + 4);
         printf("| %3d |", gravity_selected_stas[i]->rssi);
-        GOTOXY(26, i + 4);
+        GOTOXY(27, i + 4);
         /* Stringify timestamp */
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
     GOTOXY(1, gravity_sel_sta_count + 5);
-    printf("Access Points     | dB  | Age");
+    printf("Access Points     |  dB  | Age");
     GOTOXY(1, gravity_sel_sta_count + 6); // TODO: Look up cursor up/down commands
-    printf("------------------|-----|------");
+    printf("------------------|------|------");
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
         GOTOXY(1, gravity_sel_sta_count + i + 7);
         char bssidStr[18] = "";
         mac_bytes_to_string(gravity_selected_aps[i]->espRecord.bssid, bssidStr);
         printf("%s", bssidStr);
-        GOTOXY(19, gravity_sel_sta_count + i + 7);
+        GOTOXY(20, gravity_sel_sta_count + i + 7);
         printf("| %3d |", gravity_selected_aps[i]->espRecord.rssi);
-        GOTOXY(26, gravity_sel_sta_count + i + 7);
+        GOTOXY(27, gravity_sel_sta_count + i + 7);
         /* Stringify timestamp */
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
@@ -69,7 +97,11 @@ void stalkLoop(void *pvParameter) {
         /* Delay specified milliseconds, allowing the watchdog to do some things */
         vTaskDelay(hop_millis_defaults[ATTACK_STALK] / portTICK_PERIOD_MS);
         /* Update the UI */
-        drawStalk();
+        #ifdef CONFIG_FLIPPER
+            drawStalkFlipper();
+        #else
+            drawStalk();
+        #endif
     }
 }
 

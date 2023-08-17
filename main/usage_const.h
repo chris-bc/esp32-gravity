@@ -24,6 +24,7 @@ const char USAGE_CLEAR[] = "Clear stored APs or STAs. Usage: clear ( AP | STA | 
 const char USAGE_HANDSHAKE[] = "Toggle monitoring for encryption material. Usage handshake [ ON | OFF ]";
 const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
 const char USAGE_INFO[] = "Provide help information for the specified command. Usage: info <cmd>";
+const char USAGE_VERSION[] = "Display esp32-Gravity version information. Usage: gravity-version";
 
 const char SHORT_BT[] = "bluetooth [ ON | OFF ]";
 const char SHORT_BEACON[] = "beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF] [ AUTH ( OPEN | WPA )+ ]";
@@ -47,5 +48,6 @@ const char SHORT_CLEAR[] = "clear ( AP | STA | ALL )";
 const char SHORT_HANDSHAKE[] = "handshake [ ON | OFF ]";
 const char SHORT_COMMANDS[] = "Brief command summary";
 const char SHORT_INFO[] = "Command help. info <cmd>";
+const char SHORT_VERSION[] = "esp32-Gravity Version. gravity-version";
 
 #endif

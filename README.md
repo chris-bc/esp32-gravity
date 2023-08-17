@@ -22,6 +22,8 @@ https://github.com/chris-bc/Flipper-Gravity
 
 Please note the comments below about compiling ESP32-Gravity for the Flipper Zero.
 
+![Flipper Gravity Stalk Mode](https://github.com/chris-bc/esp32-gravity/blob/main/flip-grav-homing.png)
+
 ## What happened to ESP32-C6?
 
 ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including

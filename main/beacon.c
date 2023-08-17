@@ -595,6 +595,8 @@ esp_err_t beacon_status() {
 	/* Display additional info if Beacon is running */
 	if (attack_status[ATTACK_BEACON]) {
 		err |= displayBeaconMode();
+	} else {
+		return err;
 	}
 
 	/* Display info on configured auth types */

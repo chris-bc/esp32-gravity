@@ -222,9 +222,9 @@ esp_err_t mana_display_status() {
     #ifdef CONFIG_FLIPPER
         char authType[45];
         err |= authTypeToString(mana_auth, authType, true);
-        printf("Mana: %sRunning\t\tLoud-Mana: %sRunning\nVerbose: %s\t\tMana Auth: %s\nCh. Hop: %s, %ldms, %s\n",
-                attack_status[ATTACK_MANA]?"":"Not ", attack_status[ATTACK_MANA_LOUD]?"":"Not ", attack_status[ATTACK_MANA_VERBOSE]?"ON":"OFF",
-                authType);
+        printf("Mana: %sRunning\t\tLoud-Mana: %sRunning\nVerbose: %s\t\tMana Auth: %s\n",
+                attack_status[ATTACK_MANA]?"":"Not ", attack_status[ATTACK_MANA_LOUD]?"":"Not ",
+                attack_status[ATTACK_MANA_VERBOSE]?"ON":"OFF", authType);
     #else
         char authType[45];
         err |= authTypeToString(mana_auth, authType, false);

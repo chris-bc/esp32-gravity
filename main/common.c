@@ -114,6 +114,9 @@ GravityCommand gravityCommandFromString(char *input) {
     if (!strcasecmp(input, "info")) {
         return GRAVITY_INFO;
     }
+    if (!strcasecmp(input, "gravity-version")) {
+        return GRAVITY_GET_VERSION;
+    }
     return GRAVITY_NONE;
 }
 

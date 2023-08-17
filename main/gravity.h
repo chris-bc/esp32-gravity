@@ -91,6 +91,7 @@ esp_err_t cmd_target_ssids(int argc, char **argv);
 esp_err_t cmd_commands(int argc, char **argv);
 esp_err_t cmd_hop(int argc, char **argv);
 esp_err_t cmd_info(int argc, char **argv);
+esp_err_t cmd_version(int argc, char **argv);
 
 bool gravitySniffActive();
 void initPromiscuous();
@@ -107,7 +108,7 @@ static bool WIFI_INITIALISED = false;
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-#define CMD_COUNT 22
+#define CMD_COUNT 23
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -219,6 +220,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_BT,
         .help = "Test module for bluetooth. Initialises Bluetooth and is working toward device discovery",
         .func = cmd_bluetooth
+    }, {
+        .command = "gravity-version",
+        .hint = USAGE_VERSION,
+        .help = "Display esp32-Gravity version information.",
+        .func = cmd_version
     }
 };
 
