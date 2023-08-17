@@ -984,8 +984,8 @@ TODO
 ## Bugs / Todo
 
 * Better formatting of all UIs
-* select with ^-separated list doesn't work from flipper
-  * only the first item is selected
+* new menuconfig option FLIPPER_SEPARATOR
+  * Change to tilde
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
   * Problem *likely* just with display...

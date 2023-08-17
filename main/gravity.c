@@ -1696,12 +1696,69 @@ esp_err_t cmd_select(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
+    /* Vars to support using a non-space separator to select multiple scan elements from a Flipper */
+    int begin = 0;
+    int hatCount = 0;
+    int origLen = strlen(argv[2]);
+
     /* Flipper Zero's keyboard doesn't have a space, so support ^-separated selectors */
     if (argc == 3 && strstr(argv[2], "^") != NULL) {
-        for (int i = 0; i < strlen(argv[2]); ++i) {
+        /* New approach to this: replace argc and argv */
+        /* Turning hats into spaces doesn't create new array elements in argv. D'oh! */
+        /* Count the number of hats */
+        int numHats = 0;
+        for (int i = 0; i < strlen(argv); ++i) {
             if (argv[2][i] == '^') {
-                argv[2][i] = ' ';
+                ++numHats;
             }
+        }
+        int newArgc = argc + numHats;
+        char **newArgv = malloc(sizeof(char *) * newArgc);
+        if (newArgv == NULL) {
+            printf("Out of memory to separate select list\n");
+            /* Don't do anything else - Let this fall through to at least select the first item */
+        } else {
+            /* Copy the first two arguments */
+            for (int i = 0; i < (argc - 1); ++i) {
+                newArgv[i] = argv[i];
+            }
+            /* Now add numHats elements from argv[2] */
+            for (int i = 0; i < origLen; ++i) {
+                #ifdef CONFIG_DEBUG_VERBOSE
+                    printf("start loop, i is %d char is %c argv (len %d) is %s\n", i, argv[2][i], strlen(argv[2]), argv[2]);
+                #endif
+                if (argv[2][i] == '^') {
+                    /* Debug outputs - something strange is happening */
+                    #ifdef CONFIG_DEBUG_VERBOSE
+                        printf("Found hat at idx %d. begin: %d  hatCount: %d  argc: %d  argv[2]: \"%s\"\n", i, begin, hatCount, argc, argv[2]);
+                    #endif
+
+                    /* Add the next argument */
+                    argv[2][i] = '\0';
+                    newArgv[argc + hatCount - 1] = &(argv[2][begin]);
+                    ++hatCount;
+                    begin = i + 1;
+
+                    #ifdef CONFIG_DEBUG_VERBOSE
+                        printf("After setting hat to NULL, &argv[2][begin] should contain the element id\nnewArgv[argc + hatCount]: \"%s\"\n", newArgv[argc + hatCount - 1]);
+                    #endif
+                }
+            }
+            #ifdef CONFIG_DEBUG_VERBOSE
+                printf("Loop is done, newArgc %d  hatCount %d  begin %d\n", newArgc, hatCount, begin);
+            #endif
+            /* Add the final element */
+            newArgv[argc + hatCount - 1] = &(argv[2][begin]);
+            /* And replace argc & argv */
+            argc = newArgc;
+            argv = newArgv;
+
+            #ifdef CONFIG_DEBUG_VERBOSE
+                printf("After processing hats Gravity has generated the following command line with argc %d:\n", argc);
+                for (int i = 0; i < argc; ++i) {
+                    printf("newArgv[%d]: \"%s\"\n", i, newArgv[i]);
+                }
+            #endif
         }
     }
 
