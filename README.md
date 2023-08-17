@@ -986,10 +986,10 @@ TODO
 * Better formatting of all UIs
 * select with ^-separated list doesn't work from flipper
   * only the first item is selected
-* error from select ap when it is being deselected (due to null malloc)
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
   * Problem *likely* just with display...
+  * Haven't seen this for a week now
 * Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC

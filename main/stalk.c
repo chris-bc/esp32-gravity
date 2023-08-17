@@ -57,8 +57,8 @@ esp_err_t drawStalk() {
     for (int i = 0; i < gravity_sel_sta_count; ++i) {
         GOTOXY(1, i + 4);
         printf("%s", gravity_selected_stas[i]->strMac);
-        GOTOXY(20, i + 4);
-        printf("| %3d |", gravity_selected_stas[i]->rssi);
+        GOTOXY(19, i + 4);
+        printf("| %4d |", gravity_selected_stas[i]->rssi);
         GOTOXY(27, i + 4);
         /* Stringify timestamp */
         clock_t nowTime = clock();
@@ -74,8 +74,8 @@ esp_err_t drawStalk() {
         char bssidStr[18] = "";
         mac_bytes_to_string(gravity_selected_aps[i]->espRecord.bssid, bssidStr);
         printf("%s", bssidStr);
-        GOTOXY(20, gravity_sel_sta_count + i + 7);
-        printf("| %3d |", gravity_selected_aps[i]->espRecord.rssi);
+        GOTOXY(19, gravity_sel_sta_count + i + 7);
+        printf("| %4d |", gravity_selected_aps[i]->espRecord.rssi);
         GOTOXY(27, gravity_sel_sta_count + i + 7);
         /* Stringify timestamp */
         clock_t nowTime = clock();

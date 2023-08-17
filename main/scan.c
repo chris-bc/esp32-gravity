@@ -385,19 +385,25 @@ esp_err_t gravity_select_ap(int selIndex) {
         gravity_selected_aps = newSel;
     } else {
         /* Removing */
-        newSel = malloc(sizeof(ScanResultAP *) * --gravity_sel_ap_count); /* Decrement then return */
-        if (newSel == NULL) {
-            ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected APs array[%d]", gravity_sel_ap_count);
-            return ESP_ERR_NO_MEM;
-        }
-        /* Copy our subset */
-        int targetIndex = 0;
-        int sourceIndex = 0;
-        for (sourceIndex = 0; sourceIndex < gravity_sel_ap_count; ++sourceIndex) {
-            if (gravity_selected_aps[sourceIndex]->selected) {
-                newSel[targetIndex] = gravity_selected_aps[sourceIndex];
-                ++targetIndex;
+        --gravity_sel_ap_count;
+        if (gravity_sel_ap_count > 0) {
+            newSel = malloc(sizeof(ScanResultAP *) * gravity_sel_ap_count); /* Decrement then return */
+            if (newSel == NULL) {
+                ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected APs array[%d]", gravity_sel_ap_count);
+                return ESP_ERR_NO_MEM;
             }
+
+            /* Copy our subset */
+            int targetIndex = 0;
+            int sourceIndex = 0;
+            for (sourceIndex = 0; sourceIndex < gravity_sel_ap_count; ++sourceIndex) {
+                if (gravity_selected_aps[sourceIndex]->selected) {
+                    newSel[targetIndex] = gravity_selected_aps[sourceIndex];
+                    ++targetIndex;
+                }
+            }
+        } else {
+            newSel = NULL;
         }
         free(gravity_selected_aps);
         gravity_selected_aps = newSel;
@@ -437,19 +443,24 @@ esp_err_t gravity_select_sta(int selIndex) {
         gravity_selected_stas = newSel;
     } else {
         /* Removing */
-        newSel = malloc(sizeof(ScanResultSTA *) * --gravity_sel_sta_count); /* Decrement then return */
-        if (newSel == NULL) {
-            ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected STAs array[%d]", gravity_sel_sta_count);
-            return ESP_ERR_NO_MEM;
-        }
-        /* Copy our subset */
-        int targetIndex = 0;
-        int sourceIndex = 0;
-        for (sourceIndex = 0; sourceIndex < gravity_sel_sta_count; ++sourceIndex) {
-            if (gravity_selected_stas[sourceIndex]->selected) {
-                newSel[targetIndex] = gravity_selected_stas[sourceIndex];
-                ++targetIndex;
+        --gravity_sel_sta_count;
+        if (gravity_sel_sta_count > 0) {
+            newSel = malloc(sizeof(ScanResultSTA *) * gravity_sel_sta_count); /* Decrement then return */
+            if (newSel == NULL) {
+                ESP_LOGE(SCAN_TAG, "Failed to allocate memory for new selected STAs array[%d]", gravity_sel_sta_count);
+                return ESP_ERR_NO_MEM;
             }
+            /* Copy our subset */
+            int targetIndex = 0;
+            int sourceIndex = 0;
+            for (sourceIndex = 0; sourceIndex < gravity_sel_sta_count; ++sourceIndex) {
+                if (gravity_selected_stas[sourceIndex]->selected) {
+                    newSel[targetIndex] = gravity_selected_stas[sourceIndex];
+                    ++targetIndex;
+                }
+            }
+        } else {
+            newSel = NULL;
         }
         free(gravity_selected_stas);
         gravity_selected_stas = newSel;
