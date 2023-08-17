@@ -983,11 +983,9 @@ TODO
 
 ## Bugs / Todo
 
-* need to stop homing when back button pushed
-  * otherwise fills up console and ruins all other commands
+* Better formatting of all UIs
 * select with ^-separated list doesn't work from flipper
   * only the first item is selected
-* Clean up scan output - Stop displaying empty APs
 * error from select ap when it is being deselected (due to null malloc)
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.

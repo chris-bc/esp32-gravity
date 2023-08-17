@@ -751,11 +751,13 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         }
     } else {
         #ifdef CONFIG_DEBUG
-            #ifdef CONFIG_FLIPPER
-                printf("AP: %s\n", (newSSID==NULL)?"":newSSID);
-            #else
-                ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
-            #endif
+            if (newSSID != NULL && strlen(newSSID) > 0) {
+                #ifdef CONFIG_FLIPPER
+                    printf("AP: %s\n", (newSSID==NULL)?"":newSSID);
+                #else
+                    ESP_LOGI(SCAN_TAG, "Found new AP %s serving \"%s\"", strMac, (newSSID==NULL)?"":newSSID);
+                #endif
+            }
         #endif
         /* AP is a new device */
         ScanResultAP *newAPs = malloc(sizeof(ScanResultAP) * (gravity_ap_count + 1));
