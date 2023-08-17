@@ -63,6 +63,15 @@ menu "Gravity Configuration"
             option specifies the minimum number of milliseconds for such attacks.
             This option applies to the BEACON command, excluding the infinite attack mode.
 
+    config FLIPPER_SEPARATOR
+        string "Character used to separate the selection of multiple scan results on a Flipper Zero."
+        default "~"
+        help
+            Currently, the Flipper Zero keyboard lacks a space button, making it slow and clumsy
+            to select multiple stations or access points from scan results. The separator specified
+            here can be used instead of a space to specify multiple scan results in a single
+            command, e.g. select STA 1~2~6
+
     config DEBUG
         bool "Enable debugging output"
         default y

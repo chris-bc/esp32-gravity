@@ -984,8 +984,6 @@ TODO
 ## Bugs / Todo
 
 * Better formatting of all UIs
-* new menuconfig option FLIPPER_SEPARATOR
-  * Change to tilde
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
   * Problem *likely* just with display...

@@ -101,7 +101,7 @@ int initialise_wifi();
 extern bool *attack_status;
 extern bool *hop_defaults;
 extern int *hop_millis_defaults;
-
+extern char FLIPPER_SEPARATOR;
 
 static bool WIFI_INITIALISED = false;
 
@@ -188,7 +188,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "select",
         .hint = USAGE_SELECT,
-        .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list. Multiple items can be specified separated by spaces.",
+        .help = "Select the specified element from the specified scan results. Usage: select ( AP | STA ) <elementId>.  Selects/deselects item <elementId> from the AP or STA list. Multiple items can be specified separated by spaces or the separator configured in ./fbt menuconfig.",
         .func = cmd_select
     }, {
         .command = "selected",

@@ -41,6 +41,7 @@ char **user_ssids = NULL;
 char **gravityWordList = NULL;
 int user_ssid_count = 0;
 long ATTACK_MILLIS = CONFIG_DEFAULT_ATTACK_MILLIS;
+char FLIPPER_SEPARATOR = '0';
 
 bool *attack_status;
 bool *hop_defaults;
@@ -60,6 +61,39 @@ int *hop_millis_defaults;
 /* Over-ride the default implementation so we can send deauth frames */
 esp_err_t ieee80211_raw_frame_sanity_check(int32_t arg, int32_t arg2, int32_t arg3){
     return ESP_OK;
+}
+
+/* Retrieve the scan result separator from menuconfig and initialise it
+   (It's #define'd as a string and I want it as a char!)
+*/
+esp_err_t initFlipperSep() {
+    esp_err_t err = ESP_OK;
+    if (FLIPPER_SEPARATOR != '0') {
+        /* Has already been initialised */
+        return err;
+    }
+    #ifdef CONFIG_FLIPPER_SEPARATOR
+        char *temp = malloc(sizeof(char) * (strlen(CONFIG_FLIPPER_SEPARATOR) + 1));
+        if (temp == NULL) {
+            printf("Unable to allocate memory to set separator\n");
+            return ESP_ERR_NO_MEM;
+        }
+        strcpy(temp, CONFIG_FLIPPER_SEPARATOR);
+        if (temp[0] == '\0') {
+            printf("Error: CONFIG_FLIPPER_SEPARATOR (%s) appears to be NULL\n", CONFIG_FLIPPER_SEPARATOR);
+            free(temp);
+            return ESP_ERR_INVALID_ARG;
+        }
+        FLIPPER_SEPARATOR = temp[0];
+    #else
+        /* Arbitrary default */
+        FLIPPER_SEPARATOR = '~';
+    #endif
+
+    /* Update SELECT usage string with the correct separator */
+    SHORT_SELECT[strlen(SHORT_SELECT) - 1] = FLIPPER_SEPARATOR;
+
+    return err;
 }
 
 /* Functions to manage target-ssids */
@@ -1701,14 +1735,18 @@ esp_err_t cmd_select(int argc, char **argv) {
     int hatCount = 0;
     int origLen = strlen(argv[2]);
 
+    /* Initialise the configured separator because we need a string */
+    char tmp[2];
+    sprintf(tmp, "%c", FLIPPER_SEPARATOR);
+
     /* Flipper Zero's keyboard doesn't have a space, so support ^-separated selectors */
-    if (argc == 3 && strstr(argv[2], "^") != NULL) {
+    if (argc == 3 && strstr(argv[2], tmp) != NULL) {
         /* New approach to this: replace argc and argv */
         /* Turning hats into spaces doesn't create new array elements in argv. D'oh! */
         /* Count the number of hats */
         int numHats = 0;
         for (int i = 0; i < strlen(argv); ++i) {
-            if (argv[2][i] == '^') {
+            if (argv[2][i] == FLIPPER_SEPARATOR) {
                 ++numHats;
             }
         }
@@ -1727,7 +1765,7 @@ esp_err_t cmd_select(int argc, char **argv) {
                 #ifdef CONFIG_DEBUG_VERBOSE
                     printf("start loop, i is %d char is %c argv (len %d) is %s\n", i, argv[2][i], strlen(argv[2]), argv[2]);
                 #endif
-                if (argv[2][i] == '^') {
+                if (argv[2][i] == FLIPPER_SEPARATOR) {
                     /* Debug outputs - something strange is happening */
                     #ifdef CONFIG_DEBUG_VERBOSE
                         printf("Found hat at idx %d. begin: %d  hatCount: %d  argc: %d  argv[2]: \"%s\"\n", i, begin, hatCount, argc, argv[2]);
@@ -2244,4 +2282,8 @@ void app_main(void)
 #endif
 
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
+
+    /* Initialise the configured separator when selecting results from Flipper Zero */
+    initFlipperSep();
+
 }
