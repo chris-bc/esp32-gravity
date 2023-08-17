@@ -31,7 +31,7 @@ esp_err_t drawStalkFlipper() {
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
 
-        printf("STA%d | %3ddB  |%3lds\n", i, gravity_selected_stas[i]->rssi, elapsed);
+        printf("STA%d%s| %3ddB  |%3lds\n", i, (i == 1)?"  ":" ", gravity_selected_stas[i]->rssi, elapsed);
     }
 
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
@@ -39,7 +39,7 @@ esp_err_t drawStalkFlipper() {
         clock_t nowTime = clock();
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
 
-        printf(" AP%d | %3ddB  |%3lds\n", i, gravity_selected_aps[i]->espRecord.rssi, elapsed);
+        printf("%3sAP%d%s| %3ddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_aps[i]->espRecord.rssi, elapsed);
     }
     return ESP_OK;
 }

@@ -24,7 +24,7 @@ Please note the comments below about compiling ESP32-Gravity for the Flipper Zer
 
 ![Flipper Gravity Stalk Mode](https://github.com/chris-bc/esp32-gravity/blob/main/flip-grav-homing.png)
 
-## What happened to ESP32-C6?
+## What happened to ESP32-C6 Gravity?
 
 ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including
 bluetooth scanning. Because of this Gravity now targets the ESP32.
@@ -983,6 +983,11 @@ TODO
 
 ## Bugs / Todo
 
+* need to stop homing when back button pushed
+  * otherwise fills up console and ruins all other commands
+* select with ^-separated list doesn't work from flipper
+  * only the first item is selected
+* Clean up scan output - Stop displaying empty APs
 * error from select ap when it is being deselected (due to null malloc)
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
