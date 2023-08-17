@@ -952,6 +952,10 @@ TODO
       * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
         * No way to get the target's configured auth type
         * Command line parameter - can specify multiple
+    * stalk
+      * Homing attack (Focus on RSSI for selected STA(s) or AP)
+      * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
+
 
 
 * **ONGOING** Receive and parse 802.11 frames
@@ -962,18 +966,10 @@ TODO
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
 * TODO: additional option to show hidden SSIDs
-* stalk
-  * Homing attack (Focus on RSSI for selected STA(s) or AP)
-  * Stalk: Effectively blank screen with some key data:
-    * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
-    * Average
-    * Median (or trimmed mean)
-  * Console UI displaying selectedSTA and selectedAP RSSIs working
-  * TODO: Flipper UI
-    * Hopefully I won't need to get fancy and develop a signalling protocol
-    * Try this first: \n\n\n\n\n\n\nStatus Information
-      * Might even be able to stop automatic buffer flushing, so it's all displayed at once
-  * TODO: Bluetooth
+* improvements to stalk
+  * Average
+  * Median (or trimmed mean)
+  * Bluetooth
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking
