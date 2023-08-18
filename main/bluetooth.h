@@ -16,6 +16,8 @@
 #include <esp_bt_device.h>
 #include <esp_bt_defs.h>
 
+#include "common.h"
+
 typedef enum {
     APP_GAP_STATE_IDLE = 0,
     APP_GAP_STATE_DEVICE_DISCOVERING,

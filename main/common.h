@@ -168,8 +168,8 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
 
 /* Confirmed as in common.c */
 bool arrayContainsString(char **arr, int arrCnt, char *str);
-int mac_bytes_to_string(uint8_t *bMac, char *strMac);
-int mac_string_to_bytes(char *strMac, uint8_t *bMac);
+esp_err_t mac_bytes_to_string(uint8_t *bMac, char *strMac);
+esp_err_t mac_string_to_bytes(char *strMac, uint8_t *bMac);
 GravityCommand gravityCommandFromString(char *input);
 bool staResultListContainsSTA(ScanResultSTA **list, int listLen, ScanResultSTA *sta);
 bool apResultListContainsAP(ScanResultAP **list, int listLen, ScanResultAP *ap);
@@ -178,6 +178,7 @@ ScanResultSTA **collateClientsOfSelectedAPs(int *staCount);
 char **apListToStrings(ScanResultAP **aps, int apsCount);
 int max(int one, int two);
 esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid);
+esp_err_t bytes_to_string(uint8_t *bytes, char *string, int byteCount);
 
 extern const char *TAG;
 

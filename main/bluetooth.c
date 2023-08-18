@@ -1,8 +1,44 @@
 #include "bluetooth.h"
+#include "esp_bt_defs.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
 const char *BT_TAG = "bt@GRAVITY";
+
+/* ESP32-Gravity :  Bluetooth
+   Initially-prototyped functionality uses traditional Bluetooth discovery
+   This *works*, but obtains VERY limited results.
+   TODO: Research bluetooth protocol. Hopefully it'll be straightforward to sniff
+         packets in the same way as 802.11, otherwise it might be possible to add
+         a nRF24 to the ESP32.
+   Plan A is to start with this discovery and then dive into sniffing, so BT commands:
+   scan bt-d - Scan BT using Discovery
+   scan bt-s - Scan BT using Sniffing
+   select bt n - Select BT result n. Both discovery and sniffing results are included in the 'BT' reference
+
+   Step 1. Build a list of discovered devices
+   Step 2. Only display info for newly-discovered devices
+   Step 3. Investigate (non-)display of services - All the "TODO"s
+   Step 4. Try to connect and stuff
+   Step 5. Sniff
+   Step 6. Stalk
+
+   What it did:
+   - start discovery
+   - find device
+   - cancel discovery
+   - receive discovery stopped event and start service discovery
+   - display services
+
+   What it should do:
+   - start discovery
+   - find device
+   - pause discovery
+   - receive discovery stopped event and start service discovery
+   - display services
+   - resume discovery
+*/
+
 
 static char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
     if (bda == NULL || str == NULL || size < 18) {
@@ -106,14 +142,15 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     /* search for device with Major device type "PHONE" or "Audio/Video" in COD */
     app_gap_cb_t *p_dev = &m_dev_info;
     if (p_dev->dev_found) {
-        return;
+        printf("***p_dev->dev_found\n");
+        //return;
     }
 
-    if (!esp_bt_gap_is_valid_cod(cod) ||
-	    (!(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_PHONE) &&
-             !(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_AV))) {
-        return;
-    }
+    // if (!esp_bt_gap_is_valid_cod(cod) ||
+	//     (!(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_PHONE) &&
+    //          !(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_AV))) {
+    //     return;
+    // }
 
     memcpy(p_dev->bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
     p_dev->dev_found = true;
@@ -136,8 +173,8 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
 
     ESP_LOGI(BT_TAG, "Found a target device, address %s, name %s", bda_str, p_dev->bdname);
     p_dev->state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
-    ESP_LOGI(BT_TAG, "Cancel device discovery ...");
-    esp_bt_gap_cancel_discovery();
+    //ESP_LOGI(BT_TAG, "Cancel device discovery ...");
+    //esp_bt_gap_cancel_discovery();
 }
 
 void bt_gap_init() {
@@ -177,7 +214,20 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                     ESP_LOGI(BT_TAG, "Services for device %s found", bda2str(p_dev->bda, bda_str, 18));
                     for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
                         esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-                        ESP_LOGI(BT_TAG, "--%s", "TODO");
+                        // ESP_UUID_LEN_128 is uint8_t[128]
+                        ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: %lu", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+                        if (u->len == ESP_UUID_LEN_128) {
+                            char *uuidStr = malloc(sizeof(char) * (3 * 128));
+                            if (uuidStr == NULL) {
+                                printf("Unable to allocate space for string representation of UUID128\n");
+                                return;
+                            }
+                            if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
+                                printf ("bytes_to_string returned an error\n");
+                                return;
+                            }
+                            ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
+                        }
                     }
                 } else {
                     ESP_LOGI(BT_TAG, "Services for device %s not found", bda2str(p_dev->bda, bda_str, 18));
@@ -207,7 +257,7 @@ void bt_gap_start() {
     /* Start to discover nearby devices */
     app_gap_cb_t *p_dev = &m_dev_info;
     p_dev->state = APP_GAP_STATE_DEVICE_DISCOVERING;
-    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x30, 0);
 }
 
 void testBT() {
