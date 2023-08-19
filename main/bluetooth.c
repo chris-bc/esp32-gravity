@@ -1,9 +1,13 @@
 #include "bluetooth.h"
 #include "esp_bt_defs.h"
+#include "esp_gap_bt_api.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
 const char *BT_TAG = "bt@GRAVITY";
+
+app_gap_cb_t *gravity_bt_devices = NULL;
+uint8_t gravity_bt_dev_count = 0;
 
 /* ESP32-Gravity :  Bluetooth
    Initially-prototyped functionality uses traditional Bluetooth discovery
@@ -39,6 +43,63 @@ const char *BT_TAG = "bt@GRAVITY";
    - resume discovery
 */
 
+/* cod2deviceStr
+   Converts a uint32_t representing a Bluetooth Class Of Device (COD)'s major
+   device code into a useful string descriptor of the specified COD major device.
+   Returns an error indicator. Input 'cod' is the COD to be converted.
+   char *string is a pointer to a character array of sufficient size to hold
+   the results. The maximum possible number of characters required by this
+   function, including the trailing NULL, is 59.
+   uint8_t *stringLen is a pointer to a uint8_t variable in the calling code.
+   This variable will be overwritten with the length of string.
+*/
+esp_err_t cod2deviceStr(uint32_t cod, char *string, uint8_t *stringLen) {
+    esp_err_t err = ESP_OK;
+    char temp[59] = "";
+    esp_bt_cod_major_dev_t devType = esp_bt_gap_get_cod_major_dev(cod);
+    switch (devType) {
+        case ESP_BT_COD_MAJOR_DEV_MISC:
+            strcpy(temp, "Miscellaneous");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_COMPUTER:
+            strcpy(temp, "Computer");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_PHONE:
+            strcpy(temp, "Phone (cellular, cordless, pay phone, modem)");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_LAN_NAP:
+            strcpy(temp, "LAN, Network Access Point");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_AV:
+            strcpy(temp, "Audio/Video (headset, speaker, stereo, video display, VCR)");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_PERIPHERAL:
+            strcpy(temp, "Peripheral (mouse, joystick, keyboard)");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_IMAGING:
+            strcpy(temp, "Imaging (printer, scanner, camera, display)");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_WEARABLE:
+            strcpy(temp, "Wearable");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_TOY:
+            strcpy(temp, "Toy");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_HEALTH:
+            strcpy(temp, "Health");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_UNCATEGORIZED:
+            strcpy(temp, "Uncategorised: Device not specified");
+            break;
+        default:
+            strcpy(temp, "ERROR: Invalid Major Device Type");
+            break;
+    }
+    strcpy(string, temp);
+    *stringLen = strlen(string);
+
+    return err;
+}
 
 static char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
     if (bda == NULL || str == NULL || size < 18) {
@@ -102,6 +163,11 @@ static bool get_name_from_eir(uint8_t *eir, uint8_t *bdname, uint8_t *bdname_len
     return false;
 }
 
+/* update_device_info
+   This function is called by the Bluetooth callback when a device discovered event
+   is received. It will maintain gravity_bt_devices and gravity_bt_dev_count with a
+   singe element per physical device.
+*/
 void update_device_info(esp_bt_gap_cb_param_t *param) {
     char bda_str[18];
     uint32_t cod = 0;
@@ -111,6 +177,8 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     uint8_t *eir = NULL;
     uint8_t eir_len = 0;
     esp_bt_gap_dev_prop_t *p;
+    char codDevType[59]; /* Placeholder to store COD major device type */
+    uint8_t codDevTypeLen = 0;
 
     ESP_LOGI(BT_TAG, "Device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
     for (int i = 0; i < param->disc_res.num_prop; i++) {
@@ -118,7 +186,8 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         switch (p->type) {
         case ESP_BT_GAP_DEV_PROP_COD:
             cod = *(uint32_t *)(p->val);
-            ESP_LOGI(BT_TAG, "--Class of Device: 0x%"PRIx32, cod);
+            cod2deviceStr(cod, codDevType, &codDevTypeLen);
+            ESP_LOGI(BT_TAG, "--Device Type: %s  Class: 0x%"PRIx32, codDevType, cod);
             break;
         case ESP_BT_GAP_DEV_PROP_RSSI:
             rssi = *(int8_t *)(p->val);
@@ -187,7 +256,6 @@ void bt_gap_init() {
 static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     app_gap_cb_t *p_dev = &m_dev_info;
     char bda_str[18];
-    char uuid_str[37];
 
     switch (event) {
         case ESP_BT_GAP_DISC_RES_EVT:

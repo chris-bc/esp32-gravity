@@ -37,6 +37,8 @@ typedef struct {
     esp_bd_addr_t bda;
     app_gap_state_t state;
 } app_gap_cb_t;
+extern app_gap_cb_t *gravity_bt_devices;
+extern uint8_t gravity_bt_dev_count;
 
 static app_gap_cb_t m_dev_info;
 extern const char *BT_TAG;
