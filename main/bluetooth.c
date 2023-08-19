@@ -1,5 +1,7 @@
 #include "bluetooth.h"
+#include "common.h"
 #include "esp_bt_defs.h"
+#include "esp_err.h"
 #include "esp_gap_bt_api.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -240,6 +242,23 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         get_name_from_eir(p_dev->eir, p_dev->bdname, &p_dev->bdname_len);
     }
 
+    /* Is BDA already in gravity_bt_devices[]? */
+    int deviceIdx = 0;
+    for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
+                    gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
+    if (deviceIdx < gravity_bt_dev_count) {
+        /* Found an existing device with the same BDA - Update its RSSI */
+        /* YAGNI - Update bdname if it's changed */
+        // TODO: Include a timestamp so we can age devices
+        gravity_bt_devices[deviceIdx].rssi = rssi;
+    } else {
+        /* It's a new device - Add to gravity_bt_devices[] */
+        // TODO: Can/do/will I ever use the state variable (hardcoded 0 here)?
+        bt_dev_add(param->disc_res.bda, bdname, bdname_len, eir, eir_len, cod, rssi, 0, m_dev_info.dev_found);
+    }
+
+printf("BDA str: %s\n", bda_str);
+printf("bdname: %s\n", p_dev->bdname);
     ESP_LOGI(BT_TAG, "Found a target device, address %s, name %s", bda_str, p_dev->bdname);
     p_dev->state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
     //ESP_LOGI(BT_TAG, "Cancel device discovery ...");
@@ -351,6 +370,113 @@ void testBT() {
     ESP_LOGI(BT_TAG, "BlueDroid enable returned %s", esp_err_to_name(err));
 
     bt_gap_start();
+}
+
+/* Add a new Bluetooth device to gravity_bt_devices[] 
+   Creates a new BT device struct using the specified parameters and adds it to
+   gravity_bt_devices[].
+   A uniqueness check will be done using BDA prior to adding the specified device.
+   The most barebones, valid way to call this (i.e. the minimum info that must be
+   specified for a BT device) is bt_dev_add(myValidBDA, NULL, 0, NULL, 0, myValidCOD, 0, 0);
+   bdNameLen should specify the raw length of the name because it is stored in a uint8_t[],
+   excluding the trailing '\0'.
+*/
+esp_err_t bt_dev_add(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNameLen, uint8_t *eir,
+                        uint8_t eirLen, uint32_t cod, int32_t rssi, app_gap_state_t state, bool dev_found) {
+    esp_err_t err = ESP_OK, err2 = ESP_OK;
+
+    /* Make sure the specified BDA doesn't already exist */
+    if (isBDAInArray(bda, gravity_bt_devices, gravity_bt_dev_count)) {
+        char bdaStr[18] = "";
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to add existing BT Dev:\n%25s\n", bda2str(bda, bdaStr, 18));
+        #else
+            ESP_LOGE(BT_TAG, "Unable to add the requested Bluetooth device to Gravity's device array; BDA %s already exists.", bda2str(bda, bdaStr, 18));
+        #endif
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    /* Set up a replacement copy of gravity_bt_devices */
+    app_gap_cb_t *newDevices = malloc(sizeof(app_gap_cb_t) * (gravity_bt_dev_count + 1));
+    if (newDevices == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory to add BT device\n");
+        #else
+            ESP_LOGE(BT_TAG, "Insufficient memory to extend the array of Bluetooth devices in memory.");
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+    /* Copy contents from gravity_bt_devices to newDevices */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        err2 = bt_dev_copy(newDevices[i], gravity_bt_devices[i]);
+        if (err2 != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("Failed to copy BT device %d: %s\nAttempt to continue...\n", i, esp_err_to_name(err2));
+            #else
+                ESP_LOGW(BT_TAG, "Failed to copy BT device %d: %s. Attempting to continue", i, esp_err_to_name(err2));
+            #endif
+            err |= err2;
+        }
+    }
+
+    char nameStr[64];
+    bytes_to_string(bdName, nameStr, (int)bdNameLen);
+    printf("Source bdName \"%s\" len %d. MAX size %d.\n", nameStr, bdNameLen, ESP_BT_GAP_MAX_BDNAME_LEN + 1);
+    //printf("dest bdname ptr %p\t\tNext element bda, ptr %p\n", newDevices[gravity_bt_dev_count].bdname, &(newDevices[gravity_bt_dev_count].bda));
+
+    /* Create new device at index gravity_bt_dev_count */
+    newDevices[gravity_bt_dev_count].dev_found = dev_found;
+    newDevices[gravity_bt_dev_count].bdname_len = bdNameLen;
+    newDevices[gravity_bt_dev_count].eir_len = eirLen;
+    newDevices[gravity_bt_dev_count].rssi = rssi;
+    newDevices[gravity_bt_dev_count].cod = cod;
+    newDevices[gravity_bt_dev_count].state = state;
+    memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
+    memcpy(newDevices[gravity_bt_dev_count].bdname, bdName, bdNameLen);
+    newDevices[gravity_bt_dev_count].bdname[bdNameLen] = '\0';
+    memcpy(newDevices[gravity_bt_dev_count].eir, eir, eirLen);
+
+    /* Finally copy new device array into place */
+    if (gravity_bt_devices != NULL) {
+        free(gravity_bt_devices);
+    }
+    gravity_bt_devices = newDevices;
+    ++gravity_bt_dev_count;
+
+    return err;
+}
+
+/* Is the specified bluetooth device address in the specified array, which has the specified length? */
+bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t *array, uint8_t arrayLen) {
+    int i = 0;
+    for (; i < arrayLen && memcmp(bda, array[i].bda, ESP_BD_ADDR_LEN); ++i) { }
+    
+    /* If i < arrayLen then it was found */
+    return (i < arrayLen);
+}
+
+/* Copy all elements of a app_gap_cb_t representing a Bluetooth device
+   from one variable to another.
+   If dest is a reused app_gap_cb_t, this function WILL NOT manage the
+   clean release of memory from its elements. That's up to the caller.
+*/
+esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
+    esp_err_t err = ESP_OK;
+
+    /* Start with the pass-by-value elements */
+    dest.dev_found = source.dev_found;
+    dest.bdname_len = source.bdname_len;
+    dest.eir_len = source.eir_len;
+    dest.rssi = source.rssi;
+    dest.cod = source.cod;
+    dest.state = source.state;
+
+    /* And now the refs */
+    memcpy(dest.bda, source.bda, ESP_BD_ADDR_LEN);
+    memcpy(dest.eir, source.eir, source.eir_len);
+    memcpy(dest.bdname, source.bdname, source.bdname_len);
+
+    return err;
 }
 
 #endif

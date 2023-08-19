@@ -30,7 +30,7 @@ typedef struct {
     bool dev_found;
     uint8_t bdname_len;
     uint8_t eir_len;
-    uint8_t rssi;
+    int32_t rssi;
     uint32_t cod;
     uint8_t eir[ESP_BT_GAP_EIR_DATA_LEN];
     uint8_t bdname[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
@@ -44,6 +44,12 @@ static app_gap_cb_t m_dev_info;
 extern const char *BT_TAG;
 
 void testBT();
+
+esp_err_t bt_dev_add(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,
+                        uint32_t cod, int32_t rssi, app_gap_state_t state, bool dev_found);
+esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source);
+
+bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t *array, uint8_t arrayLen);
 
 #endif
 #endif
