@@ -182,22 +182,58 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     char codDevType[59]; /* Placeholder to store COD major device type */
     uint8_t codDevTypeLen = 0;
 
-    ESP_LOGI(BT_TAG, "Device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
+    /* Is it a new BDA (i.e. device we haven't seen before)? */
+    int deviceIdx = 0;
+    char *bdNameStr = NULL;
+    for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
+                    gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
+
+    if (deviceIdx == gravity_bt_dev_count) {
+        ESP_LOGI(BT_TAG, "Device found: %s", bda2str(param->disc_res.bda, bda_str, 18));
+    }
     for (int i = 0; i < param->disc_res.num_prop; i++) {
         p = param->disc_res.prop + i;
         switch (p->type) {
         case ESP_BT_GAP_DEV_PROP_COD:
             cod = *(uint32_t *)(p->val);
             cod2deviceStr(cod, codDevType, &codDevTypeLen);
-            ESP_LOGI(BT_TAG, "--Device Type: %s  Class: 0x%"PRIx32, codDevType, cod);
+            if (deviceIdx == gravity_bt_dev_count) {
+                ESP_LOGI(BT_TAG, "--Device Type: %s  Class: 0x%"PRIx32, codDevType, cod);
+            }
             break;
         case ESP_BT_GAP_DEV_PROP_RSSI:
             rssi = *(int8_t *)(p->val);
-            ESP_LOGI(BT_TAG, "--RSSI: %"PRId32, rssi);
+            if (deviceIdx == gravity_bt_dev_count) {
+                ESP_LOGI(BT_TAG, "--RSSI: %"PRId32, rssi);
+            }
             break;
         case ESP_BT_GAP_DEV_PROP_BDNAME:
-            bdname_len = (p->len > ESP_BT_GAP_MAX_BDNAME_LEN) ? ESP_BT_GAP_MAX_BDNAME_LEN :
+            if (bdname_len == 0 || bdname == NULL) {
+                /* It's the first bdname we've seen */
+                // TODO: ...for the entire application across all devices. Fix
+                /* extract bdnameLen */
+                uint8_t thisNameLen = (p->len > ESP_BT_GAP_MAX_BDNAME_LEN) ? ESP_BT_GAP_MAX_BDNAME_LEN :
                           (uint8_t)p->len;
+
+                bdNameStr = malloc(sizeof(char) * (thisNameLen + 1));
+                if (bdNameStr == NULL) {
+                    #ifdef CONFIG_FLIPPER
+                        printf("Unable to malloc space for BT name\n");
+                        continue;
+                    #else
+                        ESP_LOGW(BT_TAG, "Unable to malloc space for Bluetooth device name");
+                        continue;
+                    #endif
+                }
+
+                bdname_len = thisNameLen;
+                #ifdef CONFIG_FLIPPER
+                    printf("--NAME: %s\n", bdNameStr);
+                #else
+                    ESP_LOGI(BT_TAG, "--Device Name: %s", bdNameStr);
+                #endif
+            }
+            bdname_len = 
             bdname = (uint8_t *)(p->val);
             break;
         case ESP_BT_GAP_DEV_PROP_EIR: {
@@ -212,7 +248,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
 
     /* search for device with Major device type "PHONE" or "Audio/Video" in COD */
     app_gap_cb_t *p_dev = &m_dev_info;
-    if (p_dev->dev_found) {
+    if (p_dev->dev_found && deviceIdx == gravity_bt_dev_count) {
         printf("***p_dev->dev_found\n");
         //return;
     }
@@ -244,7 +280,6 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     // I THINK I NEED TO DO BITS HERE TO REFRESH BDNAMESTR AFTER THE ABOVE LINE
     // If that fails, there seem to be quite a few more than one of several related variables. Clean up.
 
-    char *bdNameStr = NULL;
     if (bdname_len > 0) {
         bdNameStr = malloc(sizeof(char) * (bdname_len + 1)); // TODO: Free this later
         if (bdNameStr == NULL) {
@@ -255,21 +290,17 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
             #endif
             return;
         }
-        bytes_to_string(bdname, bdNameStr, bdname_len);
+        memcpy(bdNameStr, bdname, sizeof(uint8_t) * bdname_len);
+        bdNameStr[bdname_len] = '\0';
         /* Also set values in p_dev, at least until I understand it better and/or delete it */
         p_dev->bdname_len = bdname_len;
         memcpy(p_dev->bdname, bdname, bdname_len);
-        printf("after bytes_to_string bdname_len is %u", p_dev->bdname_len);
-        for (int j=0; j<p_dev->bdname_len; ++j) {
-            printf("\n%02x", p_dev->bdname[j]);
+        if (deviceIdx == gravity_bt_dev_count) {
+            printf("Device Name: %s\n", bdNameStr);
         }
-        printf("\n and bdNameStr is \"%s\"\n", bdNameStr);
     }
 
     /* Is BDA already in gravity_bt_devices[]? */
-    int deviceIdx = 0;
-    for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
-                    gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
     if (deviceIdx < gravity_bt_dev_count) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
@@ -282,10 +313,6 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         bt_dev_add(param->disc_res.bda, bdname, bdname_len, eir, eir_len, cod, rssi, 0, m_dev_info.dev_found);
     }
 
-printf("BDA str: %s\n", bda_str);
-printf("bdname: %s\n", bdNameStr==NULL?"":bdNameStr);
-printf("bdNameLen: %u\n", bdname_len);
-    ESP_LOGI(BT_TAG, "Found a target device, address %s, name %s", bda_str, bdNameStr!=NULL && bdname_len > 0?bdNameStr:"");
     p_dev->state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
     //ESP_LOGI(BT_TAG, "Cancel device discovery ...");
     //esp_bt_gap_cancel_discovery();
@@ -435,21 +462,25 @@ esp_err_t bt_dev_add(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNameLen, uint
         return ESP_ERR_NO_MEM;
     }
     /* Copy contents from gravity_bt_devices to newDevices */
-    for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        err2 = bt_dev_copy(newDevices[i], gravity_bt_devices[i]);
-        if (err2 != ESP_OK) {
-            #ifdef CONFIG_FLIPPER
-                printf("Failed to copy BT device %d: %s\nAttempt to continue...\n", i, esp_err_to_name(err2));
-            #else
-                ESP_LOGW(BT_TAG, "Failed to copy BT device %d: %s. Attempting to continue", i, esp_err_to_name(err2));
-            #endif
-            err |= err2;
+    /* This was previously a loop iterating through and calling an additional function to
+       copy the struct. Luckily I stuffed up and corrupted nearby memory so I had to use my
+       brain and come up with a simple solution - Copy the memory contents of the first array
+       to the second.
+    */
+    memcpy(newDevices, gravity_bt_devices, (gravity_bt_dev_count * sizeof(app_gap_cb_t)));
+
+    char nameStr[64] = "";
+    if (bdNameLen > 0) {
+        if (bdNameLen > 63) {
+            printf("BDNameLen too long\n");
+            nameStr[0] = '\0';
+            bdNameLen = 0;
+        } else {
+            memcpy(nameStr, bdName, (int)bdNameLen);
+            nameStr[bdNameLen] = '\0';
         }
     }
-
-    char nameStr[64];
-    bytes_to_string(bdName, nameStr, (int)bdNameLen);
-    printf("Source bdName \"%s\" len %d. MAX size %d.\n", nameStr, bdNameLen, ESP_BT_GAP_MAX_BDNAME_LEN + 1);
+    printf("Source bdName \"%s\" len %u. MAX size %d.\n", nameStr, bdNameLen, ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     //printf("dest bdname ptr %p\t\tNext element bda, ptr %p\n", newDevices[gravity_bt_dev_count].bdname, &(newDevices[gravity_bt_dev_count].bda));
 
     /* Create new device at index gravity_bt_dev_count */
@@ -503,6 +534,7 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     memcpy(dest.bda, source.bda, ESP_BD_ADDR_LEN);
     memcpy(dest.eir, source.eir, source.eir_len);
     memcpy(dest.bdname, source.bdname, source.bdname_len);
+    dest.bdname[dest.bdname_len] = '\0';
 
     return err;
 }
