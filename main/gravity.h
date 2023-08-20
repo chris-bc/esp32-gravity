@@ -20,7 +20,7 @@
  *                                                            *
  * Licensed under the MIT Open Source License.                *
  **************************************************************/
-#define GRAVITY_VERSION "0.3.2"
+#define GRAVITY_VERSION "0.4.0"
 
 #include <cmd_nvs.h>
 #include <cmd_system.h>

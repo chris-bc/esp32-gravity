@@ -980,6 +980,7 @@ TODO
   * Command select bt
   * Refactor selected
   * Bluetooth stalk
+  * Sniff-based scanning
   * BLE
 * Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
