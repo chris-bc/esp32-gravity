@@ -186,7 +186,9 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     bda2str(param->disc_res.bda, bda_str, 18);
     for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
                     gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) {
-        printf("Looking for existing device with BDA %s\tIteration %d of %d, BDA %s\n", bda_str, deviceIdx, gravity_bt_dev_count, bda2str(gravity_bt_devices[deviceIdx].bda, temp, 18));
+        #ifdef CONFIG_DEBUG_VERBOSE
+            printf("Looking for existing device with BDA %s\tIteration %d of %d, BDA %s\n", bda_str, deviceIdx, gravity_bt_dev_count, bda2str(gravity_bt_devices[deviceIdx].bda, temp, 18));
+        #endif
     }
 
     if (deviceIdx == gravity_bt_dev_count) {
@@ -279,7 +281,11 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         memcpy(bdNameStr, currentDevice->bdname, sizeof(uint8_t) * currentDevice->bdname_len);
         bdNameStr[currentDevice->bdname_len] = '\0';
         if (deviceIdx == gravity_bt_dev_count) {
-            printf("Device Name: %s\n", bdNameStr);
+            #ifdef CONFIG_FLIPPER
+                printf("Device Name: %s\n", bdNameStr);
+            #else
+                ESP_LOGI(BT_TAG, "--Device Name: %s", bdNameStr);
+            #endif
         }
     }
 
@@ -288,13 +294,22 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
         // TODO: Include a timestamp so we can age devices
-        printf("Updating RSSI for %s from %ld to %ld\n", bdNameStr==NULL?"":bdNameStr, gravity_bt_devices[deviceIdx].rssi, currentDevice->rssi);
+        printf("Updating RSSI for %s from %ld to %ld\n", bdNameStr==NULL?bda_str:bdNameStr, gravity_bt_devices[deviceIdx].rssi, currentDevice->rssi);
         gravity_bt_devices[deviceIdx].rssi = currentDevice->rssi;
     } else {
         /* It's a new device - Add to gravity_bt_devices[] */
         // TODO: Can/do/will I ever use the state variable (hardcoded 0 here)?
         //bt_dev_add(currentDevice->bda, currentDevice->bdname, currentDevice->bdname_len, currentDevice->eir, currentDevice->eir_len, currentDevice->cod, currentDevice->rssi);
         bt_dev_add(currentDevice);
+
+        /* Reset m_dev_info now that the new device has been added */
+        m_dev_info.bdname_len = 0;
+        m_dev_info.cod = 0;
+        m_dev_info.eir_len = 0;
+        m_dev_info.rssi = -127; /* Invalid value */
+        memset(m_dev_info.eir, '\0', ESP_BT_GAP_EIR_DATA_LEN);
+        memset(m_dev_info.bda, '\0', ESP_BD_ADDR_LEN);
+        memset(m_dev_info.bdname, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     }
 
     state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
@@ -303,14 +318,13 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
 }
 
 void bt_gap_init() {
-    app_gap_cb_t *p_dev = &m_dev_info;
-    memset(p_dev, 0, sizeof(app_gap_cb_t));
+    memset(&m_dev_info, 0, sizeof(app_gap_cb_t));
 
     state = APP_GAP_STATE_IDLE;
-    p_dev->cod = 0;
-    p_dev->rssi = -127; /* Invalid value */
-    p_dev->bdname_len = 0;
-    p_dev->eir_len = 0;
+    m_dev_info.cod = 0;
+    m_dev_info.rssi = -127; /* Invalid value */
+    m_dev_info.bdname_len = 0;
+    m_dev_info.eir_len = 0;
 }
 
 static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
@@ -380,7 +394,6 @@ void bt_gap_start() {
     /* Set discoverable and connectable, wait to be connected */
     esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
-
     bt_gap_init();
 
     /* Start to discover nearby devices */
@@ -391,25 +404,14 @@ void bt_gap_start() {
 void testBT() {
     esp_err_t err = ESP_OK;
     err = esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
-    ESP_LOGI(BT_TAG, "Controller mem release returned %s", esp_err_to_name(err));
-
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     //bt_cfg.mode = ESP_BT_MODE_CLASSIC_BT;
     err = esp_bt_controller_init(&bt_cfg);
-    ESP_LOGI(BT_TAG, "BT controller init returned %s", esp_err_to_name(err));
-
     /* Enable WiFi sleep mode in order for wireless coexistence to work */
     esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
-
     err = esp_bt_controller_enable(BTDM_CONTROLLER_MODE_EFF); /* Was ESP_BT_MODE_CLASSIC_BT */
-    ESP_LOGI(BT_TAG, "BT Controller enable returned %s", esp_err_to_name(err));
-
     err = esp_bluedroid_init();
-    ESP_LOGI(BT_TAG, "BlueDroid init returned %s", esp_err_to_name(err));
-
     err = esp_bluedroid_enable();
-    ESP_LOGI(BT_TAG, "BlueDroid enable returned %s", esp_err_to_name(err));
-
     bt_gap_start();
 }
 
@@ -466,9 +468,6 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNa
             nameStr[bdNameLen] = '\0';
         }
     }
-    printf("Source bdName \"%s\" len %u. MAX size %d.\n", nameStr, bdNameLen, ESP_BT_GAP_MAX_BDNAME_LEN + 1);
-    //printf("dest bdname ptr %p\t\tNext element bda, ptr %p\n", newDevices[gravity_bt_dev_count].bdname, &(newDevices[gravity_bt_dev_count].bda));
-
     /* Create new device at index gravity_bt_dev_count */
     newDevices[gravity_bt_dev_count].bdname_len = bdNameLen;
     newDevices[gravity_bt_dev_count].eir_len = eirLen;

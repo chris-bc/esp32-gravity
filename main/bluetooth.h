@@ -27,7 +27,6 @@ typedef enum {
 } app_gap_state_t;
 
 typedef struct {
-    bool dev_found;
     uint8_t bdname_len;
     uint8_t eir_len;
     int32_t rssi;
