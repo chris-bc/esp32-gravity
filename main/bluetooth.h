@@ -49,6 +49,8 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNa
 esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source);
 
 bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t *array, uint8_t arrayLen);
+esp_err_t gravity_bt_discover_all_services();
+esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev);
 
 #endif
 #endif

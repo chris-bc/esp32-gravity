@@ -340,7 +340,8 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                         state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
                     state = APP_GAP_STATE_SERVICE_DISCOVERING;
                     ESP_LOGI(BT_TAG, "Discover services...");
-                    esp_bt_gap_get_remote_services(currentDevice->bda);
+                    gravity_bt_discover_all_services();
+//                    esp_bt_gap_get_remote_services(currentDevice->bda);
                 }
             } else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
                 ESP_LOGI(BT_TAG, "Discovery started");
@@ -523,6 +524,20 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     dest.bdname[dest.bdname_len] = '\0';
 
     return err;
+}
+
+esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
+    return esp_bt_gap_get_remote_services(dev->bda);
+}
+
+/* Discover all services for gravity_bt_devices */
+esp_err_t gravity_bt_discover_all_services() {
+    esp_err_t res = ESP_OK;
+
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        res |= gravity_bt_discover_services(&gravity_bt_devices[i]);
+    }
+    return res;
 }
 
 #endif
