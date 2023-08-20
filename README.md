@@ -974,6 +974,13 @@ TODO
 * handshake
 * Capture authentication frames for cracking
 * Scan 802.15.1 (BLE/BT) devices and types
+  * Currently runs discovery-based scanning, building device list
+  * Refactor code to retrieve service information from discovered devices
+  * Command view bt
+  * Command select bt
+  * Refactor selected
+  * Bluetooth stalk
+  * BLE
 * Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
 
