@@ -1,6 +1,7 @@
 #include "bluetooth.h"
 #include "common.h"
 #include "esp_err.h"
+#include "probe.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
@@ -296,7 +297,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
         // TODO: Include a timestamp so we can age devices
-        if (paramUpdated[BT_PARAM_BDNAME]) {
+        if (paramUpdated[BT_PARAM_BDNAME] && strcmp(gravity_bt_devices[deviceIdx].bdName, dev_bdname)) {
             #ifdef CONFIG_FLIPPER
                 printf("BT: Update BT Device %s Name \"%s\"\n", bda_str, dev_bdname);
             #else
@@ -377,13 +378,14 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
             if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
                 ESP_LOGI(BT_TAG, "Device discovery stopped.");
-                if ( (state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
-                        state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
-                    state = APP_GAP_STATE_SERVICE_DISCOVERING;
-                    ESP_LOGI(BT_TAG, "Discover services...");
-                    //gravity_bt_discover_all_services();
-//                    esp_bt_gap_get_remote_services(currentDevice->bda);
-                }
+                attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
+//                 if ( (state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
+//                         state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
+//                     state = APP_GAP_STATE_SERVICE_DISCOVERING;
+//                     ESP_LOGI(BT_TAG, "Discover services...");
+//                     //gravity_bt_discover_all_services();
+// //                    esp_bt_gap_get_remote_services(currentDevice->bda);
+//                 }
             } else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
                 ESP_LOGI(BT_TAG, "Discovery started");
             }
@@ -611,7 +613,7 @@ esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     if (!btInitialised) {
         gravity_bt_initialise();
     }
-    
+
     /* A little validation to be user-friendly */
     bool deviceFound = false;
     if (device != NULL) {

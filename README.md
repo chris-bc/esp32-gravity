@@ -987,17 +987,17 @@ TODO
 
 ## Bugs / Todo
 
-* Add BT-Discovery to scan and build out from there
-* Don't automatically get all services as part of Gravity - additional command to inspect a device
-  * Move services callback handler into its own function
-  * Manage a data model for the services rather than displaying them
-  * Don't bother doing that until confirming they can provide useful information
+* Add BT-Discovery to scan status
 * Add BT results to view
 * Add BT results to select
 * Add BT results to selected
 * Add BT results to stalk
 * Add BT sniffing
 * Add active scanning - connections
+* Additional command to inspect a device and its services
+  * Move services callback handler into its own function
+  * Manage a data model for the services rather than displaying them
+  * Don't bother doing that until confirming they can provide useful information
 * Retrieve services for all devices
 * Interpret services based on their UUIDs
 * BT discovery Progress indicator - seconds remaining?

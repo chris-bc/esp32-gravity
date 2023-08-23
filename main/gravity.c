@@ -1168,7 +1168,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     if (argc == 1) {
         return scan_display_status();
     }
-
+    esp_err_t err = ESP_OK;
 
     /* Zero out SSID filter */
     memset(scan_filter_ssid, '\0', 33);
@@ -1189,6 +1189,8 @@ esp_err_t cmd_scan(int argc, char **argv) {
             return ESP_ERR_INVALID_ARG;
         } else if (!strcasecmp(argv[2], "DISCOVER")) { 
             /* Initialise BT Classic mode and start discovery */
+            err |= gravity_bt_gap_start();
+            attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
         } else if (!strcasecmp(argv[2], "SNIFF")) {
             /* Initialise BT monitor mode and identify devices */
         } else if (!strcasecmp(argv[2], "PROBE")) {
@@ -1239,7 +1241,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     #endif
 
     /* Start/stop hopping task loop as needed */
-    esp_err_t err = setHopForNewCommand();
+    err |= setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Unable to set hop state: %s\n", esp_err_to_name(err));
