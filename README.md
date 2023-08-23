@@ -987,8 +987,18 @@ TODO
 
 ## Bugs / Todo
 
-* add_bt_device() - Add a scan method - BT_SCAN_DISCOVERY BT_SCAN_SNIFF BT_SCAN_ACTIVE
-* Better formatting of all UIs
+* Don't automatically get all services as part of Gravity - additional command to inspect a device
+* Add BT results to view
+* Add BT results to select
+* Add BT results to selected
+* Add BT results to stalk
+* Add BT sniffing
+* Add active scanning - connections
+* Retrieve services for all devices
+* Interpret services based on their UUIDs
+* BT discovery Progress indicator - seconds remaining?
+* add_bt_device() - Add a scan method device was discovered with - BT_SCAN_DISCOVERY BT_SCAN_SNIFF BT_SCAN_ACTIVE
+* Better formatting of remaining UIs
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
   * Problem *likely* just with display...
