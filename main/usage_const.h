@@ -2,7 +2,7 @@
 #define ESP_FLIP_CONST_H
 
 /* Command usage string - SHORT_* is compressed help text for Flipper */
-const char USAGE_BT[] = "Bluetooth Test Module. bluetooth [ ON | OFF ]";
+const char USAGE_BT[] = "Bluetooth Test Module. bluetooth";
 const char USAGE_BEACON[] = "Beacon spam attack. Usage: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF ] [ AUTH ( OPEN | WPA )+ ]";
 const char USAGE_TARGET_SSIDS[] = "Manage SSID targets. Usage: target-ssids [ ( ADD | REMOVE ) <ssid_name> ]";
 const char USAGE_PROBE[] = "Probe flood attack. Usage: probe [ ANY | TARGET-SSIDs | APs | OFF ]";
@@ -13,7 +13,7 @@ const char USAGE_MANA[] = "Mana attack. Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON
 const char USAGE_STALK[] = "Toggle target tracking/homing. Usage: stalk [ ON | OFF ]";
 const char USAGE_AP_DOS[] = "Denial-of-service attack on selectedAPs. Usage: ap-dos [ ON | OFF ]";
 const char USAGE_AP_CLONE[] = "Clone and attempt takeover of the specified AP. Usage: ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]";
-const char USAGE_SCAN[] = "Scan for wireless devices. Usage: scan [ <ssid> | ON | OFF ]";
+const char USAGE_SCAN[] = "Scan for wireless devices. Usage: scan [ <ssid> | ON | BT ( DISCOVER | SNIFF | PROBE ) | OFF ]";
 const char USAGE_HOP[] = "Configure channel hopping. Usage: hop [ <millis> ] [ ON | OFF | DEFAULT | KILL ] [ SEQUENTIAL | RANDOM ]";
 const char USAGE_SET[] = "Set a variable. Usage: set <variable> <value>";
 const char USAGE_GET[] = "Get a variable. Usage: get <variable>";

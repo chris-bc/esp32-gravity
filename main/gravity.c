@@ -184,9 +184,14 @@ esp_err_t rmSsid(char *ssid) {
 }
 
 /* Run bluetooth test module */
+/* The bluetooth command may not be needed for quite some time now it's done as a PoC
+   Future expansion of the BT module to allow interactive exploration of the airspace would be neat.
+*/
 esp_err_t cmd_bluetooth(int argc, char **argv) {
+    esp_err_t err = ESP_OK;
     #if defined(CONFIG_IDF_TARGET_ESP32)
-        testBT();
+        err = gravity_bt_initialise();
+        err |= gravity_bt_gap_start();
     #else
         #ifdef CONFIG_FLIPPER
             printf("Bluetooth unsupported in this build because you're using a S2 or C6\n");
@@ -194,7 +199,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
             ESP_LOGW(TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
         #endif
     #endif
-    return ESP_OK;
+    return err;
 }
 
 /* Display version info for esp32-Gravity */
@@ -1148,7 +1153,10 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
 }
 
 esp_err_t cmd_scan(int argc, char **argv) {
-    if (argc > 2 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32)) {
+    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32) ||
+    /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
+            (argc == 3 && (strcasecmp(argv[1], "BT") || (strcasecmp(argv[2], "DISCOVER") &&
+                strcasecmp(argv[2], "SNIFF") && strcasecmp(argv[2], "PROBE"))))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
         #else
@@ -1161,6 +1169,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
         return scan_display_status();
     }
 
+
     /* Zero out SSID filter */
     memset(scan_filter_ssid, '\0', 33);
     memset(scan_filter_ssid_bssid, 0x00, 6);
@@ -1169,6 +1178,8 @@ esp_err_t cmd_scan(int argc, char **argv) {
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
         attack_status[ATTACK_SCAN] = false;
+    } else if (!strcasecmp(argv[1], "BT")) {
+        // scan
     } else {
         attack_status[ATTACK_SCAN] = true;
         /* Use argv[1] as an SSID filter */
@@ -2125,6 +2136,7 @@ void app_main(void)
             case ATTACK_SNIFF:
             case ATTACK_DEAUTH:
             case ATTACK_SCAN:
+            case ATTACK_SCAN_BT_CLASSIC:
             case ATTACK_MANA:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:
@@ -2153,6 +2165,7 @@ void app_main(void)
             case ATTACK_FUZZ:
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
+            case ATTACK_SCAN_BT_CLASSIC:
             case ATTACK_MANA:
             case ATTACK_AP_DOS:
             case ATTACK_AP_CLONE:
@@ -2188,6 +2201,7 @@ void app_main(void)
             case ATTACK_FUZZ:
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
+            case ATTACK_SCAN_BT_CLASSIC:
             case ATTACK_DEAUTH:
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */
             case ATTACK_AP_CLONE:                                   /* make sense be */

@@ -1,10 +1,11 @@
 #include "bluetooth.h"
 #include "common.h"
-#include "esp_bt_defs.h"
 #include "esp_err.h"
-#include "esp_gap_bt_api.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
+
+#include "esp_bt_defs.h"
+#include "esp_gap_bt_api.h"
 
 const char *BT_TAG = "bt@GRAVITY";
 
@@ -284,6 +285,9 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     
     if (dev_bdname_len == 0) {
         get_string_name_from_eir(dev_eir, dev_bdname, &dev_bdname_len);
+        if (dev_bdname_len > 0) {
+            paramUpdated[BT_PARAM_BDNAME] = true;
+        }
     }
 
     /* Is BDA already in gravity_bt_devices[]? */
@@ -307,30 +311,21 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         }
     } else {
         /* It's a new device - Add to gravity_bt_devices[] */
-        char *devString = malloc(sizeof(char) * (41 + dev_bdname_len));
-        if (devString == NULL) {
-            #ifdef CONFIG_FLIPPER
-                printf("Unable to allocate memory to display new device name - It's a secret\n");
-            #else
-                ESP_LOGW(BT_TAG, "Unable to allocate memory to display device name");
-            #endif
-        } else {
-            sprintf(devString, "Found BT Device %s", bda_str);
-            /* Append name if we have one */
-            if (dev_bdname_len > 0) {
-                strcat(devString, " (Name \"");
-                strcat(devString, dev_bdname);
-                strcat(devString, "\")");
-            }
-            // TODO: Can/do/will I ever use the state variable (hardcoded 0 here)?
-            #ifdef CONFIG_FLIPPER
-                printf("BT: %s\n", devString);
-            #else
-                ESP_LOGI(BT_TAG, "%s", devString);
-            #endif
+        char devString[41 + ESP_BT_GAP_MAX_BDNAME_LEN];
+        sprintf(devString, "Found BT Device %s", bda_str);
+        /* Append name if we have one */
+        if (dev_bdname_len > 0) {
+            strcat(devString, " (Name \"");
+            strcat(devString, dev_bdname);
+            strcat(devString, "\")");
         }
+        // TODO: Can/do/will I ever use the state variable (hardcoded 0 here)?
+        #ifdef CONFIG_FLIPPER
+            printf("BT: %s\n", devString);
+        #else
+            ESP_LOGI(BT_TAG, "%s", devString);
+        #endif
         bt_dev_add_components(dev_bda, dev_bdname, dev_bdname_len, dev_eir, dev_eir_len, dev_cod, dev_rssi);
-
     }
 
     state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
@@ -373,14 +368,6 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
     return err;
 }
 
-void bt_gap_init() {
-    state = APP_GAP_STATE_IDLE;
-    // m_dev_info.cod = 0;
-    // m_dev_info.rssi = -127; /* Invalid value */
-    // m_dev_info.bdname_len = 0;
-    // m_dev_info.eir_len = 0;
-}
-
 static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     switch (event) {
         case ESP_BT_GAP_DISC_RES_EVT:
@@ -393,7 +380,7 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                         state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
                     state = APP_GAP_STATE_SERVICE_DISCOVERING;
                     ESP_LOGI(BT_TAG, "Discover services...");
-                    gravity_bt_discover_all_services();
+                    //gravity_bt_discover_all_services();
 //                    esp_bt_gap_get_remote_services(currentDevice->bda);
                 }
             } else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
@@ -440,34 +427,37 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
     return;
 }
 
-void bt_gap_start() {
-    esp_bt_gap_register_callback(bt_gap_cb);
+esp_err_t gravity_bt_gap_start() {
+    esp_err_t err = ESP_OK;
+
+    err = esp_bt_gap_register_callback(bt_gap_cb);
     /* Set Device name */
     char *dev_name = "GRAVITY_INQUIRY";
-    esp_bt_dev_set_device_name(dev_name);
+    err |= esp_bt_dev_set_device_name(dev_name);
 
     /* Set discoverable and connectable, wait to be connected */
-    esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-
-    bt_gap_init();
+    err |= esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
 
     /* Start to discover nearby devices */
     state = APP_GAP_STATE_DEVICE_DISCOVERING;
-    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x10, 0);
+    err |= esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x10, 0);
+
+    return err;
 }
 
-void testBT() {
+esp_err_t gravity_bt_initialise() {
     esp_err_t err = ESP_OK;
-    err = esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+    err |= esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     //bt_cfg.mode = ESP_BT_MODE_CLASSIC_BT;
-    err = esp_bt_controller_init(&bt_cfg);
+    err |= esp_bt_controller_init(&bt_cfg);
     /* Enable WiFi sleep mode in order for wireless coexistence to work */
     esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
-    err = esp_bt_controller_enable(BTDM_CONTROLLER_MODE_EFF); /* Was ESP_BT_MODE_CLASSIC_BT */
-    err = esp_bluedroid_init();
-    err = esp_bluedroid_enable();
-    bt_gap_start();
+    err |= esp_bt_controller_enable(BTDM_CONTROLLER_MODE_EFF); /* Was ESP_BT_MODE_CLASSIC_BT */
+    err |= esp_bluedroid_init();
+    err |= esp_bluedroid_enable();
+
+    return err;
 }
 
 /* Add a new Bluetooth device to gravity_bt_devices[] 
@@ -605,5 +595,20 @@ esp_err_t gravity_bt_discover_all_services() {
     }
     return res;
 }
+
+/* Discover Classic Bluetooth services offered by the specified device
+   device specifies the target Bluetooth device. If creating your own rather than using scan results,
+   the only relevant attribute is BDA. Note that this is a pointer.
+   To discover services for all devices provide NULL for device.
+*/
+esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
+    esp_err_t err = ESP_OK;
+    if (device == NULL) {
+        return gravity_bt_discover_all_services();
+    } else {
+        return gravity_bt_discover_services(device);
+    }
+}
+
 
 #endif
