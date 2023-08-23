@@ -166,6 +166,18 @@ static bool get_name_from_eir(uint8_t *eir, uint8_t *bdname, uint8_t *bdname_len
     return false;
 }
 
+static bool get_string_name_from_eir(uint8_t *eir, char *bdname, uint8_t *bdname_len) {
+    bool retVal = true;
+    uint8_t bdname_bytes[ESP_BT_GAP_MAX_BDNAME_LEN + 1]; // TODO: Remove +1?
+    retVal = get_name_from_eir(eir, bdname_bytes, bdname_len);
+
+    if (*bdname_len > 0) {
+        memcpy(bdname, bdname_bytes, *bdname_len);
+        bdname[*bdname_len] = '\0';
+    }
+    return retVal;
+}
+
 /* update_device_info
    This function is called by the Bluetooth callback when a device discovered event
    is received. It will maintain gravity_bt_devices and gravity_bt_dev_count with a
@@ -174,15 +186,39 @@ static bool get_name_from_eir(uint8_t *eir, uint8_t *bdname, uint8_t *bdname_len
 void update_device_info(esp_bt_gap_cb_param_t *param) {
     app_gap_cb_t *currentDevice = &m_dev_info;
     char bda_str[18];
-    char *bdNameStr = NULL;
     esp_bt_gap_dev_prop_t *p;
     char codDevType[59]; /* Placeholder to store COD major device type */
     uint8_t codDevTypeLen = 0;
-    uint8_t thisNameLen;
 
     /* Is it a new BDA (i.e. device we haven't seen before)? */
     int deviceIdx = 0;
     char temp[18];
+
+    #ifdef CONFIG_DEBUG
+        int numProp = param->disc_res.num_prop;
+        printf("BEGIN UPDATE_DEVICE_INFO() BDA: %s Num properties %d: ", bda2str(param->disc_res.bda, temp, 18), numProp);
+        /* Display info about each attached property */
+        for (int i = 0; i < numProp; ++i) {
+            p = param->disc_res.prop + i;
+            switch (p->type) {
+                case ESP_BT_GAP_DEV_PROP_COD:
+                    printf("(%d, COD)  ", i);
+                    break;
+                case ESP_BT_GAP_DEV_PROP_RSSI:
+                    printf("(%d, RSSI %d)  ", i, *(int8_t*)(p->val));
+                    break;
+                case ESP_BT_GAP_DEV_PROP_BDNAME:
+                    printf("(%d, Len %u)   ", i, p->len);
+                    break;
+                case ESP_BT_GAP_DEV_PROP_EIR:
+                    printf("(%d, EIR Len %u)  ", i, p->len);
+                    break;
+                default:
+                    printf("(%d, Unknown [%d])  ", i, p->type);
+            }
+        }
+    #endif
+
     bda2str(param->disc_res.bda, bda_str, 18);
     for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
                     gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) {
@@ -200,44 +236,16 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         case ESP_BT_GAP_DEV_PROP_COD:
             currentDevice->cod = *(uint32_t *)(p->val);
             cod2deviceStr(currentDevice->cod, codDevType, &codDevTypeLen);
-            if (deviceIdx == gravity_bt_dev_count) {
-                ESP_LOGI(BT_TAG, "--Device Type: %s  Class: 0x%"PRIx32, codDevType, currentDevice->cod);
-            }
             break;
         case ESP_BT_GAP_DEV_PROP_RSSI:
             currentDevice->rssi = *(int8_t *)(p->val);
-            if (deviceIdx == gravity_bt_dev_count) {
-                ESP_LOGI(BT_TAG, "--RSSI: %"PRId32, currentDevice->rssi);
-            }
             break;
         case ESP_BT_GAP_DEV_PROP_BDNAME:
             /* extract bdnameLen */
-            thisNameLen = (p->len > ESP_BT_GAP_MAX_BDNAME_LEN) ? ESP_BT_GAP_MAX_BDNAME_LEN :
+            currentDevice->bdname_len = (p->len > ESP_BT_GAP_MAX_BDNAME_LEN) ? ESP_BT_GAP_MAX_BDNAME_LEN :
                     (uint8_t)p->len;
-
-            if (bdNameStr != NULL) {
-                free(bdNameStr);
-            }
-            bdNameStr = malloc(sizeof(char) * (thisNameLen + 1));
-            if (bdNameStr == NULL) {
-                #ifdef CONFIG_FLIPPER
-                    printf("Unable to malloc space for BT name\n");
-                    continue;
-                #else
-                    ESP_LOGW(BT_TAG, "Unable to malloc space for Bluetooth device name");
-                    continue;
-                #endif
-            }
-            memcpy(currentDevice->bdname, p->val, thisNameLen);
-            currentDevice->bdname_len = thisNameLen;
-            memcpy(bdNameStr, p->val, thisNameLen);
-            bdNameStr[thisNameLen] = '\0';
-
-            #ifdef CONFIG_FLIPPER
-                printf("--NAME: %s\n", bdNameStr);
-            #else
-                ESP_LOGI(BT_TAG, "--Device Name: %s", bdNameStr);
-            #endif
+            memcpy(currentDevice->bdName, p->val, currentDevice->bdname_len);
+            currentDevice->bdName[currentDevice->bdname_len] = '\0';
             break;
         case ESP_BT_GAP_DEV_PROP_EIR: {
             memcpy(currentDevice->eir, p->val, p->len);
@@ -259,34 +267,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     memcpy(currentDevice->bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
     
     if (currentDevice->bdname_len == 0) {
-        get_name_from_eir(currentDevice->eir, currentDevice->bdname, &currentDevice->bdname_len);
-    }
-
-    // I THINK I NEED TO DO BITS HERE TO REFRESH BDNAMESTR AFTER THE ABOVE LINE
-    // If that fails, there seem to be quite a few more than one of several related variables. Clean up.
-
-    if (currentDevice->bdname_len > 0) {
-        if (bdNameStr != NULL) {
-            free(bdNameStr);
-        }
-        bdNameStr = malloc(sizeof(char) * (currentDevice->bdname_len + 1)); // TODO: Free this later
-        if (bdNameStr == NULL) {
-            #ifdef CONFIG_FLIPPER
-                printf("Unable to malloc memory for BT name\n");
-            #else
-                ESP_LOGE(BT_TAG, "Unable to allocate %u bytes for BN device name", currentDevice->bdname_len + 1);
-            #endif
-            return;
-        }
-        memcpy(bdNameStr, currentDevice->bdname, sizeof(uint8_t) * currentDevice->bdname_len);
-        bdNameStr[currentDevice->bdname_len] = '\0';
-        if (deviceIdx == gravity_bt_dev_count) {
-            #ifdef CONFIG_FLIPPER
-                printf("Device Name: %s\n", bdNameStr);
-            #else
-                ESP_LOGI(BT_TAG, "--Device Name: %s", bdNameStr);
-            #endif
-        }
+        get_string_name_from_eir(currentDevice->eir, currentDevice->bdName, &currentDevice->bdname_len);
     }
 
     /* Is BDA already in gravity_bt_devices[]? */
@@ -294,12 +275,22 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
         // TODO: Include a timestamp so we can age devices
-        printf("Updating RSSI for %s from %ld to %ld\n", bdNameStr==NULL?bda_str:bdNameStr, gravity_bt_devices[deviceIdx].rssi, currentDevice->rssi);
+        // printf("Updating RSSI for %s from %ld to %ld\n", currentDevice->bdname_len == 0?bda_str:currentDevice->bdName, gravity_bt_devices[deviceIdx].rssi, currentDevice->rssi);
         gravity_bt_devices[deviceIdx].rssi = currentDevice->rssi;
+        /* Update name if we have a newly-received name */
+        char oldBdaStr[18], newBdaStr[18];
+        printf("Have matched beacon from %s (name \"%s\") with cached device %d: %s (\"%s\")\n", bda2str(currentDevice->bda, newBdaStr, 18), currentDevice->bdName, deviceIdx, bda2str(gravity_bt_devices[deviceIdx].bda, oldBdaStr, 18), gravity_bt_devices[deviceIdx].bdName);
+
+        if (currentDevice->bdname_len > 0 && (currentDevice->bdname_len != gravity_bt_devices[deviceIdx].bdname_len || strcmp(currentDevice->bdName, gravity_bt_devices[deviceIdx].bdName))) {
+            gravity_bt_devices[deviceIdx].bdname_len = currentDevice->bdname_len;
+            printf("Found new name %s replacing %s for %s\n", currentDevice->bdName, gravity_bt_devices[deviceIdx].bdName, bda_str);
+            strcpy(gravity_bt_devices[deviceIdx].bdName, currentDevice->bdName);
+        }
     } else {
         /* It's a new device - Add to gravity_bt_devices[] */
         // TODO: Can/do/will I ever use the state variable (hardcoded 0 here)?
         //bt_dev_add(currentDevice->bda, currentDevice->bdname, currentDevice->bdname_len, currentDevice->eir, currentDevice->eir_len, currentDevice->cod, currentDevice->rssi);
+        printf("About to call bt_dev_add() with device name \"%s\"\n", currentDevice->bdName);
         bt_dev_add(currentDevice);
 
         /* Reset m_dev_info now that the new device has been added */
@@ -309,7 +300,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         m_dev_info.rssi = -127; /* Invalid value */
         memset(m_dev_info.eir, '\0', ESP_BT_GAP_EIR_DATA_LEN);
         memset(m_dev_info.bda, '\0', ESP_BD_ADDR_LEN);
-        memset(m_dev_info.bdname, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
+        memset(m_dev_info.bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     }
 
     state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
@@ -349,32 +340,33 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             break;
         case ESP_BT_GAP_RMT_SRVCS_EVT:
             char bda_str[18];
-            if (memcmp(param->rmt_srvcs.bda, currentDevice->bda, ESP_BD_ADDR_LEN) == 0 &&
-                    state == APP_GAP_STATE_SERVICE_DISCOVERING) {
-                state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
-                if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
-                    ESP_LOGI(BT_TAG, "Services for device %s found", bda2str(currentDevice->bda, bda_str, 18));
-                    for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
-                        esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-                        // ESP_UUID_LEN_128 is uint8_t[128]
-                        ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: %lu", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
-                        if (u->len == ESP_UUID_LEN_128) {
-                            char *uuidStr = malloc(sizeof(char) * (3 * 128));
-                            if (uuidStr == NULL) {
-                                printf("Unable to allocate space for string representation of UUID128\n");
-                                return;
-                            }
-                            if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
-                                printf ("bytes_to_string returned an error\n");
-                                free(uuidStr);
-                                return;
-                            }
-                            ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
-                            free(uuidStr);
+            ESP_LOGI(BT_TAG, "Receiving services for BDA %s\n", bda2str(param->rmt_srvcs.bda, bda_str, 18));
+            if (state == APP_GAP_STATE_SERVICE_DISCOVERING)
+                printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
+            if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
+                printf("state is APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE\n");
+                
+            state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
+            if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
+                ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
+                for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
+                    esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
+                    // ESP_UUID_LEN_128 is uint8_t[128]
+                    ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: %lu", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+                    if (u->len == ESP_UUID_LEN_128) {
+                        char *uuidStr = malloc(sizeof(char) * (3 * 128));
+                        if (uuidStr == NULL) {
+                            printf("Unable to allocate space for string representation of UUID128\n");
+                            return;
                         }
+                        if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
+                            printf ("bytes_to_string returned an error\n");
+                            free(uuidStr);
+                            return;
+                        }
+                        ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
+                        free(uuidStr);
                     }
-                } else {
-                    ESP_LOGI(BT_TAG, "Services for device %s not found", bda2str(currentDevice->bda, bda_str, 18));
                 }
             }
             break;
@@ -399,7 +391,7 @@ void bt_gap_start() {
 
     /* Start to discover nearby devices */
     state = APP_GAP_STATE_DEVICE_DISCOVERING;
-    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x30, 0);
+    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x10, 0);
 }
 
 void testBT() {
@@ -425,7 +417,7 @@ void testBT() {
    bdNameLen should specify the raw length of the name because it is stored in a uint8_t[],
    excluding the trailing '\0'.
 */
-esp_err_t bt_dev_add_components(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNameLen, uint8_t *eir,
+esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir,
                         uint8_t eirLen, uint32_t cod, int32_t rssi) {
     esp_err_t err = ESP_OK, err2 = ESP_OK;
 
@@ -458,25 +450,14 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNa
     */
     memcpy(newDevices, gravity_bt_devices, (gravity_bt_dev_count * sizeof(app_gap_cb_t)));
 
-    char nameStr[64] = "";
-    if (bdNameLen > 0) {
-        if (bdNameLen > 63) {
-            printf("BDNameLen too long\n");
-            nameStr[0] = '\0';
-            bdNameLen = 0;
-        } else {
-            memcpy(nameStr, bdName, (int)bdNameLen);
-            nameStr[bdNameLen] = '\0';
-        }
-    }
     /* Create new device at index gravity_bt_dev_count */
     newDevices[gravity_bt_dev_count].bdname_len = bdNameLen;
     newDevices[gravity_bt_dev_count].eir_len = eirLen;
     newDevices[gravity_bt_dev_count].rssi = rssi;
     newDevices[gravity_bt_dev_count].cod = cod;
     memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
-    memcpy(newDevices[gravity_bt_dev_count].bdname, bdName, bdNameLen);
-    newDevices[gravity_bt_dev_count].bdname[bdNameLen] = '\0';
+    memset(newDevices[gravity_bt_dev_count].bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
+    strncpy(newDevices[gravity_bt_dev_count].bdName, (char *)bdName, bdNameLen);
     memcpy(newDevices[gravity_bt_dev_count].eir, eir, eirLen);
 
     /* Finally copy new device array into place */
@@ -486,11 +467,21 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, uint8_t *bdName, uint8_t bdNa
     gravity_bt_devices = newDevices;
     ++gravity_bt_dev_count;
 
+    #ifdef CONFIG_DEBUG
+        printf("End of bt_dev_add_components(), gravity_bt_devices has %u elements:\n", gravity_bt_dev_count);
+        for (int i =0; i < gravity_bt_dev_count; ++i) {
+            if (i > 0) {
+                printf(",\t");
+            }
+            printf("\"%s\"", gravity_bt_devices[i].bdName);
+        }
+    #endif
+
     return err;
 }
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev) {
-    return bt_dev_add_components(dev->bda, dev->bdname, dev->bdname_len,
+    return bt_dev_add_components(dev->bda, dev->bdName, dev->bdname_len,
             dev->eir, dev->eir_len, dev->cod, dev->rssi);
 }
 
@@ -520,8 +511,7 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     /* And now the refs */
     memcpy(dest.bda, source.bda, ESP_BD_ADDR_LEN);
     memcpy(dest.eir, source.eir, source.eir_len);
-    memcpy(dest.bdname, source.bdname, source.bdname_len);
-    dest.bdname[dest.bdname_len] = '\0';
+    strcpy(dest.bdName, source.bdName);
 
     return err;
 }
@@ -534,7 +524,45 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
 esp_err_t gravity_bt_discover_all_services() {
     esp_err_t res = ESP_OK;
 
+    printf("In discover_all_services(), bt_dev_count is %u\n", gravity_bt_dev_count);
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        char strBda[18];
+        char strEir[ESP_BT_GAP_EIR_DATA_LEN + 1];
+        bda2str(gravity_bt_devices[i].bda, strBda, 18);
+        memcpy(strEir, gravity_bt_devices[i].eir, gravity_bt_devices[i].eir_len);
+        strEir[gravity_bt_devices[i].eir_len] = '\0';
+        printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,gravity_bt_devices[i].cod, gravity_bt_devices[i].rssi,gravity_bt_devices[i].bdname_len, gravity_bt_devices[i].eir_len, gravity_bt_devices[i].bdName, strEir);
+    }
+
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        char *devId = NULL;
+        if (gravity_bt_devices[i].bdname_len > 0) {
+            /* We have a name, use it instead of BDA */
+            devId = malloc(sizeof(char) * (gravity_bt_devices[i].bdname_len + 1));
+            if (devId == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to allocate memory for BT dev name\n");
+                #else
+                    ESP_LOGE(BT_TAG, "Unable to allocate memory to hold BT device name");
+                #endif
+                return ESP_ERR_NO_MEM;
+            }
+            memcpy(devId, gravity_bt_devices[i].bdName, gravity_bt_devices[i].bdname_len);
+            devId[gravity_bt_devices[i].bdname_len] = '\0';
+        } else {
+            /* Use BDA instead of bdname */
+            devId = malloc(sizeof(char) * 18);
+            if (devId == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to allocate memory for BDA\n");
+                #else
+                    ESP_LOGE(BT_TAG, "Unable to allocate memory for BDA string");
+                #endif
+                return ESP_ERR_NO_MEM;
+            }
+            bda2str(gravity_bt_devices[i].bda, devId, 18);
+        }
+        printf("Requesting services for %s\n", devId);
         res |= gravity_bt_discover_services(&gravity_bt_devices[i]);
     }
     return res;

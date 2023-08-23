@@ -1,10 +1,10 @@
-| Supported Targets | ESP32 | ESP32-C6  | ESP32S2 | 
-| ----------------- | ----- | --------- | ------- |
-| Wireless (802.11) |  Yes  |    Yes    |   Yes   |
-| Bluetooth         |  Yes  |  Not Yet  |   No    |
-| BTLE              |  Yes  |  Maybe?   |   No    |
-| ZigBee/Thread     |  No   |    Yes    |   No    |
-|        (802.15.4) |       |           |         |
+| Supported Targets | ESP32 | ESP32-C6  | ESP32S2 | ESP32S3 |
+| ----------------- | ----- | --------- | ------- | ------- |
+| Wireless (802.11) |  Yes  |    Yes    |   Yes   |    No   |
+| Bluetooth         |  Yes  |  Not Yet  |   No    |    No   |
+| BTLE              |  Yes  |  Maybe?   |   No    |    No   |
+| ZigBee/Thread     |  No   |    Yes    |   No    |    No   |
+|        (802.15.4) |       |           |         |    No   |
 
 **Flipper WiFi Dev Board uses ESP32S2**
 
@@ -987,6 +987,7 @@ TODO
 
 ## Bugs / Todo
 
+* add_bt_device() - Add a scan method - BT_SCAN_DISCOVERY BT_SCAN_SNIFF BT_SCAN_ACTIVE
 * Better formatting of all UIs
 * Occasionally selecting a STA will give the STA a BIG_INT-like value
   * deselecting and reselecting fixes it.
