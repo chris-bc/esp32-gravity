@@ -12,6 +12,7 @@ const char *BT_TAG = "bt@GRAVITY";
 app_gap_cb_t *gravity_bt_devices = NULL;
 uint8_t gravity_bt_dev_count = 0;
 app_gap_state_t state;
+static bool btInitialised = false;
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -430,7 +431,10 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 esp_err_t gravity_bt_gap_start() {
     esp_err_t err = ESP_OK;
 
-    err = esp_bt_gap_register_callback(bt_gap_cb);
+    if (!btInitialised) {
+        err |= gravity_bt_initialise();
+    }
+    err |= esp_bt_gap_register_callback(bt_gap_cb);
     /* Set Device name */
     char *dev_name = "GRAVITY_INQUIRY";
     err |= esp_bt_dev_set_device_name(dev_name);
@@ -457,6 +461,7 @@ esp_err_t gravity_bt_initialise() {
     err |= esp_bluedroid_init();
     err |= esp_bluedroid_enable();
 
+    btInitialised = true;
     return err;
 }
 
@@ -603,6 +608,27 @@ esp_err_t gravity_bt_discover_all_services() {
 */
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     esp_err_t err = ESP_OK;
+    if (!btInitialised) {
+        gravity_bt_initialise();
+    }
+    
+    /* A little validation to be user-friendly */
+    bool deviceFound = false;
+    if (device != NULL) {
+        for (int i = 0; i < gravity_bt_dev_count && !deviceFound; ++i) {
+            deviceFound = !memcmp(gravity_bt_devices[i].bda, device->bda, ESP_BD_ADDR_LEN);
+        }
+    }
+    /* Display a warning if there are no BT devices, or there are but the specified device is non-NULL and not found */
+    if (gravity_bt_dev_count == 0 || (device != NULL && !deviceFound)) {
+        char dev_bda[18];
+        bda2str(device->bda, dev_bda, 18);
+        #ifdef CONFIG_FLIPPER
+            printf("Specified Device\n%25s\nNot in Gravity scan results. Services will not be stored.\n", dev_bda);
+        #else
+            ESP_LOGW(BT_TAG, "Specified Device %s not in Gravity scan results. Services will not be stored.", dev_bda);
+        #endif
+    }
     if (device == NULL) {
         return gravity_bt_discover_all_services();
     } else {

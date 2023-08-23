@@ -190,7 +190,6 @@ esp_err_t rmSsid(char *ssid) {
 esp_err_t cmd_bluetooth(int argc, char **argv) {
     esp_err_t err = ESP_OK;
     #if defined(CONFIG_IDF_TARGET_ESP32)
-        err = gravity_bt_initialise();
         err |= gravity_bt_gap_start();
     #else
         #ifdef CONFIG_FLIPPER
@@ -1153,10 +1152,11 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
 }
 
 esp_err_t cmd_scan(int argc, char **argv) {
-    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") && strlen(argv[1]) > 32) ||
+    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
-            (argc == 3 && (strcasecmp(argv[1], "BT") || (strcasecmp(argv[2], "DISCOVER") &&
-                strcasecmp(argv[2], "SNIFF") && strcasecmp(argv[2], "PROBE"))))) {
+            strcasecmp(argv[1], "BT") && strlen(argv[1]) > 32) || (argc == 3 &&
+                (strcasecmp(argv[1], "BT") || (strcasecmp(argv[2], "DISCOVER") &&
+                    strcasecmp(argv[2], "SNIFF") && strcasecmp(argv[2], "PROBE"))))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
         #else
@@ -1178,8 +1178,22 @@ esp_err_t cmd_scan(int argc, char **argv) {
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
         attack_status[ATTACK_SCAN] = false;
+        attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
-        // scan
+        if (argc == 2) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", SHORT_SCAN);
+            #else
+                ESP_LOGE(SCAN_TAG, "%s", USAGE_SCAN);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        } else if (!strcasecmp(argv[2], "DISCOVER")) { 
+            /* Initialise BT Classic mode and start discovery */
+        } else if (!strcasecmp(argv[2], "SNIFF")) {
+            /* Initialise BT monitor mode and identify devices */
+        } else if (!strcasecmp(argv[2], "PROBE")) {
+            /* Actively attempt to get a response from stubborn devices */
+        }
     } else {
         attack_status[ATTACK_SCAN] = true;
         /* Use argv[1] as an SSID filter */
