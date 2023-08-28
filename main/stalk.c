@@ -1,5 +1,6 @@
 #include "stalk.h"
 #include "beacon.h"
+#include "bluetooth.h"
 #include "common.h"
 #include "freertos/portmacro.h"
 #include "probe.h"
@@ -41,6 +42,15 @@ esp_err_t drawStalkFlipper() {
 
         printf("%3sAP%d%s| %3ddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_aps[i]->espRecord.rssi, elapsed);
     }
+
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        for (int i = 0; i < gravity_sel_bt_count; ++i) {
+            clock_t nowTime = clock();
+            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeenClk) / CLOCKS_PER_SEC;
+
+            printf("%3sBT%d%s| %3lddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_bt[i]->rssi, elapsed);
+        }
+    #endif
     return ESP_OK;
 }
 
@@ -82,6 +92,22 @@ esp_err_t drawStalk() {
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        GOTOXY(1, gravity_sel_sta_count + gravity_sel_ap_count + 8);
+        printf(" Device Name               |  dB  | Age");
+        GOTOXY(1, gravity_sel_ap_count + gravity_sel_sta_count + 9);
+        printf("---------------------------|------|------");
+        for (int i = 0; i < gravity_sel_bt_count; ++i) {
+            /* Stringify timestamp */
+            clock_t nowTime = clock();
+            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeenClk) / CLOCKS_PER_SEC;
+            char shortName[26];
+            memset(shortName, '\0', 26);
+            strncpy(shortName, gravity_selected_bt[i]->bdName, 25);
+            GOTOXY(1, gravity_sel_ap_count + gravity_sel_sta_count + 10 + i);
+            printf(" %-25s | %4ld | %2lds", shortName, gravity_selected_bt[i]->rssi, elapsed);
+        }
+    #endif
     GOTOXY(1,1);
     printf("Try to get dB up to zero:\n");
 

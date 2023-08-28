@@ -987,6 +987,7 @@ TODO
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Further testing of VIEW BT SORT *
+* Remove lastSeen from scan results and replace with lastSeenClk
 * Move common log outputs into a function to save all the #ifdef-ing
 * Add BT results to stalk
 * Add BT sniffing
@@ -1001,10 +1002,6 @@ TODO
 * BT discovery Progress indicator - seconds remaining?
 * add_bt_device() - Add a scan method device was discovered with - BT_SCAN_DISCOVERY BT_SCAN_SNIFF BT_SCAN_ACTIVE
 * Better formatting of remaining UIs
-* Occasionally selecting a STA will give the STA a BIG_INT-like value
-  * deselecting and reselecting fixes it.
-  * Problem *likely* just with display...
-  * Haven't seen this for a week now
 * Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
