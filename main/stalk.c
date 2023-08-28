@@ -184,6 +184,19 @@ esp_err_t stalk_begin() {
 
     xTaskCreate(&stalkLoop, "stalkLoop", 2048, NULL, 5, &stalkTask);
 
+    /* Ensure Bluetooth is scanning if we have Bluetooth and selected devices */
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        /* If selected BT devices */
+        if (gravity_selected_bt != NULL && gravity_sel_bt_count > 0) {
+            /* And not currently scanning BT */
+            if (!attack_status[ATTACK_SCAN_BT_CLASSIC]) {
+                /* Start scanning BT */
+                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+                gravity_bt_gap_start();
+            }
+        }
+    #endif
+
     return err;
 }
 

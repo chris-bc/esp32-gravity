@@ -441,12 +441,19 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             break;
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
             if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
-                #ifdef CONFIG_FLIPPER
-                    printf("Bluetooth discovery complete.\n");
-                #else
-                    ESP_LOGI(BT_TAG, "Bluetooth discovery complete.");
-                #endif
-                attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
+                /* If stalk is active, restart Discovery */
+                // TODO
+                if (attack_status[ATTACK_STALK] && gravity_sel_bt_count > 0) {
+                    state = APP_GAP_STATE_DEVICE_DISCOVERING;
+                    esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 0x10, 0);
+                    printf("Bluetooth discovery complete. Restarting.\n");
+                } else {
+                    #ifdef CONFIG_FLIPPER
+                        printf("Bluetooth discovery complete.\n");
+                    #else
+                        ESP_LOGI(BT_TAG, "Bluetooth discovery complete.");
+                    #endif
+                    attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
 //                 if ( (state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
 //                         state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
 //                     state = APP_GAP_STATE_SERVICE_DISCOVERING;
@@ -454,6 +461,7 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
 //                     //gravity_bt_discover_all_services();
 // //                    esp_bt_gap_get_remote_services(currentDevice->bda);
 //                 }
+                }
             } else if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STARTED) {
                 ESP_LOGI(BT_TAG, "Discovery started");
             }

@@ -976,7 +976,6 @@ TODO
 * Scan 802.15.1 (BLE/BT) devices and types
   * Currently runs discovery-based scanning, building device list
   * Refactor code to retrieve service information from discovered devices
-  * Bluetooth stalk
   * Sniff-based scanning
   * BLE
 * Incorporate BLE/BT devices into homing attack
@@ -989,7 +988,7 @@ TODO
 * Further testing of VIEW BT SORT *
 * Remove lastSeen from scan results and replace with lastSeenClk
 * Move common log outputs into a function to save all the #ifdef-ing
-* Add BT results to stalk
+* stalk off now appears to freeze ESP32
 * Add BT sniffing
 * Add BT service information
 * Add active scanning - connections
