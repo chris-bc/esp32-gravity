@@ -27,6 +27,7 @@
 #include "dos.h"
 #include "esp_err.h"
 #include "esp_wifi_types.h"
+#include "freertos/portmacro.h"
 #include "fuzz.h"
 #include "hop.h"
 #include "mana.h"
@@ -1058,6 +1059,8 @@ esp_err_t cmd_stalk(int argc, char **argv) {
     if (attack_status[ATTACK_STALK]) {
         stalk_begin();
     } else {
+        /* Pause for 500 ms */
+        vTaskDelay(500/ portTICK_PERIOD_MS);
         stalk_end();
     }
 

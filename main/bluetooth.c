@@ -424,9 +424,8 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
             memcpy(gravity_bt_devices[deviceIdx].eir, theEir, theEirLen);
             gravity_bt_devices[deviceIdx].eir_len = theEirLen;
         }
-        /* Update lastSeen and lastSeenClk */
-        gravity_bt_devices[deviceIdx].lastSeen = time(NULL);
-        gravity_bt_devices[deviceIdx].lastSeenClk = clock();
+        /* Update lastSeen and lastSeen */
+        gravity_bt_devices[deviceIdx].lastSeen = clock();
     } else {
         /* Device doesn't exist, add it instead */
         return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, BT_SCAN_TYPE_DISCOVERY);
@@ -591,8 +590,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count].rssi = rssi;
     newDevices[gravity_bt_dev_count].cod = cod;
     newDevices[gravity_bt_dev_count].scanType = devScanType;
-    newDevices[gravity_bt_dev_count].lastSeen = time(NULL);
-    newDevices[gravity_bt_dev_count].lastSeenClk = clock();
+    newDevices[gravity_bt_dev_count].lastSeen = clock();
     newDevices[gravity_bt_dev_count].selected = false;
     newDevices[gravity_bt_dev_count].index = gravity_bt_dev_count;
     memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
@@ -784,7 +782,7 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
 
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - devices[deviceIdx]->lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - devices[deviceIdx]->lastSeen) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {

@@ -42,8 +42,7 @@ typedef struct {
     char bdName[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
     esp_bd_addr_t bda;
     gravity_bt_scan_t scanType;
-    time_t lastSeen;
-    clock_t lastSeenClk;
+    clock_t lastSeen;
     bool selected;
     uint8_t index;
 } app_gap_cb_t;

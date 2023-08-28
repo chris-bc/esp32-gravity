@@ -30,7 +30,7 @@ esp_err_t drawStalkFlipper() {
     printf("\n\n\n\n\n\n\n");
     for (int i = 0; i < gravity_sel_sta_count; ++i) {
         clock_t nowTime = clock();
-        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeen) / CLOCKS_PER_SEC;
 
         printf("STA%d%s| %3ddB  |%3lds\n", i, (i == 1)?"  ":" ", gravity_selected_stas[i]->rssi, elapsed);
     }
@@ -38,7 +38,7 @@ esp_err_t drawStalkFlipper() {
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
         /* Stringify timestamp */
         clock_t nowTime = clock();
-        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeen) / CLOCKS_PER_SEC;
 
         printf("%3sAP%d%s| %3ddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_aps[i]->espRecord.rssi, elapsed);
     }
@@ -46,7 +46,7 @@ esp_err_t drawStalkFlipper() {
     #if defined(CONFIG_IDF_TARGET_ESP32)
         for (int i = 0; i < gravity_sel_bt_count; ++i) {
             clock_t nowTime = clock();
-            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeenClk) / CLOCKS_PER_SEC;
+            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeen) / CLOCKS_PER_SEC;
 
             printf("%3sBT%d%s| %3lddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_bt[i]->rssi, elapsed);
         }
@@ -72,7 +72,7 @@ esp_err_t drawStalk() {
         GOTOXY(27, i + 4);
         /* Stringify timestamp */
         clock_t nowTime = clock();
-        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        unsigned long elapsed = (nowTime - gravity_selected_stas[i]->lastSeen) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
     GOTOXY(1, gravity_sel_sta_count + 5);
@@ -89,7 +89,7 @@ esp_err_t drawStalk() {
         GOTOXY(27, gravity_sel_sta_count + i + 7);
         /* Stringify timestamp */
         clock_t nowTime = clock();
-        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeen) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
     #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -100,7 +100,7 @@ esp_err_t drawStalk() {
         for (int i = 0; i < gravity_sel_bt_count; ++i) {
             /* Stringify timestamp */
             clock_t nowTime = clock();
-            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeenClk) / CLOCKS_PER_SEC;
+            unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeen) / CLOCKS_PER_SEC;
             char shortName[26];
             memset(shortName, '\0', 26);
             strncpy(shortName, gravity_selected_bt[i]->bdName, 25);
@@ -123,11 +123,13 @@ void stalkLoop(void *pvParameter) {
         /* Delay specified milliseconds, allowing the watchdog to do some things */
         vTaskDelay(hop_millis_defaults[ATTACK_STALK] / portTICK_PERIOD_MS);
         /* Update the UI */
-        #ifdef CONFIG_FLIPPER
-            drawStalkFlipper();
-        #else
-            drawStalk();
-        #endif
+        if (attack_status[ATTACK_STALK]) {
+            #ifdef CONFIG_FLIPPER
+                drawStalkFlipper();
+            #else
+                drawStalk();
+            #endif
+        }
     }
 }
 
@@ -144,7 +146,7 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
     for ( ; index < gravity_sel_ap_count && memcmp(srcAddr, gravity_selected_aps[index]->espRecord.bssid, 6); ++index) { }
     if (index < gravity_sel_ap_count) { /* Found an AP matching current frame - update age & RSSI */
         gravity_selected_aps[index]->lastSeen = time(NULL);
-        gravity_selected_aps[index]->lastSeenClk = clock();
+        gravity_selected_aps[index]->lastSeen = clock();
         gravity_selected_aps[index]->espRecord.rssi = rx_ctrl.rssi;
         /* In case the channel has changed */
         gravity_selected_aps[index]->espRecord.primary = rx_ctrl.channel;
@@ -154,7 +156,7 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
         for (index = 0; index < gravity_sel_sta_count && memcmp(srcAddr, gravity_selected_stas[index]->mac, 6); ++index) { }
         if (index < gravity_sel_sta_count) { /* Found a STA matching current frame - update age & RSSI */
             gravity_selected_stas[index]->lastSeen = time(NULL);
-            gravity_selected_stas[index]->lastSeenClk = clock();
+            gravity_selected_stas[index]->lastSeen = clock();
             gravity_selected_stas[index]->rssi = rx_ctrl.rssi;
             /* In case channel has changed */
             gravity_selected_stas[index]->channel = rx_ctrl.channel;
@@ -205,7 +207,9 @@ esp_err_t stalk_end() {
     esp_err_t err = ESP_OK;
 
     if (stalkTask != NULL) {
+        printf("about to kill stalk task\n");
         vTaskDelete(stalkTask);
+        printf("killed stalk task\n");
         stalkTask = NULL;
     }
 
