@@ -1661,7 +1661,7 @@ esp_err_t cmd_view(int argc, char **argv) {
                 currentSortTypes[currentSortCount++] = GRAVITY_SORT_AGE;
             } else if (!strcasecmp(argv[i + 1], "RSSI")) {
                 currentSortTypes[currentSortCount++] = GRAVITY_SORT_RSSI;
-            } else if (!strcasecmp(argv[i + 1], "SSID")) {
+            } else if (!strcasecmp(argv[i + 1], "SSID") || !strcasecmp(argv[i + 1], "NAME")) {
                 currentSortTypes[currentSortCount++] = GRAVITY_SORT_SSID;
             } else {
                 #ifdef CONFIG_FLIPPER
@@ -1932,7 +1932,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     for (int i=1; i < argc; ++i) {
-        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL")) {
+        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL")) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_CLEAR);
             #else
@@ -1946,6 +1946,9 @@ esp_err_t cmd_clear(int argc, char **argv) {
         }
         if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
             err |= gravity_clear_sta();
+        }
+        if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
+            err |= gravity_clear_bt();
         }
     }
     return ESP_OK;

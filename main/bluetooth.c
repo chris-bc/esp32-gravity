@@ -724,22 +724,25 @@ esp_err_t bt_scan_display_status() {
 
 esp_err_t bt_list_all_devices(bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
-    app_gap_cb_t **retVal = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count));
-    if (retVal == NULL) {
-        #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory for device pointers.\n");
-        #else
-            ESP_LOGE(BT_TAG, "Unable to allocate memory to hold pointers to Bluetooth devices");
-        #endif
-        return ESP_ERR_NO_MEM;
-    }
 
-    for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        retVal[i] = &(gravity_bt_devices[i]);
-    }
+    if (gravity_bt_dev_count > 0) {
+        app_gap_cb_t **retVal = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count));
+        if (retVal == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("Unable to allocate memory for device pointers.\n");
+            #else
+                ESP_LOGE(BT_TAG, "Unable to allocate memory to hold pointers to Bluetooth devices");
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
 
-    err |= bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
-    free(retVal);
+        for (int i = 0; i < gravity_bt_dev_count; ++i) {
+            retVal[i] = &(gravity_bt_devices[i]);
+        }
+
+        err |= bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
+        free(retVal);
+    }
     return err;
 }
 
@@ -999,6 +1002,25 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
         }
     }
     return 0; // TODO: Confirm no gaps?
+}
+
+esp_err_t gravity_clear_bt() {
+    esp_err_t err = ESP_OK;
+
+    if (gravity_bt_devices != NULL) {
+        free(gravity_bt_devices);
+        gravity_bt_devices = NULL;
+    }
+    gravity_bt_dev_count = 0;
+
+    // TODO:
+    // if (gravity_bt_selected != NULL) {
+    // free(gravity_bt_selected);
+    // gravity_bt_selected = NULL;
+    // gravity_bt_selected_count = 0;
+    // }
+
+    return err;
 }
 
 #endif
