@@ -143,6 +143,9 @@ extern int *hop_millis_defaults;
 extern long ATTACK_MILLIS;
 extern char **gravityWordList;
 
+extern GRAVITY_SORT_TYPE sortResults[];
+extern int sortCount;
+
 uint8_t *gravity_get_mac();
 esp_err_t gravity_set_mac(uint8_t *newMac);
 

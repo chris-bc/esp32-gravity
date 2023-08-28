@@ -988,9 +988,10 @@ TODO
 
 ## Bugs / Todo
 
-* Add BT results to view
-  * Largely done, just need to implement sort
-  * Probably requires adding an index to the data model after all
+* Add SCAN BT SERVICES [selectedBT]
+* Add VIEW BT SERVICES [selectedBT]
+* Add CLEAR BT
+* Further testing of VIEW BT SORT *
 * Add BT results to select
 * Add BT results to selected
 * Add BT results to stalk

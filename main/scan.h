@@ -17,9 +17,6 @@
 extern char scan_filter_ssid[33];
 extern uint8_t scan_filter_ssid_bssid[6];
 
-extern GRAVITY_SORT_TYPE sortResults[];
-extern int sortCount;
-
 static const char* SCAN_TAG = "scan@GRAVITY";
 
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);

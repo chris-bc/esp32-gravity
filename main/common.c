@@ -6,6 +6,9 @@ const uint8_t BROADCAST[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 const char *AUTH_TYPE_NAMES[] = {"none", "AUTH_TYPE_OPEN", "AUTH_TYPE_WEP", "none", "AUTH_TYPE_WPA"};
 const char *AUTH_TYPE_FLIPPER_NAMES[] = { "N/A", "Open", "WEP", "N/A", "WPA" };
 
+GRAVITY_SORT_TYPE sortResults[] = {GRAVITY_SORT_NONE, GRAVITY_SORT_NONE, GRAVITY_SORT_NONE};
+int sortCount = 1;
+
 int max(int one, int two) {
     if (one >= two) {
         return one;

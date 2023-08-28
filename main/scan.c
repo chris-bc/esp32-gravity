@@ -15,9 +15,6 @@ ScanResultAP **gravity_selected_aps = NULL;
 ScanResultSTA **gravity_selected_stas = NULL;
 double scanResultExpiry = 0; /* Do not expire packets by default */
 
-GRAVITY_SORT_TYPE sortResults[] = {GRAVITY_SORT_NONE, GRAVITY_SORT_NONE, GRAVITY_SORT_NONE};
-int sortCount = 1;
-
 enum GravityScanType {
     GRAVITY_SCAN_AP,
     GRAVITY_SCAN_STA,

@@ -24,6 +24,8 @@ enum bt_device_parameters {
     BT_PARAM_COUNT
 };
 
+static int bt_comparator(const void *varOne, const void *varTwo);
+
 /* ESP32-Gravity :  Bluetooth
    Initially-prototyped functionality uses traditional Bluetooth discovery
    This *works*, but obtains VERY limited results.
@@ -582,6 +584,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count].lastSeen = time(NULL);
     newDevices[gravity_bt_dev_count].lastSeenClk = clock();
     newDevices[gravity_bt_dev_count].selected = false;
+    newDevices[gravity_bt_dev_count].index = gravity_bt_dev_count;
     memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
     memset(newDevices[gravity_bt_dev_count].bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     strncpy(newDevices[gravity_bt_dev_count].bdName, (char *)bdName, bdNameLen);
@@ -721,10 +724,26 @@ esp_err_t bt_scan_display_status() {
 
 esp_err_t bt_list_all_devices(bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
-    return bt_list_devices(gravity_bt_devices, gravity_bt_dev_count, hideExpiredPackets);
+    app_gap_cb_t **retVal = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count));
+    if (retVal == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory for device pointers.\n");
+        #else
+            ESP_LOGE(BT_TAG, "Unable to allocate memory to hold pointers to Bluetooth devices");
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
+
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        retVal[i] = &(gravity_bt_devices[i]);
+    }
+
+    err |= bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
+    free(retVal);
+    return err;
 }
 
-esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideExpiredPackets) {
+esp_err_t bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
 
     char strBssid[18];
@@ -743,15 +762,16 @@ esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideE
         printf("----|------|------------------------|-------------------|----------|---------------------------\n");
     #endif
 
-    // TODO: Apply sort
+    /* Apply the sort to selectedAPs */
+    qsort(devices, deviceCount, sizeof(app_gap_cb_t *), &bt_comparator);
 
     // TODO: Display devices
     for (int deviceIdx = 0; deviceIdx < deviceCount; ++deviceIdx) {
-        err |= mac_bytes_to_string(devices[deviceIdx].bda, strBssid);
+        err |= mac_bytes_to_string(devices[deviceIdx]->bda, strBssid);
 
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - devices[deviceIdx].lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - devices[deviceIdx]->lastSeenClk) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {
@@ -768,7 +788,7 @@ esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideE
 
         // Shorten device name as necessary to display
         memset(strName, '\0', 25);
-        strncpy(strName, devices[deviceIdx].bdName, 25);
+        strncpy(strName, devices[deviceIdx]->bdName, 25);
         #ifdef CONFIG_FLIPPER
             strName[16] = '\0';
         #endif
@@ -776,17 +796,209 @@ esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideE
         /* COD has 7chars in Flipper, 10 in Console */
         char shortCod[11];
         uint8_t shortCodLen = 0;
-        err |= cod2shortStr(devices[deviceIdx].cod, shortCod, &shortCodLen);
+        err |= cod2shortStr(devices[deviceIdx]->cod, shortCod, &shortCodLen);
 
         /* Finally, display */
         #ifdef CONFIG_FLIPPER
-            printf("%s%2d | %4ld |%-16s|%-7s| %s\n", (devices[deviceIdx].selected?"*":" "), deviceIdx, devices[deviceIdx].rssi, strName, shortCod, strTime);
+            printf("%s%2d | %4ld |%-16s|%-7s| %s\n", (devices[deviceIdx]->selected?"*":" "), devices[deviceIdx]->index, devices[deviceIdx]->rssi, strName, shortCod, strTime);
         #else
-            printf("%s%2d | %4ld | %-22s | %-17s |%-10s| %s\n", (devices[deviceIdx].selected?"*":" "), deviceIdx, devices[deviceIdx].rssi, strName, strBssid, shortCod, strTime);
+            printf("%s%2d | %4ld | %-22s | %-17s |%-10s| %s\n", (devices[deviceIdx]->selected?"*":" "), devices[deviceIdx]->index, devices[deviceIdx]->rssi, strName, strBssid, shortCod, strTime);
         #endif
 
     }
 
     return err;
 }
+
+/* Comparison function for sorting of ScanResultAPs */
+/* Provides a sort function that uses sortResults
+*/
+static int bt_comparator(const void *varOne, const void *varTwo) {
+    /* Return 0 if they're identical */
+    if (sortCount == 0) {
+        return 0;
+    }
+    app_gap_cb_t *one = (app_gap_cb_t *)varOne;
+    app_gap_cb_t *two = (app_gap_cb_t *)varTwo;
+    if (sortCount == 1) {
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen == two->lastSeen) {
+                return 0;
+            } else if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->rssi == two->rssi) {
+                return 0;
+            } else if (one->rssi < two->rssi) {
+                return -1;
+            } else {
+                return 1;
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            return strcmp((char *)one->bdName, (char *)two->bdName);
+        }
+    } else if (sortCount == 2) {
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else if (one->lastSeen > two->lastSeen) {
+                return 1;
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                    if (one->rssi == two->rssi) {
+                        return 0;
+                    } else if (one->rssi < two->rssi) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->rssi < two->rssi) {
+                return -1;
+            } else if (one->rssi > two->rssi) {
+                return 1;
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_AGE) {
+                    if (one->lastSeen == two->lastSeen) {
+                        return 0;
+                    } else if (one->lastSeen < two->lastSeen) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                return strcmp((char *)one->bdName, (char *)two->bdName);
+            } else {
+                /* Return based on sortResults[1] */
+                if (sortResults[1] == GRAVITY_SORT_AGE) {
+                    if (one->lastSeen == two->lastSeen) {
+                        return 0;
+                    } else if (one->lastSeen < two->lastSeen) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                    if (one->rssi == two->rssi) {
+                        return 0;
+                    } else if (one->rssi < two->rssi) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                }
+            }
+        }
+    } else { /* sortCount == 3 */
+        if (sortResults[0] == GRAVITY_SORT_AGE) {
+            if (one->lastSeen < two->lastSeen) {
+                return -1;
+            } else if (one->lastSeen > two->lastSeen) {
+                return 1;
+            }
+            if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                if (one->rssi < two->rssi) {
+                    return -1;
+                } else if (one->rssi > two->rssi) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_RSSI) {
+                if (one->rssi == two->rssi) {
+                    return 0;
+                } else if (one->rssi < two->rssi) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_SSID) {
+                return strcmp((char *)one->bdName, (char *)two->bdName);
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
+            if (one->rssi < two->rssi) {
+                return -1;
+            } else if (one->rssi > two->rssi) {
+                return 1;
+            }
+            if (sortResults[1] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else if (one->lastSeen > two->lastSeen) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_SSID) {
+                if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen == two->lastSeen) {
+                    return 0;
+                } else if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_SSID) {
+                return strcmp((char *)one->bdName, (char *)two->bdName);
+            }
+        } else if (sortResults[0] == GRAVITY_SORT_SSID) {
+            if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                return strcmp((char *)one->bdName, (char *)two->bdName);
+            } else if (sortResults[1] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else if (one->lastSeen > two->lastSeen) {
+                    return 1;
+                }
+            } else if (sortResults[1] == GRAVITY_SORT_RSSI) {
+                if (one->rssi < two->rssi) {
+                    return -1;
+                } else if (one->rssi > two->rssi) {
+                    return 1;
+                }
+            }
+            /* Third layer of comparison */
+            if (sortResults[2] == GRAVITY_SORT_AGE) {
+                if (one->lastSeen == two->lastSeen) {
+                    return 0;
+                } else if (one->lastSeen < two->lastSeen) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            } else if (sortResults[2] == GRAVITY_SORT_RSSI) {
+                if (one->rssi == two->rssi) {
+                    return 0;
+                } else if (one->rssi < two->rssi) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0; // TODO: Confirm no gaps?
+}
+
 #endif
