@@ -327,7 +327,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         #else
             ESP_LOGI(BT_TAG, "%s", devString);
         #endif
-        bt_dev_add_components(dev_bda, dev_bdname, dev_bdname_len, dev_eir, dev_eir_len, dev_cod, dev_rssi);
+        bt_dev_add_components(dev_bda, dev_bdname, dev_bdname_len, dev_eir, dev_eir_len, dev_cod, dev_rssi, BT_SCAN_TYPE_DISCOVERY);
     }
 
     state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
@@ -365,7 +365,7 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
         }
     } else {
         /* Device doesn't exist, add it instead */
-        return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi);
+        return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, BT_SCAN_TYPE_DISCOVERY);
     }
     return err;
 }
@@ -477,7 +477,7 @@ esp_err_t gravity_bt_initialise() {
    excluding the trailing '\0'.
 */
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir,
-                        uint8_t eirLen, uint32_t cod, int32_t rssi) {
+                        uint8_t eirLen, uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType) {
     esp_err_t err = ESP_OK, err2 = ESP_OK;
 
     /* Make sure the specified BDA doesn't already exist */
@@ -514,6 +514,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count].eir_len = eirLen;
     newDevices[gravity_bt_dev_count].rssi = rssi;
     newDevices[gravity_bt_dev_count].cod = cod;
+    newDevices[gravity_bt_dev_count].scanType = devScanType;
     memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
     memset(newDevices[gravity_bt_dev_count].bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     strncpy(newDevices[gravity_bt_dev_count].bdName, (char *)bdName, bdNameLen);
@@ -541,7 +542,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev) {
     return bt_dev_add_components(dev->bda, dev->bdName, dev->bdname_len,
-            dev->eir, dev->eir_len, dev->cod, dev->rssi);
+            dev->eir, dev->eir_len, dev->cod, dev->rssi, dev->scanType);
 }
 
 /* Is the specified bluetooth device address in the specified array, which has the specified length? */
@@ -638,5 +639,17 @@ esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     }
 }
 
+/* Display status of bluetooth scanning */
+esp_err_t bt_scan_display_status() {
+    esp_err_t err = ESP_OK;
+
+    #ifdef CONFIG_FLIPPER
+        printf("Bluetooth Scanning %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
+    #else
+        ESP_LOGI(BT_TAG, "Bluetooth Scanning %s\t\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
+    #endif
+
+    return err;
+}
 
 #endif

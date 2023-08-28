@@ -987,7 +987,6 @@ TODO
 
 ## Bugs / Todo
 
-* Add BT-Discovery to scan status
 * Add BT results to view
 * Add BT results to select
 * Add BT results to selected

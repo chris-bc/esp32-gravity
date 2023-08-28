@@ -1166,7 +1166,12 @@ esp_err_t cmd_scan(int argc, char **argv) {
     }
 
     if (argc == 1) {
-        return scan_display_status();
+        if (attack_status[ATTACK_SCAN]) {
+            return scan_display_status();
+        }
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            return bt_scan_display_status();
+        #endif
     }
     esp_err_t err = ESP_OK;
 
@@ -1181,20 +1186,34 @@ esp_err_t cmd_scan(int argc, char **argv) {
         attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
         if (argc == 2) {
-            #ifdef CONFIG_FLIPPER
-                printf("%s\n", SHORT_SCAN);
+            #if defined(CONFIG_IDF_TARGET_ESP32)
+                return bt_scan_display_status();
             #else
-                ESP_LOGE(SCAN_TAG, "%s", USAGE_SCAN);
+                #ifdef CONFIG_FLIPPER
+                    printf("Bluetooth not available on this device.\n%s\n", SHORT_SCAN);
+                #else
+                    ESP_LOGE(SCAN_TAG, "Bluetooth not available on this device.\n%s", USAGE_SCAN);
+                #endif
             #endif
-            return ESP_ERR_INVALID_ARG;
+            return ESP_ERR_NOT_SUPPORTED;
         } else if (!strcasecmp(argv[2], "DISCOVER")) { 
             /* Initialise BT Classic mode and start discovery */
             err |= gravity_bt_gap_start();
             attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
         } else if (!strcasecmp(argv[2], "SNIFF")) {
             /* Initialise BT monitor mode and identify devices */
+            #ifdef CONFIG_FLIPPER
+                printf("BT Sniff not yet implemented\n");
+            #else
+                ESP_LOGW(SCAN_TAG, "BT Sniff not yet implemented");
+            #endif
         } else if (!strcasecmp(argv[2], "PROBE")) {
             /* Actively attempt to get a response from stubborn devices */
+            #ifdef CONFIG_FLIPPER
+                printf("BT Probe not yet implemented\n");
+            #else
+                ESP_LOGW(SCAN_TAG, "BT Probe not yet implemented");
+            #endif
         }
     } else {
         attack_status[ATTACK_SCAN] = true;

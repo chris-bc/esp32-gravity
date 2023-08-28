@@ -41,6 +41,7 @@ typedef struct {
     uint8_t eir[ESP_BT_GAP_EIR_DATA_LEN];
     char bdName[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
     esp_bd_addr_t bda;
+    gravity_bt_scan_t scanType;
 } app_gap_cb_t;
 extern app_gap_cb_t *gravity_bt_devices;
 extern uint8_t gravity_bt_dev_count;
@@ -50,10 +51,11 @@ extern const char *BT_TAG;
 esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device);
+esp_err_t bt_scan_display_status();
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev);
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,
-                        uint32_t cod, int32_t rssi);
+                        uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType);
 esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source);
 
 bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t *array, uint8_t arrayLen);
