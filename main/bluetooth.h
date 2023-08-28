@@ -42,6 +42,9 @@ typedef struct {
     char bdName[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
     esp_bd_addr_t bda;
     gravity_bt_scan_t scanType;
+    time_t lastSeen;
+    clock_t lastSeenClk;
+    bool selected;
 } app_gap_cb_t;
 extern app_gap_cb_t *gravity_bt_devices;
 extern uint8_t gravity_bt_dev_count;
@@ -52,6 +55,8 @@ esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device);
 esp_err_t bt_scan_display_status();
+esp_err_t bt_list_all_devices(bool hideExpiredPackets);
+esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideExpiredPackets);
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev);
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,

@@ -977,6 +977,7 @@ TODO
   * Currently runs discovery-based scanning, building device list
   * Refactor code to retrieve service information from discovered devices
   * Command view bt
+    * Sort outstanding
   * Command select bt
   * Refactor selected
   * Bluetooth stalk
@@ -988,10 +989,13 @@ TODO
 ## Bugs / Todo
 
 * Add BT results to view
+  * Largely done, just need to implement sort
+  * Probably requires adding an index to the data model after all
 * Add BT results to select
 * Add BT results to selected
 * Add BT results to stalk
 * Add BT sniffing
+* Add BT service information
 * Add active scanning - connections
 * Additional command to inspect a device and its services
   * Move services callback handler into its own function

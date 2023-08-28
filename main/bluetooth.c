@@ -2,6 +2,7 @@
 #include "common.h"
 #include "esp_err.h"
 #include "probe.h"
+#include <time.h>
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
@@ -107,6 +108,62 @@ esp_err_t cod2deviceStr(uint32_t cod, char *string, uint8_t *stringLen) {
             break;
         default:
             strcpy(temp, "ERROR: Invalid Major Device Type");
+            break;
+    }
+    strcpy(string, temp);
+    *stringLen = strlen(string);
+
+    return err;
+}
+
+/* As above, but returning a shortened string suitable for display by VIEW */
+esp_err_t cod2shortStr(uint32_t cod, char *string, uint8_t *stringLen) {
+    esp_err_t err = ESP_OK;
+    char temp[11] = "";
+    esp_bt_cod_major_dev_t devType = esp_bt_gap_get_cod_major_dev(cod);
+    switch (devType) {
+        case ESP_BT_COD_MAJOR_DEV_MISC:
+            strcpy(temp, "Misc.");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_COMPUTER:
+            strcpy(temp, "PC");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_PHONE:
+            strcpy(temp, "Phone");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_LAN_NAP:
+            strcpy(temp, "LAN");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_AV:
+            strcpy(temp, "A/V");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_PERIPHERAL:
+            #ifdef CONFIG_FLIPPER
+                strcpy(temp, "Periph.");
+            #else
+                strcpy(temp, "Peripheral");
+            #endif
+            break;
+        case ESP_BT_COD_MAJOR_DEV_IMAGING:
+            strcpy(temp, "Imaging");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_WEARABLE:
+            strcpy(temp, "Wearable");
+            #ifdef CONFIG_FLIPPER
+                temp[7] = '\0'; /* Truncate the last character if necessary */
+            #endif
+            break;
+        case ESP_BT_COD_MAJOR_DEV_TOY:
+            strcpy(temp, "Toy");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_HEALTH:
+            strcpy(temp, "Health");
+            break;
+        case ESP_BT_COD_MAJOR_DEV_UNCATEGORIZED:
+            strcpy(temp, "Uncat.");
+            break;
+        default:
+            strcpy(temp, "Invalid");
             break;
     }
     strcpy(string, temp);
@@ -363,6 +420,9 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
             memcpy(gravity_bt_devices[deviceIdx].eir, theEir, theEirLen);
             gravity_bt_devices[deviceIdx].eir_len = theEirLen;
         }
+        /* Update lastSeen and lastSeenClk */
+        gravity_bt_devices[deviceIdx].lastSeen = time(NULL);
+        gravity_bt_devices[deviceIdx].lastSeenClk = clock();
     } else {
         /* Device doesn't exist, add it instead */
         return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, BT_SCAN_TYPE_DISCOVERY);
@@ -377,7 +437,11 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             break;
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
             if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
-                ESP_LOGI(BT_TAG, "Device discovery stopped.");
+                #ifdef CONFIG_FLIPPER
+                    printf("Bluetooth discovery complete.\n");
+                #else
+                    ESP_LOGI(BT_TAG, "Bluetooth discovery complete.");
+                #endif
                 attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
 //                 if ( (state == APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE ||
 //                         state == APP_GAP_STATE_DEVICE_DISCOVERING) && gravity_bt_dev_count > 0) {
@@ -515,6 +579,9 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count].rssi = rssi;
     newDevices[gravity_bt_dev_count].cod = cod;
     newDevices[gravity_bt_dev_count].scanType = devScanType;
+    newDevices[gravity_bt_dev_count].lastSeen = time(NULL);
+    newDevices[gravity_bt_dev_count].lastSeenClk = clock();
+    newDevices[gravity_bt_dev_count].selected = false;
     memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
     memset(newDevices[gravity_bt_dev_count].bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
     strncpy(newDevices[gravity_bt_dev_count].bdName, (char *)bdName, bdNameLen);
@@ -652,4 +719,74 @@ esp_err_t bt_scan_display_status() {
     return err;
 }
 
+esp_err_t bt_list_all_devices(bool hideExpiredPackets) {
+    esp_err_t err = ESP_OK;
+    return bt_list_devices(gravity_bt_devices, gravity_bt_dev_count, hideExpiredPackets);
+}
+
+esp_err_t bt_list_devices(app_gap_cb_t *devices, uint8_t deviceCount, bool hideExpiredPackets) {
+    esp_err_t err = ESP_OK;
+
+    char strBssid[18];
+    char strTime[26];
+    char strName[25]; /* Hold a substring of device name */
+    unsigned long nowTime;
+    unsigned long elapsed;
+    double minutes;
+
+    // Print header
+    #ifdef CONFIG_FLIPPER
+        printf(" ID | RSSI |      Name      | Class | LastSeen\n");
+        printf("----|------|----------------|-------|----------\n");
+    #else
+        printf(" ID | RSSI | Name                   | BSSID             | Class    | LastSeen\n");
+        printf("----|------|------------------------|-------------------|----------|---------------------------\n");
+    #endif
+
+    // TODO: Apply sort
+
+    // TODO: Display devices
+    for (int deviceIdx = 0; deviceIdx < deviceCount; ++deviceIdx) {
+        err |= mac_bytes_to_string(devices[deviceIdx].bda, strBssid);
+
+        /* Stringify timestamp */
+        nowTime = clock();
+        elapsed = (nowTime - devices[deviceIdx].lastSeenClk) / CLOCKS_PER_SEC;
+        if (elapsed < 60.0) {
+            strcpy(strTime, "Under a minute ago");
+        } else if (elapsed < 3600.0) {
+            sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
+        } else {
+            sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
+        }
+
+        /* Skip the rest of this loop iteration if the packet has expired */
+        minutes = (elapsed / 60.0);
+        if (hideExpiredPackets && scanResultExpiry != 0 && minutes >= scanResultExpiry) {
+            continue;
+        }
+
+        // Shorten device name as necessary to display
+        memset(strName, '\0', 25);
+        strncpy(strName, devices[deviceIdx].bdName, 25);
+        #ifdef CONFIG_FLIPPER
+            strName[16] = '\0';
+        #endif
+
+        /* COD has 7chars in Flipper, 10 in Console */
+        char shortCod[11];
+        uint8_t shortCodLen = 0;
+        err |= cod2shortStr(devices[deviceIdx].cod, shortCod, &shortCodLen);
+
+        /* Finally, display */
+        #ifdef CONFIG_FLIPPER
+            printf("%s%2d | %4ld |%-16s|%-7s| %s\n", (devices[deviceIdx].selected?"*":" "), deviceIdx, devices[deviceIdx].rssi, strName, shortCod, strTime);
+        #else
+            printf("%s%2d | %4ld | %-22s | %-17s |%-10s| %s\n", (devices[deviceIdx].selected?"*":" "), deviceIdx, devices[deviceIdx].rssi, strName, strBssid, shortCod, strTime);
+        #endif
+
+    }
+
+    return err;
+}
 #endif

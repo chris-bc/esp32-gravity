@@ -1198,8 +1198,16 @@ esp_err_t cmd_scan(int argc, char **argv) {
             return ESP_ERR_NOT_SUPPORTED;
         } else if (!strcasecmp(argv[2], "DISCOVER")) { 
             /* Initialise BT Classic mode and start discovery */
-            err |= gravity_bt_gap_start();
-            attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+            #if defined(CONFIG_IDF_TARGET_ESP32)
+                err |= gravity_bt_gap_start();
+                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+            #else
+                #ifdef CONFIG_FLIPPER
+                    printf("No Bluetooth on this device.\n");
+                #else
+                    ESP_LOGW(TAG, "This device does not have Bluetooth functionality.");
+                #endif
+            #endif
         } else if (!strcasecmp(argv[2], "SNIFF")) {
             /* Initialise BT monitor mode and identify devices */
             #ifdef CONFIG_FLIPPER
@@ -1629,7 +1637,7 @@ esp_err_t cmd_get(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | SORT ( AGE | RSSI | SSID ) )+
+/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | BT | SORT ( AGE | RSSI | SSID ) )+
 */
 esp_err_t cmd_view(int argc, char **argv) {
     if (argc < 2 || argc > 11) {
@@ -1748,6 +1756,16 @@ esp_err_t cmd_view(int argc, char **argv) {
             } else {
                 success = (success && (gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK));
             }
+        } else if (!strcasecmp(argv[i], "BT")) {
+            #if defined(CONFIG_IDF_TARGET_ESP32)
+                success = (success && bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
+            #else
+                #ifdef CONFIG_FLIPPER
+                    printf("Device does not support Bluetooth.\n");
+                #else
+                    ESP_LOGW(TAG, "This device does not support Bluetooth.");
+                #endif
+            #endif
         } else if (!strcasecmp(argv[i], "SORT")) {
             ++i; /* Skip "SORT" and specifier */
         } else {
