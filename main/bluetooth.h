@@ -10,6 +10,10 @@
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
+#include <esp_gap_ble_api.h>
+#include <esp_gattc_api.h>
+#include <esp_gatt_defs.h>
+#include <esp_gatt_common_api.h>
 #include <esp_gap_bt_api.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
@@ -52,6 +56,8 @@ extern app_gap_cb_t **gravity_selected_bt;
 extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
+
+esp_err_t gravity_ble_test();
 
 esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();

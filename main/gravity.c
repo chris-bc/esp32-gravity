@@ -191,7 +191,7 @@ esp_err_t rmSsid(char *ssid) {
 esp_err_t cmd_bluetooth(int argc, char **argv) {
     esp_err_t err = ESP_OK;
     #if defined(CONFIG_IDF_TARGET_ESP32)
-        err |= gravity_bt_gap_start();
+        err |= gravity_ble_test();
     #else
         displayBluetoothUnsupported();
     #endif

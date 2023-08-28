@@ -969,7 +969,6 @@ TODO
 * improvements to stalk
   * Average
   * Median (or trimmed mean)
-  * Bluetooth
 * CLI commands to analyse captured data - stations/aps(channel), etc
 * handshake
 * Capture authentication frames for cracking
