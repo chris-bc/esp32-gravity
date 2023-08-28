@@ -378,7 +378,9 @@ esp_err_t gravity_select_ap(int selIndex) {
         }
         newSel[gravity_sel_ap_count - 1] = &gravity_aps[i];
 
-        free(gravity_selected_aps);
+        if (gravity_selected_aps != NULL) {
+            free(gravity_selected_aps);
+        }
         gravity_selected_aps = newSel;
     } else {
         /* Removing */
@@ -403,7 +405,9 @@ esp_err_t gravity_select_ap(int selIndex) {
             // TODO: if newSel != NULL free newSel;
             newSel = NULL;
         }
-        free(gravity_selected_aps);
+        if (gravity_selected_aps != NULL) {
+            free(gravity_selected_aps);
+        }
         gravity_selected_aps = newSel;
     }
     return ESP_OK;
@@ -437,7 +441,9 @@ esp_err_t gravity_select_sta(int selIndex) {
         }
         newSel[gravity_sel_sta_count - 1] = &gravity_stas[i];
 
-        free(gravity_selected_stas);
+        if (gravity_selected_stas != NULL) {
+            free(gravity_selected_stas);
+        }
         gravity_selected_stas = newSel;
     } else {
         /* Removing */
@@ -460,7 +466,9 @@ esp_err_t gravity_select_sta(int selIndex) {
         } else {
             newSel = NULL;
         }
-        free(gravity_selected_stas);
+        if (gravity_selected_stas != NULL) {
+            free(gravity_selected_stas);
+        }
         gravity_selected_stas = newSel;
     }
     return ESP_OK;

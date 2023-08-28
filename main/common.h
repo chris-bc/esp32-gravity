@@ -184,6 +184,8 @@ int max(int one, int two);
 esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid);
 esp_err_t bytes_to_string(uint8_t *bytes, char *string, int byteCount);
 
+void displayBluetoothUnsupported();
+
 extern const char *TAG;
 
 

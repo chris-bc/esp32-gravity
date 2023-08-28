@@ -987,7 +987,6 @@ TODO
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Further testing of VIEW BT SORT *
-* Memory leak in scan.c - Marked with TODO:
 * Move common log outputs into a function to save all the #ifdef-ing
 * Add BT results to stalk
 * Add BT sniffing

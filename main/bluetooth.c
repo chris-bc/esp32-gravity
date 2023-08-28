@@ -761,10 +761,10 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
     // Print header
     #ifdef CONFIG_FLIPPER
         printf(" ID | RSSI |      Name      | Class | LastSeen\n");
-        printf("----|------|----------------|-------|----------\n");
+        printf("====|======|================|=======|==========\n");
     #else
         printf(" ID | RSSI | Name                   | BSSID             | Class    | LastSeen\n");
-        printf("----|------|------------------------|-------------------|----------|---------------------------\n");
+        printf("====|======|========================|===================|==========|===========================\n");
     #endif
 
     /* Apply the sort to selectedAPs */

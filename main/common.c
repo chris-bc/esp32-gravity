@@ -448,3 +448,11 @@ esp_err_t convert_bytes_to_string(uint8_t *bIn, char *sOut, int maxLen) {
 esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid) {
     return convert_bytes_to_string(bSsid, ssid, 32);
 }
+
+void displayBluetoothUnsupported() {
+    #ifdef CONFIG_FLIPPER
+        printf("This device does not support Bluetooth.\n");
+    #else
+        ESP_LOGW(TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
+    #endif
+}

@@ -192,11 +192,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
     #if defined(CONFIG_IDF_TARGET_ESP32)
         err |= gravity_bt_gap_start();
     #else
-        #ifdef CONFIG_FLIPPER
-            printf("Bluetooth unsupported in this build because you're using a S2 or C6\n");
-        #else
-            ESP_LOGW(TAG, "ESP32-Gravity has been built without Bluetooth support. Bluetooth is not supported on this chip.");
-        #endif
+        displayBluetoothUnsupported();
     #endif
     return err;
 }
@@ -1046,7 +1042,12 @@ esp_err_t cmd_stalk(int argc, char **argv) {
         return ESP_OK;
     }
     /* If we reach this point argv == 2 */
-    if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0) {
+    /* Only include variables from the Bluetooth module if Bluetooth is supported */
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0 && gravity_sel_bt_count == 0) {
+    #else
+        if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0) {
+    #endif
         #ifdef CONFIG_FLIPPER
             printf("You don't have any selected APs or STAs, you probably don't want to stalk those nonexistent things.");
         #else
@@ -1189,11 +1190,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
                 return gravity_bt_scan_display_status();
             #else
-                #ifdef CONFIG_FLIPPER
-                    printf("Bluetooth not available on this device.\n%s\n", SHORT_SCAN);
-                #else
-                    ESP_LOGE(SCAN_TAG, "Bluetooth not available on this device.\n%s", USAGE_SCAN);
-                #endif
+                displayBluetoothUnsupported();
             #endif
             return ESP_ERR_NOT_SUPPORTED;
         } else if (!strcasecmp(argv[2], "DISCOVER")) { 
@@ -1202,11 +1199,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
                 err |= gravity_bt_gap_start();
                 attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
             #else
-                #ifdef CONFIG_FLIPPER
-                    printf("No Bluetooth on this device.\n");
-                #else
-                    ESP_LOGW(TAG, "This device does not have Bluetooth functionality.");
-                #endif
+                displayBluetoothUnsupported();
             #endif
         } else if (!strcasecmp(argv[2], "SNIFF")) {
             /* Initialise BT monitor mode and identify devices */
@@ -1760,11 +1753,7 @@ esp_err_t cmd_view(int argc, char **argv) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
                 success = (success && gravity_bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
             #else
-                #ifdef CONFIG_FLIPPER
-                    printf("Device does not support Bluetooth.\n");
-                #else
-                    ESP_LOGW(TAG, "This device does not support Bluetooth.");
-                #endif
+                displayBluetoothUnsupported();
             #endif
         } else if (!strcasecmp(argv[i], "SORT")) {
             ++i; /* Skip "SORT" and specifier */
@@ -1884,14 +1873,18 @@ esp_err_t cmd_select(int argc, char **argv) {
             #endif
         }
     } else if (!strcasecmp(argv[1], "BT")) {
-        for (int i = 2; i < argc; ++i) {
-            err |= gravity_select_bt(atoi(argv[i]));
-            #ifdef CONFIG_FLIPPER
-                printf(" BT %d %sselected\n", atoi(argv[i]), (gravity_bt_isSelected(atoi(argv[i])))?"":"not ");
-            #else
-                ESP_LOGI(TAG, " BT element %d is %sselected", atoi(argv[i]), gravity_bt_isSelected(atoi(argv[i]))?"":"not ");
-            #endif
-        }
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            for (int i = 2; i < argc; ++i) {
+                err |= gravity_select_bt(atoi(argv[i]));
+                #ifdef CONFIG_FLIPPER
+                    printf(" BT %d %sselected\n", atoi(argv[i]), (gravity_bt_isSelected(atoi(argv[i])))?"":"not ");
+                #else
+                    ESP_LOGI(TAG, " BT element %d is %sselected", atoi(argv[i]), gravity_bt_isSelected(atoi(argv[i]))?"":"not ");
+                #endif
+            }
+        #else
+            displayBluetoothUnsupported();
+        #endif
     }
     return err;
 }
@@ -1920,9 +1913,14 @@ esp_err_t cmd_selected(int argc, char **argv) {
     }
     if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "STA")) || (argc > 2 && !strcasecmp(argv[2], "STA")) || (argc == 4 && !strcasecmp(argv[3], "STA"))) {
         retVal |= gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
+        printf("\n");
     }
     if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "BT")) || (argc > 2 && !strcasecmp(argv[2], "BT")) || (argc == 4  && !strcasecmp(argv[3], "BT"))) {
-        retVal |= gravity_bt_list_devices(gravity_selected_bt, gravity_sel_bt_count, (scanResultExpiry != 0));
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            retVal |= gravity_bt_list_devices(gravity_selected_bt, gravity_sel_bt_count, (scanResultExpiry != 0));
+        #else
+            displayBluetoothUnsupported();
+        #endif
     }
 
     return retVal;
@@ -1955,7 +1953,11 @@ esp_err_t cmd_clear(int argc, char **argv) {
             err |= gravity_clear_sta();
         }
         if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
-            err |= gravity_clear_bt();
+            #if defined(CONFIG_IDF_TARGET_ESP32)
+                err |= gravity_clear_bt();
+            #else
+                displayBluetoothUnsupported();
+            #endif
         }
     }
     return ESP_OK;
