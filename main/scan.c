@@ -400,6 +400,7 @@ esp_err_t gravity_select_ap(int selIndex) {
                 }
             }
         } else {
+            // TODO: if newSel != NULL free newSel;
             newSel = NULL;
         }
         free(gravity_selected_aps);

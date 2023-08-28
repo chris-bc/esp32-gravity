@@ -1170,7 +1170,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
             return scan_display_status();
         }
         #if defined(CONFIG_IDF_TARGET_ESP32)
-            return bt_scan_display_status();
+            return gravity_bt_scan_display_status();
         #endif
     }
     esp_err_t err = ESP_OK;
@@ -1187,7 +1187,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "BT")) {
         if (argc == 2) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                return bt_scan_display_status();
+                return gravity_bt_scan_display_status();
             #else
                 #ifdef CONFIG_FLIPPER
                     printf("Bluetooth not available on this device.\n%s\n", SHORT_SCAN);
@@ -1758,7 +1758,7 @@ esp_err_t cmd_view(int argc, char **argv) {
             }
         } else if (!strcasecmp(argv[i], "BT")) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                success = (success && bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
+                success = (success && gravity_bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
             #else
                 #ifdef CONFIG_FLIPPER
                     printf("Device does not support Bluetooth.\n");
@@ -1785,7 +1785,7 @@ esp_err_t cmd_view(int argc, char **argv) {
 
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_select(int argc, char **argv) {
-    if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA"))) {
+    if (argc < 3 || (strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "BT"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SELECT);
         #else
@@ -1867,7 +1867,7 @@ esp_err_t cmd_select(int argc, char **argv) {
     esp_err_t err = ESP_OK;;
     if (!strcasecmp(argv[1], "AP")) {
         for (int i = 2; i < argc; ++i) {
-            err = gravity_select_ap(atoi(argv[i]));
+            err |= gravity_select_ap(atoi(argv[i]));
             #ifdef CONFIG_FLIPPER
                 printf("AP %d %sselected\n", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
             #else
@@ -1876,25 +1876,34 @@ esp_err_t cmd_select(int argc, char **argv) {
         }
     } else if (!strcasecmp(argv[1], "STA")) {
         for (int i = 2; i < argc; ++i) {
-            err = gravity_select_sta(atoi(argv[i]));
+            err |= gravity_select_sta(atoi(argv[i]));
             #ifdef CONFIG_FLIPPER
                 printf("STA %d %sselected\n", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
             #else
                 ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
             #endif
         }
+    } else if (!strcasecmp(argv[1], "BT")) {
+        for (int i = 2; i < argc; ++i) {
+            err |= gravity_select_bt(atoi(argv[i]));
+            #ifdef CONFIG_FLIPPER
+                printf(" BT %d %sselected\n", atoi(argv[i]), (gravity_bt_isSelected(atoi(argv[i])))?"":"not ");
+            #else
+                ESP_LOGI(TAG, " BT element %d is %sselected", atoi(argv[i]), gravity_bt_isSelected(atoi(argv[i]))?"":"not ");
+            #endif
+        }
     }
     return err;
 }
 
-/* Display selected STAs and/or APs. Usage: selected ( AP | STA ). Call with no arguments to display both */
+/* Display selected STAs and/or APs. Usage: selected ( AP | STA | BT ). Call with no arguments to display both */
 /* Adding selected AP STA as well as no args because I keep forgetting I can use no args */
 esp_err_t cmd_selected(int argc, char **argv) {
     int retVal = ESP_OK;
-    int retVal2 = ESP_OK;
 
-    if (argc > 3 || (argc > 1 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "AP")) ||
-            (argc == 3 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "AP"))) {
+    if (argc > 4 || (argc > 1 && strcasecmp(argv[1], "STA") && strcasecmp(argv[1], "AP") && strcasecmp(argv[1], "BT")) ||
+            (argc > 2 && strcasecmp(argv[2], "STA") && strcasecmp(argv[2], "AP") && strcasecmp(argv[2], "BT")) ||
+            (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "AP") && strcasecmp(argv[3], "BT"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SELECTED);
         #else
@@ -1905,20 +1914,18 @@ esp_err_t cmd_selected(int argc, char **argv) {
 
     /* Print APs if no args or "AP" */
     /* Hide expired packets only if scanResultExpiry has been set */
-    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "AP")) || (argc == 3 && !strcasecmp(argv[2], "AP"))) {
-        retVal = gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
+    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "AP")) || (argc > 2 && !strcasecmp(argv[2], "AP")) || (argc == 4 && !strcasecmp(argv[3], "AP"))) {
+        retVal |= gravity_list_ap(gravity_selected_aps, gravity_sel_ap_count, (scanResultExpiry != 0));
         printf("\n");
     }
-    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "STA")) || (argc == 3 && !strcasecmp(argv[2], "STA"))) {
-        retVal2 = gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
+    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "STA")) || (argc > 2 && !strcasecmp(argv[2], "STA")) || (argc == 4 && !strcasecmp(argv[3], "STA"))) {
+        retVal |= gravity_list_sta(gravity_selected_stas, gravity_sel_sta_count, (scanResultExpiry != 0));
+    }
+    if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "BT")) || (argc > 2 && !strcasecmp(argv[2], "BT")) || (argc == 4  && !strcasecmp(argv[3], "BT"))) {
+        retVal |= gravity_bt_list_devices(gravity_selected_bt, gravity_sel_bt_count, (scanResultExpiry != 0));
     }
 
-    if (retVal != ESP_OK) {
-        return retVal;
-    } else if (retVal2 != ESP_OK) {
-        return retVal2;
-    }
-    return ESP_OK;
+    return retVal;
 }
 
 /* Channel hopping is not catered for in this feature */

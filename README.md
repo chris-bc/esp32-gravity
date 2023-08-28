@@ -976,8 +976,6 @@ TODO
 * Scan 802.15.1 (BLE/BT) devices and types
   * Currently runs discovery-based scanning, building device list
   * Refactor code to retrieve service information from discovered devices
-  * Command select bt
-  * Refactor selected
   * Bluetooth stalk
   * Sniff-based scanning
   * BLE
@@ -989,8 +987,8 @@ TODO
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Further testing of VIEW BT SORT *
-* Add BT results to select
-* Add BT results to selected
+* Memory leak in scan.c - Marked with TODO:
+* Move common log outputs into a function to save all the #ifdef-ing
 * Add BT results to stalk
 * Add BT sniffing
 * Add BT service information

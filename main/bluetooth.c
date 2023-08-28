@@ -13,6 +13,8 @@ const char *BT_TAG = "bt@GRAVITY";
 
 app_gap_cb_t *gravity_bt_devices = NULL;
 uint8_t gravity_bt_dev_count = 0;
+app_gap_cb_t **gravity_selected_bt = NULL;
+uint8_t gravity_sel_bt_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
 
@@ -710,7 +712,7 @@ esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
 }
 
 /* Display status of bluetooth scanning */
-esp_err_t bt_scan_display_status() {
+esp_err_t gravity_bt_scan_display_status() {
     esp_err_t err = ESP_OK;
 
     #ifdef CONFIG_FLIPPER
@@ -722,7 +724,7 @@ esp_err_t bt_scan_display_status() {
     return err;
 }
 
-esp_err_t bt_list_all_devices(bool hideExpiredPackets) {
+esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
 
     if (gravity_bt_dev_count > 0) {
@@ -740,13 +742,13 @@ esp_err_t bt_list_all_devices(bool hideExpiredPackets) {
             retVal[i] = &(gravity_bt_devices[i]);
         }
 
-        err |= bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
+        err |= gravity_bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
         free(retVal);
     }
     return err;
 }
 
-esp_err_t bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets) {
+esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
 
     char strBssid[18];
@@ -1021,6 +1023,103 @@ esp_err_t gravity_clear_bt() {
     // }
 
     return err;
+}
+
+esp_err_t gravity_select_bt(uint8_t selIndex) {
+    esp_err_t err = ESP_OK;
+    app_gap_cb_t **newSel = NULL;
+
+    /* Find the device */
+    uint8_t devIdx = 0;
+    for ( ; devIdx < gravity_bt_dev_count && gravity_bt_devices[devIdx].index != selIndex; ++devIdx) { }
+    if (devIdx < gravity_bt_dev_count) {
+        /* Found the device - Invert its selected status */
+        gravity_bt_devices[devIdx].selected = !gravity_bt_devices[devIdx].selected;
+        /* Are we adding to, or removing from, gravity_selected_bt ? */
+        if (gravity_bt_devices[devIdx].selected) {
+            /* Adding to gravity_selected_bt */
+            if (newSel != NULL) {
+                free(newSel);
+            }
+            newSel = malloc(sizeof(app_gap_cb_t *) * ++gravity_sel_bt_count);
+            if (newSel == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to allocate memory for %d pointers.\n", gravity_sel_bt_count);
+                #else
+                    ESP_LOGE(BT_TAG, "Unable to allocate memory for %d pointers.", gravity_bt_dev_count);
+                #endif
+                return ESP_ERR_NO_MEM;
+            }
+            /* Copy across the old elements */
+            memcpy(newSel, gravity_selected_bt, sizeof(app_gap_cb_t *) * (gravity_bt_dev_count - 1));
+            newSel[gravity_bt_dev_count - 1] = &(gravity_bt_devices[devIdx]);
+
+            if (gravity_selected_bt != NULL && gravity_sel_bt_count > 1) {
+                free(gravity_selected_bt);
+            }
+            gravity_selected_bt = newSel;
+        } else {
+            /* Removing device from gravity_selected_bt */
+            --gravity_sel_bt_count;
+            if (gravity_sel_bt_count > 0) {
+                newSel = malloc(sizeof(app_gap_cb_t *) * gravity_sel_bt_count);
+                if (newSel == NULL) {
+                    #ifdef CONFIG_FLIPPER
+                        printf("Failed to allocate memory for %d pointers\n", gravity_sel_bt_count);
+                    #else
+                        ESP_LOGE(BT_TAG, "Unable to allocate memory for %d pointers.", gravity_sel_bt_count);
+                    #endif
+                    return ESP_ERR_NO_MEM;
+                }
+                /* Copy across selected indices */
+                int numSelected = 0;
+                for (int i = 0; i < gravity_bt_dev_count; ++i) {
+                    if (gravity_bt_devices[i].selected) {
+                        newSel[numSelected++] = &(gravity_bt_devices[i]);
+                    }
+                }
+                if (numSelected != gravity_sel_bt_count) {
+                    #ifdef CONFIG_FLIPPER
+                        printf("Expected %d selected Bluetooth devices, found %d.\n", gravity_sel_bt_count, numSelected);
+                    #else
+                        ESP_LOGE(BT_TAG, "Expected %d selected Bluetooth devices, found %d.", gravity_sel_bt_count, numSelected);
+                    #endif
+                }
+                /* We're done at last */
+                if (gravity_selected_bt != NULL) {
+                    free(gravity_selected_bt);
+                }
+                gravity_selected_bt = newSel;
+            } else {
+                /* We probably just made it 0 */
+                if (gravity_selected_bt != NULL) {
+                    free(gravity_selected_bt);
+                    gravity_selected_bt = NULL;
+                }
+            }
+        }
+    } else {
+        /* No such device */
+        #ifdef CONFIG_FLIPPER
+            printf("No BT Device with index %d\n", selIndex);
+        #else
+            ESP_LOGE(BT_TAG, "No Bluetooth device exists with the specified index (%d).", selIndex);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    return err;
+}
+
+bool gravity_bt_isSelected(uint8_t selIndex) {
+    /* Find selIndex */
+    int i = 0;
+    for ( ; i < gravity_bt_dev_count && gravity_bt_devices[i].index != selIndex; ++i) { }
+    if (i < gravity_bt_dev_count) {
+        /* We found an item with the specified index */
+        return (gravity_bt_devices[i].selected);
+    }
+    return false;
 }
 
 #endif

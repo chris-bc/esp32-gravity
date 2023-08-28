@@ -49,16 +49,20 @@ typedef struct {
 } app_gap_cb_t;
 extern app_gap_cb_t *gravity_bt_devices;
 extern uint8_t gravity_bt_dev_count;
+extern app_gap_cb_t **gravity_selected_bt;
+extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
 
 esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device);
-esp_err_t bt_scan_display_status();
-esp_err_t bt_list_all_devices(bool hideExpiredPackets);
-esp_err_t bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets);
+esp_err_t gravity_bt_scan_display_status();
+esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets);
+esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets);
 esp_err_t gravity_clear_bt();
+esp_err_t gravity_select_bt(uint8_t selIndex);
+bool gravity_bt_isSelected(uint8_t selIndex);
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev);
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,
