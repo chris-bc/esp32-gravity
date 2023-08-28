@@ -561,7 +561,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
 
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - aps[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - aps[i]->lastSeen) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {
@@ -620,7 +620,7 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
     for (int i=0; i < staCount; ++i) {
         /* Stringify timestamp */
         nowTime = clock();
-        elapsed = (nowTime - stas[i]->lastSeenClk) / CLOCKS_PER_SEC;
+        elapsed = (nowTime - stas[i]->lastSeen) / CLOCKS_PER_SEC;
         if (elapsed < 60.0) {
             strcpy(strTime, "Under a minute ago");
         } else if (elapsed < 3600.0) {
@@ -722,10 +722,9 @@ printf("checking new AP \"%s\"\n", (char *)newAPs[i].espRecord.ssid);
             printf("Not found in orig array, adding it to element %d\n", resultIndex);
             /* newAPs[i] isn't in gravity_aps[] - Add it */
             resultAP[resultIndex].espRecord = newAPs[resultIndex].espRecord;
-            resultAP[resultIndex].lastSeen = newAPs[resultIndex].lastSeen;
             resultAP[resultIndex].stationCount = 0;
             resultAP[resultIndex].stations = NULL;
-            resultAP[resultIndex].lastSeenClk = clock();
+            resultAP[resultIndex].lastSeen = clock();
             resultAP[resultIndex].selected = false;
             ++resultIndex;
         }
@@ -761,8 +760,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
             strcpy((char *)gravity_aps[i].espRecord.ssid, (char *)newSSID);
         }
 
-        gravity_aps[i].lastSeen = time(NULL);
-        gravity_aps[i].lastSeenClk = clock();
+        gravity_aps[i].lastSeen = clock();
         if (channel > 0) {
             gravity_aps[i].espRecord.primary = channel;
         }
@@ -791,7 +789,6 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
             newAPs[j].espRecord = gravity_aps[j].espRecord;
             newAPs[j].index = gravity_aps[j].index;
             newAPs[j].lastSeen = gravity_aps[j].lastSeen;
-            newAPs[j].lastSeenClk = gravity_aps[j].lastSeenClk;
             newAPs[j].selected = gravity_aps[j].selected;
             if (newAPs[j].index > maxIndex) {
                 maxIndex = newAPs[j].index;
@@ -799,8 +796,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         }
 
         newAPs[gravity_ap_count].selected = false;
-        newAPs[gravity_ap_count].lastSeen = time(NULL);
-        newAPs[gravity_ap_count].lastSeenClk = clock();
+        newAPs[gravity_ap_count].lastSeen = clock();
         newAPs[gravity_ap_count].index = maxIndex + 1;
         newAPs[gravity_ap_count].espRecord.primary = channel;
         newAPs[gravity_ap_count].stationCount = 0;
@@ -834,8 +830,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
 
     if (i < gravity_sta_count) {
         /* Found the MAC. Update lastSeen */
-        gravity_stas[i].lastSeen = time(NULL);
-        gravity_stas[i].lastSeenClk = clock();
+        gravity_stas[i].lastSeen = clock();
         if (channel != 0) {
             gravity_stas[i].channel = channel;
         }
@@ -867,7 +862,6 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
             newSTAs[j].channel = gravity_stas[j].channel;
             newSTAs[j].index = gravity_stas[j].index;
             newSTAs[j].lastSeen = gravity_stas[j].lastSeen;
-            newSTAs[j].lastSeenClk = gravity_stas[j].lastSeenClk;
             newSTAs[j].selected = gravity_stas[j].selected;
             memcpy(newSTAs[j].mac, gravity_stas[j].mac, 6);
             strcpy(newSTAs[j].strMac, gravity_stas[j].strMac);
@@ -877,8 +871,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         }
 
         newSTAs[gravity_sta_count].selected = false;
-        newSTAs[gravity_sta_count].lastSeen = time(NULL);
-        newSTAs[gravity_sta_count].lastSeenClk = clock();
+        newSTAs[gravity_sta_count].lastSeen = clock();
         newSTAs[gravity_sta_count].index = maxIndex + 1;
         newSTAs[gravity_sta_count].channel = channel;
         newSTAs[gravity_sta_count].ap = NULL;

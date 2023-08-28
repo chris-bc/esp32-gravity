@@ -986,9 +986,7 @@ TODO
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Further testing of VIEW BT SORT *
-* Remove lastSeen from scan results and replace with lastSeenClk
 * Move common log outputs into a function to save all the #ifdef-ing
-* stalk off now appears to freeze ESP32
 * Add BT sniffing
 * Add BT service information
 * Add active scanning - connections

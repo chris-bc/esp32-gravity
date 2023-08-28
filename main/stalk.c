@@ -145,7 +145,6 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
     int index = 0;
     for ( ; index < gravity_sel_ap_count && memcmp(srcAddr, gravity_selected_aps[index]->espRecord.bssid, 6); ++index) { }
     if (index < gravity_sel_ap_count) { /* Found an AP matching current frame - update age & RSSI */
-        gravity_selected_aps[index]->lastSeen = time(NULL);
         gravity_selected_aps[index]->lastSeen = clock();
         gravity_selected_aps[index]->espRecord.rssi = rx_ctrl.rssi;
         /* In case the channel has changed */
@@ -155,7 +154,6 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
         /* No matching selectedAP, is there a matching selectedSTA? */
         for (index = 0; index < gravity_sel_sta_count && memcmp(srcAddr, gravity_selected_stas[index]->mac, 6); ++index) { }
         if (index < gravity_sel_sta_count) { /* Found a STA matching current frame - update age & RSSI */
-            gravity_selected_stas[index]->lastSeen = time(NULL);
             gravity_selected_stas[index]->lastSeen = clock();
             gravity_selected_stas[index]->rssi = rx_ctrl.rssi;
             /* In case channel has changed */

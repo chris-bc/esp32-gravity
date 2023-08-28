@@ -25,8 +25,7 @@
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
-    time_t lastSeen;
-    clock_t lastSeenClk;
+    clock_t lastSeen;
     int index;
     bool selected;
     void **stations; /* Argh. I'm pretty sure there's no way I can have ScanResultAP */ 
@@ -35,8 +34,7 @@ struct ScanResultAP {
 typedef struct ScanResultAP ScanResultAP;
 
 struct ScanResultSTA {
-    long long lastSeen;
-    clock_t lastSeenClk;
+    clock_t lastSeen;
     int index;
     bool selected;
     uint8_t mac[6];
