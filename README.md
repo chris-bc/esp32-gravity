@@ -984,6 +984,17 @@ TODO
 
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
+* Configurable behaviour on BLE out of memory
+  * Truncate all non-selected BT devices and continue
+  * Truncate all unnamed BT devices and continue
+  * Truncate unnamed and unselected BT devices and continue
+  * Truncate the oldest BT devices and continue
+  * Halt scanning
+* Refactor gravity_bt_devices to be a app_gap_cb_t**
+  * Duplicating the app_gap_cb_t* requires an increasingly-large contiguous block of memory
+  * Currently getting 51 BLE scan results before hitting OOM
+  * Review changes required to selectedDevices and its management
+  * Add: malloc a single app_gap_cb_t, only needing to extend the byte array
 * Further testing of VIEW BT SORT *
 * Move common log outputs into a function to save all the #ifdef-ing
 * Add BT sniffing

@@ -702,9 +702,8 @@ esp_err_t gravity_ble_test() {
         }
         bleInitialised = true;
         printf("BLE Initialised.\n");
-    } else {
-        err = esp_ble_gap_start_scanning(30);
     }
+    err |= esp_ble_gap_start_scanning(30);
     return err;
 }
 
@@ -1030,7 +1029,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
         #ifdef CONFIG_FLIPPER
             printf("Unable to allocate memory to add BT device\n");
         #else
-            ESP_LOGE(BT_TAG, "Insufficient memory to extend the array of Bluetooth devices in memory.");
+            ESP_LOGE(BT_TAG, "Insufficient memory to extend the array of Bluetooth devices in memory (%d).", (gravity_bt_dev_count + 1));
         #endif
         return ESP_ERR_NO_MEM;
     }
