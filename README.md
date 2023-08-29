@@ -989,6 +989,7 @@ TODO
 * Add BT sniffing
 * Add BT service information
 * Add active scanning - connections
+* Migrate scan command to SCAN ( [ <ssid> ] WIFI ) | BT | BLE ) [ ON | OFF ]
 * Additional command to inspect a device and its services
   * Move services callback handler into its own function
   * Manage a data model for the services rather than displaying them

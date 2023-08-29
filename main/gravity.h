@@ -163,7 +163,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "scan",
         .hint = USAGE_SCAN,
-        .help = "No argument returns scan status.   ON: Initiate a continuous scan for 802.11 APs and STAs.   BT ( DISCOVER | SNIFF | PROBE ): Commence the specified type of Bluetooth scanning.   Specifying a value for <ssid> will capture only frames from that SSID.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
+        .help = "No argument returns scan status.   WIFI: Initiate a continuous scan for 802.11 APs and STAs.   BT: Identify Discoverable Bluetooth devices.  BLE: Identify BLE devices.   Specifying a value for <ssid> will capture only frames from that SSID.  Scan wireless frequencies to identify access points and stations in range. Most modules in this application require one or more target APs and/or STAs so you will run these commands frequently. The scan types commence an open-ended analysis of received packets, and will continue updating until they are stopped. To assist in identifying contemporary devices these scan types also capture a timestamp of when the device was last seen.",
         .func = cmd_scan
     }, {
         .command = "hop",

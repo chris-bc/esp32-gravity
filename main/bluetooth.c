@@ -18,6 +18,7 @@ app_gap_cb_t **gravity_selected_bt = NULL;
 uint8_t gravity_sel_bt_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
+static bool bleInitialised = false;
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -547,16 +548,23 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
     case ESP_GAP_BLE_SCAN_RESULT_EVT: {
         esp_ble_gap_cb_param_t *scan_result = (esp_ble_gap_cb_param_t *)param;
         switch (scan_result->scan_rst.search_evt) {
+        case ESP_GAP_SEARCH_DISC_RES_EVT:
+            printf("discovery result\n");
+            break;
+        case ESP_GAP_SEARCH_DISC_BLE_RES_EVT:
+            printf("discovery ble result\n");
+            break;
         case ESP_GAP_SEARCH_INQ_RES_EVT:
+            /* Get device name */
+            char bdNameStr[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
+            adv_name = esp_ble_resolve_adv_data(scan_result->scan_rst.ble_adv,
+                                                ESP_BLE_AD_TYPE_NAME_CMPL, &adv_name_len);
+            memcpy(bdNameStr, adv_name, adv_name_len);
+            bdNameStr[adv_name_len] = '\0';
+
             /* Does the BDA exist? */
             int devIdx = 0;
             for ( ; devIdx < gravity_bt_dev_count && memcmp(scan_result->scan_rst.bda, gravity_bt_devices[devIdx].bda, ESP_BD_ADDR_LEN); ++devIdx) { }
-            uint8_t bdName[ESP_BT_GAP_MAX_BDNAME_LEN];
-            char bdNameStr[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
-            uint8_t bdNameLen = 0;
-            get_name_from_eir(scan_result->scan_rst.ble_adv, bdName, &bdNameLen);
-            memcpy(bdNameStr, bdName, bdNameLen);
-            bdNameStr[bdNameLen] = '\0';
             if (devIdx < gravity_bt_dev_count) {
                 /* Found - Update */
                 gravity_bt_devices[devIdx].rssi = scan_result->scan_rst.rssi;
@@ -564,31 +572,14 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     memcpy(gravity_bt_devices[devIdx].eir, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len);
                     gravity_bt_devices[devIdx].eir_len = scan_result->scan_rst.adv_data_len;
                 }
-                if (bdNameLen > 0) {
-                    gravity_bt_devices[devIdx].bdname_len = bdNameLen;
+                if (adv_name_len > 0) {
+                    gravity_bt_devices[devIdx].bdname_len = adv_name_len;
                     strcpy(gravity_bt_devices[devIdx].bdName, bdNameStr);
                 }
             } else {
-                bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, bdNameLen, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, BT_SCAN_TYPE_PASSIVE);
+                bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, BT_SCAN_TYPE_PASSIVE);
             }
             
-//            esp_log_buffer_hex(BT_TAG, scan_result->scan_rst.bda, 6);
-//            ESP_LOGI(BT_TAG, "searched Adv Data Len %u, Scan Response Len %u", scan_result->scan_rst.adv_data_len, scan_result->scan_rst.scan_rsp_len);
-//            adv_name = esp_ble_resolve_adv_data(scan_result->scan_rst.ble_adv,
-//                                                ESP_BLE_AD_TYPE_NAME_CMPL, &adv_name_len);
-//            ESP_LOGI(BT_TAG, "searched Device Name Len %u", adv_name_len);
-//            esp_log_buffer_char(BT_TAG, adv_name, adv_name_len);
-
-            // if (scan_result->scan_rst.adv_data_len > 0) {
-            //     ESP_LOGI(BT_TAG, "adv data:");
-            //     esp_log_buffer_hex(BT_TAG, &scan_result->scan_rst.ble_adv[0], scan_result->scan_rst.adv_data_len);
-            // }
-            // if (scan_result->scan_rst.scan_rsp_len > 0) {
-            //     ESP_LOGI(BT_TAG, "scan resp:");
-            //     esp_log_buffer_hex(BT_TAG, &scan_result->scan_rst.ble_adv[scan_result->scan_rst.adv_data_len], scan_result->scan_rst.scan_rsp_len);
-            // }
-            // ESP_LOGI(BT_TAG, " ");
-
             // if (adv_name != NULL) {
             //     if (strlen(remote_device_name) == adv_name_len && strncmp((char *)adv_name, remote_device_name, adv_name_len) == 0) {
             //         ESP_LOGI(BT_TAG, "searched device %s", remote_device_name);
@@ -602,6 +593,11 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             // }
             break;
         case ESP_GAP_SEARCH_INQ_CMPL_EVT:
+            #ifdef CONFIG_FLIPPER
+                printf("BLE scan complete. %d cached BT devices.\n", gravity_bt_dev_count);
+            #else
+                ESP_LOGI(BT_TAG, "Bluetooth LE scan complete. Total Bluetooth devices (Classic + LE): %d.", gravity_bt_dev_count);
+            #endif
             break;
         default:
             break;
@@ -672,36 +668,43 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
 esp_err_t gravity_ble_test() {
     esp_err_t err = ESP_OK;
 
-    err = gravity_bt_initialise();
-    if (err != ESP_OK) {
-        printf("%s\n", esp_err_to_name(err));
-        return err;
+    if (!btInitialised) {
+        err = gravity_bt_initialise();
+        if (err != ESP_OK) {
+            printf("%s\n", esp_err_to_name(err));
+            return err;
+        }
     }
 
-    err = esp_ble_gap_register_callback(esp_gap_cb);
-    if (err != ESP_OK) {
-        printf("%s\n", esp_err_to_name(err));
-        return err;
-    }
+    if (!bleInitialised) {
+        err = esp_ble_gap_register_callback(esp_gap_cb);
+        if (err != ESP_OK) {
+            printf("%s\n", esp_err_to_name(err));
+            return err;
+        }
     
-    err = esp_ble_gattc_register_callback(esp_gattc_cb);
-    if (err != ESP_OK) {
-        printf("%s\n", esp_err_to_name(err));
-        return err;
-    }
+        err = esp_ble_gattc_register_callback(esp_gattc_cb);
+        if (err != ESP_OK) {
+            printf("%s\n", esp_err_to_name(err));
+            return err;
+        }
 
-    err = esp_ble_gattc_app_register(0);
-    if (err != ESP_OK) {
-        printf("%s\n", esp_err_to_name(err));
-        return err;
-    }
+        err = esp_ble_gattc_app_register(0);
+        if (err != ESP_OK) {
+            printf("%s\n", esp_err_to_name(err));
+            //return err;
+        }
 
-    err = esp_ble_gatt_set_local_mtu(500);
-    if (err != ESP_OK) {
-        printf("%s\n", esp_err_to_name(err));\
-        return err;
+        err = esp_ble_gatt_set_local_mtu(500);
+        if (err != ESP_OK) {
+            printf("%s\n", esp_err_to_name(err));\
+            //return err;
+        }
+        bleInitialised = true;
+        printf("BLE Initialised.\n");
+    } else {
+        err = esp_ble_gap_start_scanning(30);
     }
-
     return err;
 }
 
@@ -1179,7 +1182,7 @@ esp_err_t gravity_bt_scan_display_status() {
     #ifdef CONFIG_FLIPPER
         printf("Bluetooth Scanning %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
     #else
-        ESP_LOGI(BT_TAG, "Bluetooth Scanning %s\t\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
+        ESP_LOGI(BT_TAG, "Bluetooth (Classic + BLE) Scanning %s\t\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
     #endif
 
     return err;

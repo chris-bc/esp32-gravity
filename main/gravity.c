@@ -1155,12 +1155,12 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
     return err;
 }
 
+/* Usage: SCAN [ ( [ <ssid> ] WIFI ) | BT | BLE | OFF ]*/
 esp_err_t cmd_scan(int argc, char **argv) {
-    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "ON") && strcasecmp(argv[1], "OFF") &&
+    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
-            strcasecmp(argv[1], "BT") && strlen(argv[1]) > 32) || (argc == 3 &&
-                (strcasecmp(argv[1], "BT") || (strcasecmp(argv[2], "DISCOVER") &&
-                    strcasecmp(argv[2], "SNIFF") && strcasecmp(argv[2], "PROBE"))))) {
+                strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > 32) ||
+            (argc == 3 && strcasecmp(argv[2], "WIFI"))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
         #else
@@ -1169,59 +1169,42 @@ esp_err_t cmd_scan(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (argc == 1) {
-        if (attack_status[ATTACK_SCAN]) {
-            return scan_display_status();
-        }
-        #if defined(CONFIG_IDF_TARGET_ESP32)
-            return gravity_bt_scan_display_status();
-        #endif
-    }
     esp_err_t err = ESP_OK;
+    if (argc == 1) {
+        err = scan_display_status();
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            err = gravity_bt_scan_display_status();
+        #endif
+        return err;
+    }
 
     /* Zero out SSID filter */
     memset(scan_filter_ssid, '\0', 33);
     memset(scan_filter_ssid_bssid, 0x00, 6);
 
-    if (!strcasecmp(argv[1], "ON")) {
+    if (!strcasecmp(argv[1], "WIFI")) {
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
         attack_status[ATTACK_SCAN] = false;
         attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
-        if (argc == 2) {
-            #if defined(CONFIG_IDF_TARGET_ESP32)
-                return gravity_bt_scan_display_status();
-            #else
-                displayBluetoothUnsupported();
-            #endif
-            return ESP_ERR_NOT_SUPPORTED;
-        } else if (!strcasecmp(argv[2], "DISCOVER")) { 
-            /* Initialise BT Classic mode and start discovery */
-            #if defined(CONFIG_IDF_TARGET_ESP32)
-                err |= gravity_bt_gap_start();
-                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
-            #else
-                displayBluetoothUnsupported();
-            #endif
-        } else if (!strcasecmp(argv[2], "SNIFF")) {
-            /* Initialise BT monitor mode and identify devices */
-            #ifdef CONFIG_FLIPPER
-                printf("BT Sniff not yet implemented\n");
-            #else
-                ESP_LOGW(SCAN_TAG, "BT Sniff not yet implemented");
-            #endif
-        } else if (!strcasecmp(argv[2], "PROBE")) {
-            /* Actively attempt to get a response from stubborn devices */
-            #ifdef CONFIG_FLIPPER
-                printf("BT Probe not yet implemented\n");
-            #else
-                ESP_LOGW(SCAN_TAG, "BT Probe not yet implemented");
-            #endif
-        }
+        /* Initialise BT Classic mode and start discovery */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            err |= gravity_bt_gap_start();
+            attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+        #else
+            displayBluetoothUnsupported();
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE")) {
+        /* Initialise BT monitor mode and identify devices */
+        #ifdef CONFIG_FLIPPER
+            printf("BT Sniff not yet implemented\n");
+        #else
+            ESP_LOGW(SCAN_TAG, "BT Sniff not yet implemented");
+        #endif
     } else {
-        attack_status[ATTACK_SCAN] = true;
         /* Use argv[1] as an SSID filter */
+        attack_status[ATTACK_SCAN] = true;
         strncpy(scan_filter_ssid, argv[1], 32); /* SSID max 32 chars */
         /* See if we've already seen the AP */
         int i;
