@@ -1042,6 +1042,15 @@ TODO
   * Truncate the oldest BT devices and continue
   * Truncate lowest RSSI (could even write an incremental cutoff)
   * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
+  * How will this work?
+    * If malloc fails look to prioritisation strategy
+      * if name delete everything without a name
+      * if age delete the oldest (n, incrementally - if can't malloc after deleting one, delete another and try again)
+      * if RSSI find the smallest and delete all elements with that value. Try again, repeat if necessary
+      * if selected delete everything that isn't selected (triggered by out of memory, standard behaviour as per normal)
+    * Where will malloc fail?
+      * bt_device_add_components
+        * Any sort of malloc failure, not just struct malloc
 * Further testing of VIEW BT SORT *
 * Add BT service information
 * Add active BT scanning - connections

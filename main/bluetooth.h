@@ -38,10 +38,10 @@ typedef enum {
 } app_gap_state_t;
 
 typedef enum {
-    GRAVITY_BT_PRIORITISE_RSSI = 1,
-    GRAVITY_BT_PRIORITISE_AGE = 2,
-    GRAVITY_BT_PRIORITISE_NAME = 4,
-    GRAVITY_BT_PRIORITISE_SELECTED = 8
+    GRAVITY_BLE_PRIORITISE_RSSI = 1,
+    GRAVITY_BLE_PRIORITISE_AGE = 2,
+    GRAVITY_BLE_PRIORITISE_NAME = 4,
+    GRAVITY_BLE_PRIORITISE_SELECTED = 8
 } gravity_bt_purge_strategy;
 
 typedef struct {
