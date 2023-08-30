@@ -952,8 +952,10 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                 /* Display status & restart Discovery */
                 // TODO
 //                if (attack_status[ATTACK_STALK] && gravity_sel_bt_count > 0) {
+                if (attack_status[ATTACK_SCAN_BT_CLASSIC]) {
                     state = APP_GAP_STATE_DEVICE_DISCOVERING;
                     esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, CONFIG_BT_SCAN_DURATION, 0);
+                }
 //                    printf("Bluetooth discovery complete. Restarting.\n");
 //                } else {
 //                    #ifdef CONFIG_FLIPPER
