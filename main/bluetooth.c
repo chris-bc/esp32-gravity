@@ -314,7 +314,7 @@ static void gattc_profile_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
 
     switch (event) {
     case ESP_GATTC_REG_EVT:
-        ESP_LOGI(BT_TAG, "REG_EVT");
+        ESP_LOGI(BT_TAG, "Event handler registered.");
         esp_err_t scan_ret = esp_ble_gap_set_scan_params(&ble_scan_params);
         if (scan_ret){
             ESP_LOGE(BT_TAG, "set scan params error, error code = %x", scan_ret);
@@ -542,7 +542,11 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             ESP_LOGE(BT_TAG, "scan start failed, error status = %x", param->scan_start_cmpl.status);
             break;
         }
-        ESP_LOGI(BT_TAG, "scan start success");
+        #ifdef CONFIG_FLIPPER
+            printf("BLE scan status: %s %d cached BT devices.\n", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
+        #else
+            ESP_LOGI(BT_TAG, "Bluetooth LE scan status: %s Total Bluetooth devices (Classic + LE): %d.", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
+        #endif
 
         break;
     case ESP_GAP_BLE_SCAN_RESULT_EVT: {
@@ -604,26 +608,14 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             } else {
                 bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, GRAVITY_BT_SCAN_BLE);
             }
-            
-            // if (adv_name != NULL) {
-            //     if (strlen(remote_device_name) == adv_name_len && strncmp((char *)adv_name, remote_device_name, adv_name_len) == 0) {
-            //         ESP_LOGI(BT_TAG, "searched device %s", remote_device_name);
-            //         if (connect == false) {
-            //             connect = true;
-            //             ESP_LOGI(BT_TAG, "connect to the remote device.");
-            //             esp_ble_gap_stop_scanning();
-            //             esp_ble_gattc_open(gl_profile_tab[0].gattc_if, scan_result->scan_rst.bda, scan_result->scan_rst.ble_addr_type, true);
-            //         }
-            //     }
-            // }
             break;
         case ESP_GAP_SEARCH_INQ_CMPL_EVT:
-            #ifdef CONFIG_FLIPPER
-                printf("BLE scan status: %d cached BT devices.\n", gravity_bt_dev_count);
-            #else
-                ESP_LOGI(BT_TAG, "Bluetooth LE scan status: Total Bluetooth devices (Classic + LE): %d.", gravity_bt_dev_count);
-            #endif
-            esp_ble_gap_start_scanning(CONFIG_BLE_SCAN_SECONDS);
+            /* Restart the BLE scanner if it hasn't been disabled (status will be displayed on
+               successful start)
+            */
+            if (attack_status[ATTACK_SCAN_BLE]) {
+                esp_ble_gap_start_scanning(CONFIG_BLE_SCAN_SECONDS);
+            }
             break;
         default:
             break;
@@ -1281,9 +1273,9 @@ esp_err_t gravity_bt_scan_display_status() {
     esp_err_t err = ESP_OK;
 
     #ifdef CONFIG_FLIPPER
-        printf("Bluetooth Scanning %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
+        printf("BT Classic Scanning %s, BLE %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_CLASSIC]?"ON":"OFF", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
     #else
-        ESP_LOGI(BT_TAG, "Bluetooth (Classic + BLE) Scanning %s\t\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", gravity_bt_dev_count);
+        ESP_LOGI(BT_TAG, "Bluetooth Classic Scanning %s, BLE Scanning %s\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
     #endif
 
     return err;
@@ -1770,6 +1762,18 @@ bool gravity_bt_isSelected(uint8_t selIndex) {
         return (gravity_bt_devices[i]->selected);
     }
     return false;
+}
+
+esp_err_t gravity_bt_disable_scan() {
+    esp_err_t err = ESP_OK;
+
+    if (attack_status[ATTACK_SCAN_BT_CLASSIC]) {
+        err |= esp_bt_gap_cancel_discovery();
+    }
+    if (attack_status[ATTACK_SCAN_BLE]) {
+        err |= esp_ble_gap_stop_scanning();
+    }
+    return err;
 }
 
 #endif

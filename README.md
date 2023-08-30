@@ -1035,10 +1035,6 @@ TODO
 * Add VIEW BT SERVICES [selectedBT]
 * Update documentation to include Bluetooth features
   * Have done a little, needs more.
-* SCAN OFF doesn't support BT or BLE - Would be nice to
-* Allow duration of BLE scans to be specified
-  * Unless there's a way I can keep it running indefinitely like wifi & bt classic
-  * Discovery is 1.28-second units, currently 0x10
 * Configurable behaviour on BLE out of memory
   * Truncate all non-selected BT devices and continue
   * Truncate all unnamed BT devices and continue

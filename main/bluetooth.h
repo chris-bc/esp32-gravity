@@ -74,6 +74,7 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
 esp_err_t gravity_clear_bt();
 esp_err_t gravity_select_bt(uint8_t selIndex);
 bool gravity_bt_isSelected(uint8_t selIndex);
+esp_err_t gravity_bt_disable_scan();
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev);
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,

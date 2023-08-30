@@ -1193,8 +1193,19 @@ esp_err_t cmd_scan(int argc, char **argv) {
     if (!strcasecmp(argv[1], "WIFI")) {
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            err = gravity_bt_disable_scan();
+            if (err != ESP_OK) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Error disabling BT scan: %s.\n", esp_err_to_name(err));
+                #else
+                    ESP_LOGW(BT_TAG, "Bluetooth scanning could not be cancelled, awaiting timeout: %s.", esp_err_to_name(err));
+                #endif
+            }
+        #endif
         attack_status[ATTACK_SCAN] = false;
         attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
+        attack_status[ATTACK_SCAN_BLE] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
         /* Initialise BT Classic mode and start discovery */
         #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -1206,6 +1217,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "BLE")) {
         /* Initialise BT monitor mode and identify devices */
         #if defined(CONFIG_IDF_TARGET_ESP32)
+            attack_status[ATTACK_SCAN_BLE] = true;
             err |= gravity_ble_scan_start();
         #else
             displayBluetoothUnsupported();
@@ -2196,6 +2208,7 @@ void app_main(void)
             case ATTACK_DEAUTH:
             case ATTACK_SCAN:
             case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BLE:
             case ATTACK_MANA:
             case ATTACK_MANA_VERBOSE:
             case ATTACK_MANA_LOUD:
@@ -2225,6 +2238,7 @@ void app_main(void)
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
             case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BLE:
             case ATTACK_MANA:
             case ATTACK_AP_DOS:
             case ATTACK_AP_CLONE:
@@ -2261,6 +2275,7 @@ void app_main(void)
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
             case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BLE:
             case ATTACK_DEAUTH:
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */
             case ATTACK_AP_CLONE:                                   /* make sense be */
