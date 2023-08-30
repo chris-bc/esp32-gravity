@@ -1025,9 +1025,6 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
         return ESP_ERR_NOT_SUPPORTED;
     }
 
-    char bdaStr[18];
-    printf("Found new device BDA %s name %s\n", bda2str(bda, bdaStr, 18), bdName==NULL?"":bdName);
-
     /* Set up a replacement copy of gravity_bt_devices */
     app_gap_cb_t **newDevices = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count + 1));
     if (newDevices == NULL) {
@@ -1073,11 +1070,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     memcpy(newDevices[gravity_bt_dev_count]->eir, eir, (eirLen < ESP_BT_GAP_EIR_DATA_LEN)?eirLen:ESP_BT_GAP_EIR_DATA_LEN);
 
     /* Finally copy new device array into place */
-    if (gravity_bt_devices != NULL && gravity_bt_dev_count > 0) {
-        printf("about to free gravity_bt_devices. It has a count %d\n",gravity_bt_dev_count);
-        if (gravity_bt_dev_count>0) {
-            printf("the first element has a BDA %s\n", bda2str(gravity_bt_devices[0]->bda, bdaStr, 18));
-        }
+    if (gravity_bt_devices != NULL) {
         free(gravity_bt_devices);
     }
     gravity_bt_devices = newDevices;
@@ -1479,6 +1472,13 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
 esp_err_t gravity_clear_bt() {
     esp_err_t err = ESP_OK;
 
+    /* Clear selected BT devices first to avoid having pointers to free'd memory */
+    if (gravity_selected_bt != NULL) {
+        free(gravity_selected_bt);
+        gravity_selected_bt = NULL;
+        gravity_sel_bt_count = 0;
+    }
+
     if (gravity_bt_devices != NULL) {
         for (int i = 0; i < gravity_bt_dev_count; ++i) {
             if (gravity_bt_devices[i] != NULL) {
@@ -1489,13 +1489,6 @@ esp_err_t gravity_clear_bt() {
         gravity_bt_devices = NULL;
     }
     gravity_bt_dev_count = 0;
-
-    // TODO:
-    // if (gravity_bt_selected != NULL) {
-    // free(gravity_bt_selected);
-    // gravity_bt_selected = NULL;
-    // gravity_bt_selected_count = 0;
-    // }
 
     return err;
 }
