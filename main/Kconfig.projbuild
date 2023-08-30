@@ -26,6 +26,26 @@ menu "Gravity Configuration"
             wireless channel before progressing to the next channel when channel
             hopping is enabled, for the Mana attack and (when implemented)
             handshake capture.
+    
+    config BLE_SCAN_SECONDS
+        int "Number of seconds for a single cycle of BLE scanning"
+        default 10
+        help
+            This specifies the duration of BLE scanning. When this duration has passed
+            Gravity will display a status message and restart scanning continually until
+            scanning is deactivated; apart from a negligible performance impact this
+            setting is mostly concerned with how frequently you would like a status update.
+    
+    config BT_SCAN_DURATION
+        int "Duration of a Bluetooth Classic scan cycle"
+        default 16
+        help
+            This specifies the duration of Bluetooth Classic Discovery, in 1.28-second units.
+            When this duration has passed Gravity will display a status message and restart
+            scanning continually until scanning is deactivated; apart from a negligible
+            performance impact this setting is mostly concerned with how frequentnly you would
+            like a status update.
+            Developer's recommendation: 0x10 (16).
 
     config DEFAULT_ATTACK_MILLIS
         int "Default time between packets during an attack (milliseconds)"

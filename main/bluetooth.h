@@ -37,6 +37,13 @@ typedef enum {
     APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE,
 } app_gap_state_t;
 
+typedef enum {
+    GRAVITY_BT_PRIORITISE_RSSI = 1,
+    GRAVITY_BT_PRIORITISE_AGE = 2,
+    GRAVITY_BT_PRIORITISE_NAME = 4,
+    GRAVITY_BT_PRIORITISE_SELECTED = 8
+} gravity_bt_purge_strategy;
+
 typedef struct {
     uint8_t bdname_len;
     uint8_t eir_len;

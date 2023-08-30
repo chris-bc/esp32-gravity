@@ -1038,13 +1038,14 @@ TODO
 * SCAN OFF doesn't support BT or BLE - Would be nice to
 * Allow duration of BT and BLE scans to be specified
   * Unless there's a way I can keep them running indefinitely a la 802.11 scan?
+  * Discovery is 1.28-second units, currently 0x10
 * Configurable behaviour on BLE out of memory
   * Truncate all non-selected BT devices and continue
   * Truncate all unnamed BT devices and continue
   * Truncate unnamed and unselected BT devices and continue
   * Truncate the oldest BT devices and continue
   * Truncate lowest RSSI (could even write an incremental cutoff)
-  * Halt scanning
+  * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
 * Further testing of VIEW BT SORT *
 * Add BT service information
 * Add active BT scanning - connections
