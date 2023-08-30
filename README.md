@@ -994,7 +994,8 @@ TODO
   * Truncate the oldest BT devices and continue
   * Truncate lowest RSSI (could even write an incremental cutoff)
   * Halt scanning
- * Refactor out EIR and maybe bdName into pointers to further reduce memory usage
+ * Reduce the number of string literals (pretty significant memory saving by this time)
+ * Logic bug in bt_comparator - SSID sort option needs to return 0 if one->bdName && two->bdName == NULL
 * Further testing of VIEW BT SORT *
 * Move common log outputs into a function to save all the #ifdef-ing
 * Add BT service information

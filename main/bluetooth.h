@@ -42,8 +42,8 @@ typedef struct {
     uint8_t eir_len;
     int32_t rssi;
     uint32_t cod;
-    uint8_t eir[ESP_BT_GAP_EIR_DATA_LEN];
-    char bdName[ESP_BT_GAP_MAX_BDNAME_LEN + 1];
+    uint8_t *eir; // Was [ESP_BT_GAP_EIR_DATA_LEN];
+    char *bdName; // Was [ESP_BT_GAP_MAX_BDNAME_LEN + 1];
     esp_bd_addr_t bda;
     gravity_bt_scan_t scanType;
     clock_t lastSeen;

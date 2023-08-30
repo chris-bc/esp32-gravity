@@ -570,12 +570,37 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                 /* Found - Update */
                 gravity_bt_devices[devIdx]->rssi = scan_result->scan_rst.rssi;
                 if (scan_result->scan_rst.adv_data_len > 0) {
+                    if (gravity_bt_devices[devIdx]->eir != NULL) {
+                        free(gravity_bt_devices[devIdx]->eir);
+                    }
+                    gravity_bt_devices[devIdx]->eir = malloc(sizeof(uint8_t) * scan_result->scan_rst.adv_data_len);
+                    if (gravity_bt_devices[devIdx]->eir == NULL) {
+                        #ifdef CONFIG_FLIPPER
+                            printf("Unable to allocate memory for EIR (len %u).\n", scan_result->scan_rst.adv_data_len);
+                        #else
+                            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", scan_result->scan_rst.adv_data_len);
+                        #endif
+                        return; /* Out of memory */
+                    }
                     memcpy(gravity_bt_devices[devIdx]->eir, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len);
                     gravity_bt_devices[devIdx]->eir_len = scan_result->scan_rst.adv_data_len;
                 }
                 if (adv_name_len > 0) {
                     gravity_bt_devices[devIdx]->bdname_len = adv_name_len;
-                    strcpy(gravity_bt_devices[devIdx]->bdName, bdNameStr);
+                    if (gravity_bt_devices[devIdx]->bdName != NULL) {
+                        free(gravity_bt_devices[devIdx]->bdName);
+                    }
+                    gravity_bt_devices[devIdx]->bdName = malloc(sizeof(char) * (adv_name_len + 1));
+                    if (gravity_bt_devices[devIdx]->bdName == NULL) {
+                        #ifdef CONFIG_FLIPPER
+                            printf("Unable to allocate memory for bdName (len %u).\n", adv_name_len);
+                        #else
+                            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", adv_name_len);
+                        #endif
+                        return; /* ESP_ERR_NO_MEM */
+                    }
+                    strncpy(gravity_bt_devices[devIdx]->bdName, bdNameStr, adv_name_len);
+                    gravity_bt_devices[devIdx]->bdName[adv_name_len] = '\0';
                 }
             } else {
                 bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, BT_SCAN_TYPE_PASSIVE);
@@ -817,7 +842,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
         // TODO: Include a timestamp so we can age devices
-        if (paramUpdated[BT_PARAM_BDNAME] && strcmp(gravity_bt_devices[deviceIdx]->bdName, dev_bdname)) {
+        if (paramUpdated[BT_PARAM_BDNAME] && ((gravity_bt_devices[deviceIdx]->bdName == NULL && dev_bdname_len > 0) || strcmp(gravity_bt_devices[deviceIdx]->bdName, dev_bdname))) {
             #ifdef CONFIG_FLIPPER
                 printf("BT: Update BT Device %s Name \"%s\"\n", bda_str, dev_bdname);
             #else
@@ -875,11 +900,36 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
             updatedFlags[BT_PARAM_RSSI] = false;
         }
         if (updatedFlags[BT_PARAM_BDNAME]) {
-            strcpy(gravity_bt_devices[deviceIdx]->bdName, theName);
+            if (gravity_bt_devices[deviceIdx]->bdName != NULL) {
+                free(gravity_bt_devices[deviceIdx]->bdName);
+            }
+            gravity_bt_devices[deviceIdx]->bdName = malloc(sizeof(char) * (theNameLen + 1));
+            if (gravity_bt_devices[deviceIdx]->bdName == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to allocate memory for BDName (len %u).\n", theNameLen);
+                #else
+                    ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", theNameLen);
+                #endif
+                return ESP_ERR_NO_MEM;
+            }
+            strncpy(gravity_bt_devices[deviceIdx]->bdName, theName, theNameLen);
+            gravity_bt_devices[deviceIdx]->bdName[theNameLen] = '\0';
             gravity_bt_devices[deviceIdx]->bdname_len = theNameLen;
             updatedFlags[BT_PARAM_BDNAME] = false;
         }
         if (updatedFlags[BT_PARAM_EIR]) {
+            if (gravity_bt_devices[deviceIdx]->eir != NULL) {
+                free(gravity_bt_devices[deviceIdx]->eir);
+            }
+            gravity_bt_devices[deviceIdx]->eir = malloc(sizeof(uint8_t) * theEirLen);
+            if (gravity_bt_devices[deviceIdx] == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Unable to allocate memory for EIR (len %u).\n", theEirLen);
+                #else
+                    ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", theEirLen);
+                #endif
+                return ESP_ERR_NO_MEM;
+            }
             memcpy(gravity_bt_devices[deviceIdx]->eir, theEir, theEirLen);
             gravity_bt_devices[deviceIdx]->eir_len = theEirLen;
         }
@@ -1065,9 +1115,32 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->selected = false;
     newDevices[gravity_bt_dev_count]->index = gravity_bt_dev_count;
     memcpy(newDevices[gravity_bt_dev_count]->bda, bda, ESP_BD_ADDR_LEN);
-    memset(newDevices[gravity_bt_dev_count]->bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
-    strncpy(newDevices[gravity_bt_dev_count]->bdName, (char *)bdName, bdNameLen < (ESP_BT_GAP_MAX_BDNAME_LEN + 1)?bdNameLen:(ESP_BT_GAP_MAX_BDNAME_LEN + 1));
-    memcpy(newDevices[gravity_bt_dev_count]->eir, eir, (eirLen < ESP_BT_GAP_EIR_DATA_LEN)?eirLen:ESP_BT_GAP_EIR_DATA_LEN);
+    newDevices[gravity_bt_dev_count]->bdName = malloc(sizeof(char) * (bdNameLen + 1));
+    if (newDevices[gravity_bt_dev_count]->bdName == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory for BDName (len %u).\n", bdNameLen);
+        #else
+            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", bdNameLen);
+        #endif
+        free(newDevices);
+        return ESP_ERR_NO_MEM;
+    }
+    strncpy(newDevices[gravity_bt_dev_count]->bdName, bdName, bdNameLen);
+    newDevices[gravity_bt_dev_count]->bdName[bdNameLen] = '\0';
+    newDevices[gravity_bt_dev_count]->eir = malloc(sizeof(uint8_t) * eirLen);
+    if (newDevices[gravity_bt_dev_count]->eir == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory for EIR (len %u).\n", eirLen);
+        #else
+            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", eirLen);
+        #endif
+        if (newDevices[gravity_bt_dev_count]->bdName != NULL) {
+            free(newDevices[gravity_bt_dev_count]->bdName);
+        }
+        free(newDevices);
+        return ESP_ERR_NO_MEM;
+    }
+    memcpy(newDevices[gravity_bt_dev_count]->eir, eir, eirLen);
 
     /* Finally copy new device array into place */
     if (gravity_bt_devices != NULL) {
@@ -1120,8 +1193,38 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
 
     /* And now the refs */
     memcpy(dest.bda, source.bda, ESP_BD_ADDR_LEN);
+    /* EIR - free, malloc, copy */
+    if (dest.eir != NULL) {
+        free(dest.eir);
+    }
+    dest.eir = malloc(sizeof(uint8_t) * source.eir_len);
+    if (dest.eir == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory for EIR (len %u).\n", source.eir_len);
+        #else
+            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", source.eir_len);
+        #endif
+        return ESP_ERR_NO_MEM;
+    }
     memcpy(dest.eir, source.eir, source.eir_len);
-    strcpy(dest.bdName, source.bdName);
+    /* bdName - free, malloc, copy */
+    if (dest.bdName != NULL) {
+        free(dest.bdName);
+    }
+    dest.bdName = malloc(sizeof(char) * (source.bdname_len + 1));
+    if (dest.bdName == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Unable to allocate memory for bdName (len %u).\n", source.bdname_len);
+        #else
+            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth device name (length %u).", source.bdname_len);
+        #endif
+        if (dest.eir != NULL) {
+            free(dest.eir);
+        }
+        return ESP_ERR_NO_MEM;
+    }
+    strncpy(dest.bdName, source.bdName, source.bdname_len);
+    dest.bdName[source.bdname_len] = '\0';
 
     return err;
 }
@@ -1306,7 +1409,13 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                 return 1;
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            return strcmp((char *)one->bdName, (char *)two->bdName);
+            if (one->bdName == NULL) {
+                return -1;
+            } else if (two->bdName == NULL) {
+                return 1;
+            } else {
+                return strcmp((char *)one->bdName, (char *)two->bdName);
+            }
         }
     } else if (sortCount == 2) {
         if (sortResults[0] == GRAVITY_SORT_AGE) {
@@ -1325,7 +1434,13 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                    if (one->bdName == NULL) {
+                        return -1;
+                    } else if (two->bdName == NULL) {
+                        return 1;
+                    } else {
+                        return strcmp((char *)one->bdName, (char *)two->bdName);
+                    }
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
@@ -1344,11 +1459,21 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                    if (one->bdName == NULL) {
+                        return -1;
+                    } else if (two->bdName == NULL) {
+                        return 1;
+                    } else {
+                        return strcmp((char *)one->bdName, (char *)two->bdName);
+                    }
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+            if (one->bdName == NULL) {
+                return -1;
+            } else if (two->bdName == NULL) {
+                return 1;
+            } else if (strcmp((char *)one->bdName, (char *)two->bdName)) {
                 return strcmp((char *)one->bdName, (char *)two->bdName);
             } else {
                 /* Return based on sortResults[1] */
@@ -1385,7 +1510,11 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                if (one->bdName == NULL) {
+                    return -1;
+                } else if (two->bdName == NULL) {
+                    return 1;
+                } else if (strcmp((char *)one->bdName, (char *)two->bdName)) {
                     return strcmp((char *)one->bdName, (char *)two->bdName);
                 }
             }
@@ -1399,7 +1528,13 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcmp((char *)one->bdName, (char *)two->bdName);
+                if (one->bdName == NULL) {
+                    return -1;
+                } else if (two->bdName == NULL) {
+                    return 1;
+                } else {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
             }
         } else if (sortResults[0] == GRAVITY_SORT_RSSI) {
             if (one->rssi < two->rssi) {
@@ -1414,7 +1549,11 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+                if (one->bdName == NULL) {
+                    return -1;
+                } else if (two->bdName == NULL) {
+                    return 1;
+                } else if (strcmp((char *)one->bdName, (char *)two->bdName)) {
                     return strcmp((char *)one->bdName, (char *)two->bdName);
                 }
             }
@@ -1428,10 +1567,20 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                return strcmp((char *)one->bdName, (char *)two->bdName);
+                if (one->bdName == NULL) {
+                    return -1;
+                } else if (two->bdName == NULL) {
+                    return 1;
+                } else {
+                    return strcmp((char *)one->bdName, (char *)two->bdName);
+                }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (strcmp((char *)one->bdName, (char *)two->bdName)) {
+            if (one->bdName == NULL) {
+                return -1; // TODO: This logic will fail if both one->bdName and two->bdName == NULL
+            } else if (two->bdName == NULL) {
+                return 1;
+            } else if (strcmp((char *)one->bdName, (char *)two->bdName)) {
                 return strcmp((char *)one->bdName, (char *)two->bdName);
             } else if (sortResults[1] == GRAVITY_SORT_AGE) {
                 if (one->lastSeen < two->lastSeen) {
@@ -1482,6 +1631,12 @@ esp_err_t gravity_clear_bt() {
     if (gravity_bt_devices != NULL) {
         for (int i = 0; i < gravity_bt_dev_count; ++i) {
             if (gravity_bt_devices[i] != NULL) {
+                if (gravity_bt_devices[i]->bdName != NULL) {
+                    free(gravity_bt_devices[i]->bdName);
+                }
+                if (gravity_bt_devices[i]->eir != NULL) {
+                    free(gravity_bt_devices[i]->eir);
+                }
                 free(gravity_bt_devices[i]);
             }
         }
