@@ -186,5 +186,10 @@ void displayBluetoothUnsupported();
 
 extern const char *TAG;
 
+/* Common string definitions */
+extern char STRINGS_HOP_STATE_FAIL[];
+extern char STRINGS_MALLOC_FAIL[];
+extern char STRINGS_SET_MAC_FAIL[];
+extern char STRINGS_HOPMODE_INVALID[];
 
 #endif

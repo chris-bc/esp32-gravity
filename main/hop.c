@@ -1,4 +1,5 @@
 #include "hop.h"
+#include "common.h"
 
 const char *HOP_TAG = "hop@GRAVITY";
 long hop_millis = 0;
@@ -27,9 +28,9 @@ void channelHopCallback(void *pvParameter) {
             } else if (hopMode != HOP_MODE_SEQUENTIAL) {
                 /* Not random and not sequential */
                 #ifdef CONFIG_FLIPPER
-                    printf("hopMode is invalid, reverting to sequential\n");
+                    printf("%s- reverting to sequential\n", STRINGS_HOPMODE_INVALID);
                 #else
-                    ESP_LOGW(HOP_TAG, "hopMode contains an unkown value (%d), reverting to HOP_MODE_SEQUENTIAL", hopMode);
+                    ESP_LOGW(HOP_TAG, "%s(%d), reverting to HOP_MODE_SEQUENTIAL", STRINGS_HOPMODE_INVALID, hopMode);
                 #endif
                 hopMode = HOP_MODE_SEQUENTIAL;
             }
@@ -62,9 +63,9 @@ esp_err_t hopModeToString(HopMode mode, char *str) {
             break;
         default:
             #ifdef CONFIG_FLIPPER
-                printf("Invalid HopMode: %d\n", mode);
+                printf("%s%d\n", STRINGS_HOPMODE_INVALID, mode);
             #else
-                ESP_LOGE(HOP_TAG, "Invalid HopMode specified: \"%d\"", mode);
+                ESP_LOGE(HOP_TAG, "%s\"%d\"", STRINGS_HOPMODE_INVALID, mode);
             #endif
             return ESP_ERR_INVALID_ARG;
     }

@@ -335,6 +335,55 @@ format as `view`.
 * `selected`, `selected ap sta` and `selected sta ap` each display both selected access points and selected stations
 
 
+### Bluetooth Classic and Bluetooth Low Energy (BLE)
+
+In addition to WiFi/802.11, many of the commands above also support Bluetooth Classic and Bluetooth Low Energy
+devices. At the time of writing Bluetooth Classic devices can only be discovered if they are set to discoverable,
+I hope to find a more robust sniffing solution in the near future.
+
+#### Scanning
+
+```c
+Syntax: scan [ ( [ <ssid> ] WIFI ) | BT | BLE | OFF ]
+```
+
+`scan BT` will initiate Classic Bluetooth Discovery. Currently Discovery will automatically terminate after 0x10
+time units, with each time unit being approximately 1.26s. That's about 20 seconds. Devices discovered by this
+method advertise several services. These services can be queried by <DOING SOMETHING WITH THEM>.
+
+`scan BLE` will commence Bluetooth Low Energy sniffing. Currently connections are not established with identified devices. Currently sniffing will automatically terminate after 30 seconds. CAUTION: This feature can easily
+cause Gravity to exhaust the memory available on all ESP32 variants. ESP32-Gravity v0.5.0 will introduce a
+variety of strategies to prevent this, for now you'll typically be able to cache around 150 Bluetooth devices
+before running out of memory.
+
+#### Scan Results
+
+Interacting with Bluetooth Classic and Bluetooth Low Enengy devices is done in much the same way as 802.11 WiFi
+devices.
+
+```c
+view BT
+```
+
+Display all Bluetooth devices identified by scanning. This includes both Bluetooth Classic and Bluetooth Low
+Energy devices; when using Gravity from a console the scan method by which a device is identified is included
+in the output.
+
+![ESP32 Gravity Bluetooth Devices](https://github.com/chris-bc/esp32-gravity/blob/main/gravity-bluetooth.png)
+
+```c
+select BT <elementId>
+```
+
+Select the specified Bluetooth device, with 'elementId' referencing the ID displayed by `view BT`.
+
+```c
+selected BT
+```
+
+Display selected Bluetooth devices.
+
+
 ### Settings & Helper Features
 
 In addition to the configuration options described under *Configuration* a number of
@@ -984,6 +1033,8 @@ TODO
 
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
+* Update documentation to include Bluetooth features
+  * Have done a little, needs more.
 * SCAN OFF doesn't support BT or BLE - Would be nice to
 * Allow duration of BT and BLE scans to be specified
   * Unless there's a way I can keep them running indefinitely a la 802.11 scan?
@@ -994,12 +1045,9 @@ TODO
   * Truncate the oldest BT devices and continue
   * Truncate lowest RSSI (could even write an incremental cutoff)
   * Halt scanning
- * Reduce the number of string literals (pretty significant memory saving by this time)
 * Further testing of VIEW BT SORT *
-* Move common log outputs into a function to save all the #ifdef-ing
 * Add BT service information
 * Add active BT scanning - connections
-* Migrate scan command to SCAN ( [ <ssid> ] WIFI ) | BT | BLE ) [ ON | OFF ]
 * Additional command to inspect a device and its services
   * Move services callback handler into its own function
   * Manage a data model for the services rather than displaying them
@@ -1007,7 +1055,6 @@ TODO
 * Retrieve services for all devices
 * Interpret services based on their UUIDs
 * BT discovery Progress indicator - seconds remaining?
-* add_bt_device() - Add a scan method device was discovered with - BT_SCAN_DISCOVERY BT_SCAN_SNIFF BT_SCAN_ACTIVE
 * Better formatting of remaining UIs
 * Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32

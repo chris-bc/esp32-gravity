@@ -1,4 +1,5 @@
 #include "fuzz.h"
+#include "common.h"
 
 FuzzMode fuzzMode = FUZZ_MODE_OFF;
 FuzzPacketType fuzzPacketType = FUZZ_PACKET_NONE;
@@ -142,9 +143,9 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     char *ssid = malloc(sizeof(char) * (ssidSize + 1)); /* Other callers may want to use it as a string */
     if (ssid == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to allocate %db for an SSID\n", ssidSize);
+            printf("%s(%db) for an SSID\n", STRINGS_MALLOC_FAIL, ssidSize);
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", ssidSize);
+            ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for an SSID", STRINGS_MALLOC_FAIL, ssidSize);
         #endif
         return 0;
     }
@@ -227,9 +228,9 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     char *ssid = malloc(sizeof(char) * (ssidSize + 1)); /* Other callers may want to use it as a string */
     if (ssid == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to allocate %db for an SSID\n", (ssidSize + 1));
+            printf("%s(%db) for an SSID\n", STRINGS_MALLOC_FAIL (ssidSize + 1));
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to allocate %d bytes for an SSID", (ssidSize + 1));
+            ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for an SSID", STRINGS_MALLOC_FAIL, (ssidSize + 1));
         #endif
         return 0;
     }
@@ -267,9 +268,9 @@ void fuzz_malformed_callback(void *pvParameter) {
     uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
     if (pkt == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("No memory for universal packet\n");
+            printf("%sfor universal packet\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(FUZZ_TAG, "Unable to reserve %d bytes for a universal packet", biggestPktLen);
+            ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for a universal packet", STRINGS_MALLOC_FAIL, biggestPktLen);
         #endif
         return;
     }
@@ -313,9 +314,9 @@ void fuzz_overflow_callback(void *pvParameter) {
     uint8_t *pkt = malloc(sizeof(uint8_t) * biggestPktLen);
     if (pkt == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("No memory for universal packet\n");
+            printf("%sfor universal packet\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(FUZZ_TAG, "Unable to reserve %d bytes for a universal packet template", biggestPktLen);
+            ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for a universal packet template", STRINGS_MALLOC_FAIL, biggestPktLen);
         #endif
         return;
     }

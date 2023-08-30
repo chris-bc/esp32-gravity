@@ -96,9 +96,9 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         /* Set MAC to deauthSrc */
         if (esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthSrc) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
-                printf("Failed to set MAC for DOS Deauth, continuing\n");
+                printf("%sfor DOS Deauth, continuing\n", STRINGS_SET_MAC_FAIL);
             #else
-                ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthSrc[0], deauthSrc[1], deauthSrc[2], deauthSrc[3], deauthSrc[4], deauthSrc[5]);
+                ESP_LOGW(DOS_TAG, "%s(%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", STRINGS_SET_MAC_FAIL, deauthSrc[0], deauthSrc[1], deauthSrc[2], deauthSrc[3], deauthSrc[4], deauthSrc[5]);
             #endif
         }
         vTaskDelay(1);
@@ -117,9 +117,9 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         /* Check if it's broadcast first */
         if (memcmp(deauthDest, BROADCAST, 6) && esp_wifi_set_mac(ESP_IF_WIFI_AP, deauthDest) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
-                printf("Failed to set MAC for disassoc, continuing\n");
+                printf("%sfor disassoc, continuing\n", STRINGS_SET_MAC_FAIL);
             #else
-                ESP_LOGW(DOS_TAG, "Failed to set MAC (%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", deauthDest[0], deauthDest[1], deauthDest[2], deauthDest[3], deauthDest[4], deauthDest[5]);
+                ESP_LOGW(DOS_TAG, "%s(%02x:%02x:%02x:%02x:%02x:%02x) for DOS Deauth", STRINGS_SET_MAC_FAIL, deauthDest[0], deauthDest[1], deauthDest[2], deauthDest[3], deauthDest[4], deauthDest[5]);
             #endif
         }
         vTaskDelay(1);
@@ -137,9 +137,9 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         /* Set the MAC first this time */
         if (esp_wifi_set_mac(ESP_IF_WIFI_AP, thisSTA->apMac) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
-                printf("Failed to set MAC in DOS STA\n");
+                printf("%sin DOS STA\n", STRINGS_SET_MAC_FAIL);
             #else
-                ESP_LOGW(DOS_TAG, "Failed to set MAC in DOS STA\n");
+                ESP_LOGW(DOS_TAG, "%sin DOS STA\n", STRINGS_SET_MAC_FAIL);
             #endif
         }
         vTaskDelay(1);
@@ -191,9 +191,9 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
     strSsid = malloc(sizeof(char) * (payload[PROBE_SSID_OFFSET - 1] + 1));
     if (strSsid == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate space for a string SSID\n");
+            printf("%sfor a string SSID\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(DOS_TAG, "Unable to allocate memory to calculate a string representation of SSID");
+            ESP_LOGE(DOS_TAG, "%sto calculate a string representation of SSID", STRINGS_MALLOC_FAIL);
         #endif
         return ESP_ERR_NO_MEM;
     }
@@ -237,9 +237,9 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
         /* Set MAC */
         if (gravity_set_mac(destAddr) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
-                printf("Unable to set MAC to %s\n", strSsid);
+                printf("%sto %s\n", STRINGS_SET_MAC_FAIL, strSsid);
             #else
-                ESP_LOGW(DOS_TAG, "Unable to set MAC to %s", strSsid);
+                ESP_LOGW(DOS_TAG, "%sto %s", STRINGS_SET_MAC_FAIL, strSsid);
             #endif
         }
         vTaskDelay(1);
@@ -249,9 +249,9 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
             // TODO: AUTH
             if (gravity_set_mac(gravity_selected_aps[i]->espRecord.bssid) != ESP_OK) {
                 #ifdef CONFIG_FLIPPER
-                    printf("Unable to set MAC from selectedAP\n");
+                    printf("%sfrom selectedAP\n", STRINGS_SET_MAC_FAIL);
                 #else
-                    ESP_LOGW(DOS_TAG, "Unable to set MAC from selectedAP");
+                    ESP_LOGW(DOS_TAG, "%sfrom selectedAP", STRINGS_SET_MAC_FAIL);
                 #endif
             }
             vTaskDelay(1);

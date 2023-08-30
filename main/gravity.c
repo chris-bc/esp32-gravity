@@ -76,7 +76,7 @@ esp_err_t initFlipperSep() {
     #ifdef CONFIG_FLIPPER_SEPARATOR
         char *temp = malloc(sizeof(char) * (strlen(CONFIG_FLIPPER_SEPARATOR) + 1));
         if (temp == NULL) {
-            printf("Unable to allocate memory to set separator\n");
+            printf("%sto set separator\n", STRINGS_MALLOC_FAIL);
             return ESP_ERR_NO_MEM;
         }
         strcpy(temp, CONFIG_FLIPPER_SEPARATOR);
@@ -327,9 +327,9 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n",STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop state for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -515,9 +515,9 @@ esp_err_t cmd_beacon(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop state for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -665,9 +665,9 @@ esp_err_t cmd_probe(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -743,9 +743,9 @@ esp_err_t cmd_sniff(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
     return ESP_OK;
@@ -856,9 +856,9 @@ esp_err_t cmd_deauth(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop status: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
     return deauth_start(dMode, setMAC, delay);
@@ -998,9 +998,9 @@ esp_err_t cmd_mana(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop status: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -1088,9 +1088,9 @@ esp_err_t cmd_ap_dos(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -1258,9 +1258,9 @@ esp_err_t cmd_scan(int argc, char **argv) {
     err |= setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 
@@ -1964,9 +1964,9 @@ esp_err_t cmd_handshake(int argc, char **argv) {
     esp_err_t err = setHopForNewCommand();
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to set hop state: %s\n", esp_err_to_name(err));
+            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #else
-            ESP_LOGW(HOP_TAG, "Unable to set hop status for command: %s", esp_err_to_name(err));
+            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
         #endif
     }
 

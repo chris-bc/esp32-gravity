@@ -576,9 +576,9 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     gravity_bt_devices[devIdx]->eir = malloc(sizeof(uint8_t) * scan_result->scan_rst.adv_data_len);
                     if (gravity_bt_devices[devIdx]->eir == NULL) {
                         #ifdef CONFIG_FLIPPER
-                            printf("Unable to allocate memory for EIR (len %u).\n", scan_result->scan_rst.adv_data_len);
+                            printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, scan_result->scan_rst.adv_data_len);
                         #else
-                            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", scan_result->scan_rst.adv_data_len);
+                            ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, scan_result->scan_rst.adv_data_len);
                         #endif
                         return; /* Out of memory */
                     }
@@ -593,9 +593,9 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     gravity_bt_devices[devIdx]->bdName = malloc(sizeof(char) * (adv_name_len + 1));
                     if (gravity_bt_devices[devIdx]->bdName == NULL) {
                         #ifdef CONFIG_FLIPPER
-                            printf("Unable to allocate memory for bdName (len %u).\n", adv_name_len);
+                            printf("%sfor bdName (len %u).\n", STRINGS_MALLOC_FAIL, adv_name_len);
                         #else
-                            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", adv_name_len);
+                            ESP_LOGE(BT_TAG, "%sfor Bluetooth Device Name (length %u).", STRINGS_MALLOC_FAIL, adv_name_len);
                         #endif
                         return; /* ESP_ERR_NO_MEM */
                     }
@@ -603,7 +603,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
                     gravity_bt_devices[devIdx]->bdName[adv_name_len] = '\0';
                 }
             } else {
-                bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, BT_SCAN_TYPE_PASSIVE);
+                bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, GRAVITY_BT_SCAN_BLE);
             }
             
             // if (adv_name != NULL) {
@@ -872,7 +872,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         #else
             ESP_LOGI(BT_TAG, "%s", devString);
         #endif
-        bt_dev_add_components(dev_bda, dev_bdname, dev_bdname_len, dev_eir, dev_eir_len, dev_cod, dev_rssi, BT_SCAN_TYPE_DISCOVERY);
+        bt_dev_add_components(dev_bda, dev_bdname, dev_bdname_len, dev_eir, dev_eir_len, dev_cod, dev_rssi, GRAVITY_BT_SCAN_CLASSIC_DISCOVERY);
     }
 
     state = APP_GAP_STATE_DEVICE_DISCOVER_COMPLETE;
@@ -906,9 +906,9 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
             gravity_bt_devices[deviceIdx]->bdName = malloc(sizeof(char) * (theNameLen + 1));
             if (gravity_bt_devices[deviceIdx]->bdName == NULL) {
                 #ifdef CONFIG_FLIPPER
-                    printf("Unable to allocate memory for BDName (len %u).\n", theNameLen);
+                    printf("%sfor BDName (len %u).\n", STRINGS_MALLOC_FAIL, theNameLen);
                 #else
-                    ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", theNameLen);
+                    ESP_LOGE(BT_TAG, "%sfor Bluetooth Device Name (length %u).", STRINGS_MALLOC_FAIL, theNameLen);
                 #endif
                 return ESP_ERR_NO_MEM;
             }
@@ -924,9 +924,9 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
             gravity_bt_devices[deviceIdx]->eir = malloc(sizeof(uint8_t) * theEirLen);
             if (gravity_bt_devices[deviceIdx] == NULL) {
                 #ifdef CONFIG_FLIPPER
-                    printf("Unable to allocate memory for EIR (len %u).\n", theEirLen);
+                    printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, theEirLen);
                 #else
-                    ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", theEirLen);
+                    ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, theEirLen);
                 #endif
                 return ESP_ERR_NO_MEM;
             }
@@ -937,7 +937,7 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
         gravity_bt_devices[deviceIdx]->lastSeen = clock();
     } else {
         /* Device doesn't exist, add it instead */
-        return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, BT_SCAN_TYPE_DISCOVERY);
+        return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, GRAVITY_BT_SCAN_CLASSIC_DISCOVERY);
     }
     return err;
 }
@@ -1079,9 +1079,9 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     app_gap_cb_t **newDevices = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count + 1));
     if (newDevices == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory to add BT device\n");
+            printf("%sto add BT device\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(BT_TAG, "Insufficient memory to extend the array of Bluetooth devices in memory (%d).", (gravity_bt_dev_count + 1));
+            ESP_LOGE(BT_TAG, "%sfor Bluetooth Device #%d.", STRINGS_MALLOC_FAIL, (gravity_bt_dev_count + 1));
         #endif
         return ESP_ERR_NO_MEM;
     }
@@ -1099,9 +1099,9 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count] = malloc(sizeof(app_gap_cb_t));
     if (newDevices[gravity_bt_dev_count] == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Insufficient memory to malloc BT device %d.\n", gravity_bt_dev_count + 1);
+            printf("%sfor BT device %d.\n", STRINGS_MALLOC_FAIL, gravity_bt_dev_count + 1);
         #else
-            ESP_LOGE(BT_TAG, "Insufficient memory to malloc %d bytes for BT device #%d.", sizeof(app_gap_cb_t), gravity_bt_dev_count + 1);
+            ESP_LOGE(BT_TAG, "%s(%d) for BT device #%d.", STRINGS_MALLOC_FAIL, sizeof(app_gap_cb_t), gravity_bt_dev_count + 1);
         #endif
         free(newDevices);
         return ESP_ERR_NO_MEM;
@@ -1118,9 +1118,9 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->bdName = malloc(sizeof(char) * (bdNameLen + 1));
     if (newDevices[gravity_bt_dev_count]->bdName == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory for BDName (len %u).\n", bdNameLen);
+            printf("%sfor BDName (len %u).\n", STRINGS_MALLOC_FAIL, bdNameLen);
         #else
-            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth Device Name (length %u).", bdNameLen);
+            ESP_LOGE(BT_TAG, "%sfor Bluetooth Device Name (length %u).", STRINGS_MALLOC_FAIL, bdNameLen);
         #endif
         free(newDevices);
         return ESP_ERR_NO_MEM;
@@ -1130,9 +1130,9 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->eir = malloc(sizeof(uint8_t) * eirLen);
     if (newDevices[gravity_bt_dev_count]->eir == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory for EIR (len %u).\n", eirLen);
+            printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, eirLen);
         #else
-            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", eirLen);
+            ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, eirLen);
         #endif
         if (newDevices[gravity_bt_dev_count]->bdName != NULL) {
             free(newDevices[gravity_bt_dev_count]->bdName);
@@ -1200,9 +1200,9 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     dest.eir = malloc(sizeof(uint8_t) * source.eir_len);
     if (dest.eir == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory for EIR (len %u).\n", source.eir_len);
+            printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, source.eir_len);
         #else
-            ESP_LOGE(BT_TAG, "Unable to allocate memory for EIR (length %u).", source.eir_len);
+            ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, source.eir_len);
         #endif
         return ESP_ERR_NO_MEM;
     }
@@ -1214,9 +1214,9 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     dest.bdName = malloc(sizeof(char) * (source.bdname_len + 1));
     if (dest.bdName == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory for bdName (len %u).\n", source.bdname_len);
+            printf("%sfor bdName (len %u).\n", STRINGS_MALLOC_FAIL, source.bdname_len);
         #else
-            ESP_LOGE(BT_TAG, "Unable to allocate memory for Bluetooth device name (length %u).", source.bdname_len);
+            ESP_LOGE(BT_TAG, "%sfor Bluetooth device name (length %u).", STRINGS_MALLOC_FAIL, source.bdname_len);
         #endif
         if (dest.eir != NULL) {
             free(dest.eir);
@@ -1320,6 +1320,7 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
     char strBssid[18];
     char strTime[26];
     char strName[25]; /* Hold a substring of device name */
+    char strScanType[18];
     unsigned long nowTime;
     unsigned long elapsed;
     double minutes;
@@ -1329,14 +1330,14 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
         printf(" ID | RSSI |      Name      | Class | LastSeen\n");
         printf("====|======|================|=======|==========\n");
     #else
-        printf(" ID | RSSI | Name                   | BSSID             | Class    | LastSeen\n");
-        printf("====|======|========================|===================|==========|===========================\n");
+        printf(" ID | RSSI | Name                   | BSSID             | Class    | Scan Method       | LastSeen\n");
+        printf("====|======|========================|===================|==========|===================|===========================\n");
     #endif
 
     /* Apply the sort to selectedAPs */
     qsort(devices, deviceCount, sizeof(app_gap_cb_t *), &bt_comparator);
 
-    // TODO: Display devices
+    // Display devices
     for (int deviceIdx = 0; deviceIdx < deviceCount; ++deviceIdx) {
         err |= mac_bytes_to_string(devices[deviceIdx]->bda, strBssid);
 
@@ -1369,15 +1370,39 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
         uint8_t shortCodLen = 0;
         err |= cod2shortStr(devices[deviceIdx]->cod, shortCod, &shortCodLen);
 
+        /* Stringify scanType for display to console */
+        err |= bt_scanTypeToString(devices[deviceIdx]->scanType, strScanType);
+
         /* Finally, display */
         #ifdef CONFIG_FLIPPER
             printf("%s%2d | %4ld |%-16s|%-7s| %s\n", (devices[deviceIdx]->selected?"*":" "), devices[deviceIdx]->index, devices[deviceIdx]->rssi, strName, shortCod, strTime);
         #else
-            printf("%s%2d | %4ld | %-22s | %-17s |%-10s| %s\n", (devices[deviceIdx]->selected?"*":" "), devices[deviceIdx]->index, devices[deviceIdx]->rssi, strName, strBssid, shortCod, strTime);
+            printf("%s%2d | %4ld | %-22s | %-17s |%-10s| %-17s | %s\n", (devices[deviceIdx]->selected?"*":" "), devices[deviceIdx]->index, devices[deviceIdx]->rssi, strName, strBssid, shortCod, strScanType, strTime);
         #endif
 
     }
 
+    return err;
+}
+
+/* Convert a gravity_bt_scan_t enum to a string */
+/* The supplied strOutput must be an initialised char array of at least 18 bytes */
+esp_err_t bt_scanTypeToString(gravity_bt_scan_t scanType, char *strOutput) {
+    esp_err_t err = ESP_OK;
+    switch (scanType) {
+        case GRAVITY_BT_SCAN_CLASSIC_DISCOVERY:
+            strcpy(strOutput, "Classic Discovery");
+            break;
+        case GRAVITY_BT_SCAN_BLE:
+            strcpy(strOutput, "Bluetooth LE");
+            break;
+        case GRAVITY_BT_SCAN_TYPE_ACTIVE:
+            strcpy(strOutput, "Active Sniffing");
+            break;
+        default:
+            strcpy(strOutput, "***UNKNOWN***");
+            break;
+    }
     return err;
 }
 
@@ -1685,9 +1710,9 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
             newSel = malloc(sizeof(app_gap_cb_t *) * ++gravity_sel_bt_count);
             if (newSel == NULL) {
                 #ifdef CONFIG_FLIPPER
-                    printf("Unable to allocate memory for %d pointers.\n", gravity_sel_bt_count);
+                    printf("%sfor %d pointers.\n", STRINGS_MALLOC_FAIL, gravity_sel_bt_count);
                 #else
-                    ESP_LOGE(BT_TAG, "Unable to allocate memory for %d pointers.", gravity_sel_bt_count);
+                    ESP_LOGE(BT_TAG, "%sfor %d pointers.", STRINGS_MALLOC_FAIL, gravity_sel_bt_count);
                 #endif
                 return ESP_ERR_NO_MEM;
             }
@@ -1706,9 +1731,9 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
                 newSel = malloc(sizeof(app_gap_cb_t *) * gravity_sel_bt_count);
                 if (newSel == NULL) {
                     #ifdef CONFIG_FLIPPER
-                        printf("Failed to allocate memory for %d pointers\n", gravity_sel_bt_count);
+                        printf("%sfor %d pointers\n", STRINGS_MALLOC_FAIL, gravity_sel_bt_count);
                     #else
-                        ESP_LOGE(BT_TAG, "Unable to allocate memory for %d pointers.", gravity_sel_bt_count);
+                        ESP_LOGE(BT_TAG, "%sfor %d pointers.", STRINGS_MALLOC_FAIL, gravity_sel_bt_count);
                     #endif
                     return ESP_ERR_NO_MEM;
                 }

@@ -220,9 +220,9 @@ char **generateRandomSSids() {
 		ret[i] = malloc(sizeof(char) * (len + 1));
 		if (ret[i] == NULL) {
 			#ifdef CONFIG_FLIPPER
-				printf("Unable to allocate memory for SSID %d\n", i);
+				printf("%sfor SSID %d\n",STRINGS_MALLOC_FAIL, i);
 			#else
-				ESP_LOGE(TAG, "Unable to allocate memory to store random SSID %d.", i);
+				ESP_LOGE(TAG, "%sto store random SSID %d.", STRINGS_MALLOC_FAIL, i);
 			#endif
 			/* free ret[j] and ret */
 			for (int j = 0; j < i; ++j) {
@@ -426,9 +426,9 @@ esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authentic
 	beaconAuthTypes = malloc(sizeof(PROBE_RESPONSE_AUTH_TYPE) * beaconAuthCount);
 	if (beaconAuthTypes == NULL) {
 		#ifdef CONFIG_FLIPPER
-			printf("Unable to allocate memory for authTypes\n");
+			printf("%sfor authTypes\n", STRINGS_MALLOC_FAIL);
 		#else
-			ESP_LOGE(BEACON_TAG, "Unable to allocate memory for authentication types");
+			ESP_LOGE(BEACON_TAG, "%sfor authentication types", STRINGS_MALLOC_FAIL);
 		#endif
 		return ESP_ERR_NO_MEM;
 	}

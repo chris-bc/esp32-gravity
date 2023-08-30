@@ -9,6 +9,12 @@ const char *AUTH_TYPE_FLIPPER_NAMES[] = { "N/A", "Open", "WEP", "N/A", "WPA" };
 GRAVITY_SORT_TYPE sortResults[] = {GRAVITY_SORT_NONE, GRAVITY_SORT_NONE, GRAVITY_SORT_NONE};
 int sortCount = 1;
 
+/* Common string definitions */
+char STRINGS_HOP_STATE_FAIL[] = "Unable to set hop state: ";
+char STRINGS_MALLOC_FAIL[] = "Unable to allocate memory ";
+char STRINGS_SET_MAC_FAIL[] = "Unable to set MAC ";
+char STRINGS_HOPMODE_INVALID[] = "Invalid hopMode ";
+
 int max(int one, int two) {
     if (one >= two) {
         return one;
@@ -382,9 +388,9 @@ PROBE_RESPONSE_AUTH_TYPE *unpackAuthType(PROBE_RESPONSE_AUTH_TYPE input, int *ou
     PROBE_RESPONSE_AUTH_TYPE *retVal = malloc(sizeof(PROBE_RESPONSE_AUTH_TYPE) * count);
     if (retVal == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Unable to allocate memory to decompose %d authTypes\n", count);
+            printf("%sto decompose %d authTypes\n", STRINGS_MALLOC_FAIL, count);
         #else
-            ESP_LOGE(TAG, "Unable to allocate memory to decompose an authType into its %d component PROBE_RESPONSE_AUTH_TYPEs.", count);
+            ESP_LOGE(TAG, "%sto decompose an authType into its %d component PROBE_RESPONSE_AUTH_TYPEs.", STRINGS_MALLOC_FAIL, count);
         #endif
         return NULL;
     }

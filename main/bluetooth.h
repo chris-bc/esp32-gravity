@@ -23,10 +23,10 @@
 #include "common.h"
 
 typedef enum {
-    BT_SCAN_TYPE_DISCOVERY = 0,
-    BT_SCAN_TYPE_PASSIVE,
-    BT_SCAN_TYPE_ACTIVE,
-    BT_SCAN_TYPE_COUNT
+    GRAVITY_BT_SCAN_CLASSIC_DISCOVERY = 0,
+    GRAVITY_BT_SCAN_BLE,
+    GRAVITY_BT_SCAN_TYPE_ACTIVE,
+    GRAVITY_BT_SCAN_TYPE_COUNT
 } gravity_bt_scan_t;
 
 typedef enum {
@@ -73,6 +73,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
                         uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType);
 esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source);
 
+esp_err_t bt_scanTypeToString(gravity_bt_scan_t scanType, char *strOutput);
 bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t **array, uint8_t arrayLen);
 //esp_err_t gravity_bt_discover_all_services();
 //esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev);

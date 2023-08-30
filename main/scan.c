@@ -487,9 +487,9 @@ esp_err_t gravity_list_all_aps(bool hideExpiredPackets) {
     ScanResultAP **retVal = malloc(sizeof(ScanResultAP *) * gravity_ap_count);
     if (retVal == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to create **gravity_all_aps\n");
+            printf("%sfor **gravity_all_aps\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(TAG, "Failed to allocate memory for **gravity_all_aps");
+            ESP_LOGE(TAG, "%sfor **gravity_all_aps", STRINGS_MALLOC_FAIL);
         #endif
         return ESP_ERR_NO_MEM;
     }
@@ -516,9 +516,9 @@ esp_err_t gravity_list_all_stas(bool hideExpiredPackets) {
     ScanResultSTA **retVal = malloc(sizeof(ScanResultSTA *) * gravity_sta_count);
     if (retVal == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to create **gravity_all_stas\n");
+            printf("%sfor **gravity_all_stas\n", STRINGS_MALLOC_FAIL);
         #else
-            ESP_LOGE(TAG, "Failed to allocate memory for **gravity_all_stas");
+            ESP_LOGE(TAG, "%sfor **gravity_all_stas", STRINGS_MALLOC_FAIL);
         #endif
         return ESP_ERR_NO_MEM;
     }
