@@ -1409,7 +1409,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                 return 1;
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (one->bdName == NULL) {
+            if (one->bdName == NULL && two->bdName == NULL) {
+                return 0;
+            } else if (one->bdName == NULL) {
                 return -1;
             } else if (two->bdName == NULL) {
                 return 1;
@@ -1434,7 +1436,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    if (one->bdName == NULL) {
+                    if (one->bdName == NULL && two->bdName == NULL) {
+                        return 0;
+                    } else if (one->bdName == NULL) {
                         return -1;
                     } else if (two->bdName == NULL) {
                         return 1;
@@ -1459,7 +1463,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                         return 1;
                     }
                 } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                    if (one->bdName == NULL) {
+                    if (one->bdName == NULL && two->bdName == NULL) {
+                        return 0;
+                    } else if (one->bdName == NULL) {
                         return -1;
                     } else if (two->bdName == NULL) {
                         return 1;
@@ -1469,7 +1475,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (one->bdName == NULL) {
+            if (one->bdName == NULL && two->bdName == NULL) {
+                return 0;
+            } else if (one->bdName == NULL) {
                 return -1;
             } else if (two->bdName == NULL) {
                 return 1;
@@ -1510,7 +1518,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (one->bdName == NULL) {
+                if (one->bdName == NULL && two->bdName == NULL) {
+                    return 0;
+                } else if (one->bdName == NULL) {
                     return -1;
                 } else if (two->bdName == NULL) {
                     return 1;
@@ -1528,7 +1538,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                if (one->bdName == NULL) {
+                if (one->bdName == NULL && two->bdName == NULL) {
+                    return 0;
+                } else if (one->bdName == NULL) {
                     return -1;
                 } else if (two->bdName == NULL) {
                     return 1;
@@ -1549,7 +1561,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[1] == GRAVITY_SORT_SSID) {
-                if (one->bdName == NULL) {
+                if (one->bdName == NULL && two->bdName == NULL) {
+                    return 0;
+                } else if (one->bdName == NULL) {
                     return -1;
                 } else if (two->bdName == NULL) {
                     return 1;
@@ -1567,7 +1581,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                     return 1;
                 }
             } else if (sortResults[2] == GRAVITY_SORT_SSID) {
-                if (one->bdName == NULL) {
+                if (one->bdName == NULL && two->bdName == NULL) {
+                    return 0;
+                } else if (one->bdName == NULL) {
                     return -1;
                 } else if (two->bdName == NULL) {
                     return 1;
@@ -1576,7 +1592,9 @@ static int bt_comparator(const void *varOne, const void *varTwo) {
                 }
             }
         } else if (sortResults[0] == GRAVITY_SORT_SSID) {
-            if (one->bdName == NULL) {
+            if (one->bdName == NULL && two->bdName == NULL) {
+                return 0;
+            } else if (one->bdName == NULL) {
                 return -1; // TODO: This logic will fail if both one->bdName and two->bdName == NULL
             } else if (two->bdName == NULL) {
                 return 1;
