@@ -1395,7 +1395,7 @@ esp_err_t scan_display_status() {
     #ifdef CONFIG_FLIPPER
         printf("%s\n", strMsg);
     #else
-        ESP_LOGI(TAG, "%s", strMsg);
+        ESP_LOGI(SCAN_TAG, "%s", strMsg);
     #endif
 
     return ESP_OK;

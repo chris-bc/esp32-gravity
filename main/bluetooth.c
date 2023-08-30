@@ -3,6 +3,7 @@
 #include "esp_bt.h"
 #include "esp_err.h"
 #include "esp_gap_ble_api.h"
+#include "esp_gap_bt_api.h"
 #include "esp_gatt_common_api.h"
 #include "esp_gattc_api.h"
 #include "probe.h"
@@ -12,7 +13,7 @@
 
 const char *BT_TAG = "bt@GRAVITY";
 
-app_gap_cb_t *gravity_bt_devices = NULL;
+app_gap_cb_t **gravity_bt_devices = NULL;
 uint8_t gravity_bt_dev_count = 0;
 app_gap_cb_t **gravity_selected_bt = NULL;
 uint8_t gravity_sel_bt_count = 0;
@@ -564,17 +565,17 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
 
             /* Does the BDA exist? */
             int devIdx = 0;
-            for ( ; devIdx < gravity_bt_dev_count && memcmp(scan_result->scan_rst.bda, gravity_bt_devices[devIdx].bda, ESP_BD_ADDR_LEN); ++devIdx) { }
+            for ( ; devIdx < gravity_bt_dev_count && memcmp(scan_result->scan_rst.bda, gravity_bt_devices[devIdx]->bda, ESP_BD_ADDR_LEN); ++devIdx) { }
             if (devIdx < gravity_bt_dev_count) {
                 /* Found - Update */
-                gravity_bt_devices[devIdx].rssi = scan_result->scan_rst.rssi;
+                gravity_bt_devices[devIdx]->rssi = scan_result->scan_rst.rssi;
                 if (scan_result->scan_rst.adv_data_len > 0) {
-                    memcpy(gravity_bt_devices[devIdx].eir, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len);
-                    gravity_bt_devices[devIdx].eir_len = scan_result->scan_rst.adv_data_len;
+                    memcpy(gravity_bt_devices[devIdx]->eir, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len);
+                    gravity_bt_devices[devIdx]->eir_len = scan_result->scan_rst.adv_data_len;
                 }
                 if (adv_name_len > 0) {
-                    gravity_bt_devices[devIdx].bdname_len = adv_name_len;
-                    strcpy(gravity_bt_devices[devIdx].bdName, bdNameStr);
+                    gravity_bt_devices[devIdx]->bdname_len = adv_name_len;
+                    strcpy(gravity_bt_devices[devIdx]->bdName, bdNameStr);
                 }
             } else {
                 bt_dev_add_components(scan_result->scan_rst.bda, bdNameStr, adv_name_len, scan_result->scan_rst.ble_adv, scan_result->scan_rst.adv_data_len, 0, scan_result->scan_rst.rssi, BT_SCAN_TYPE_PASSIVE);
@@ -665,7 +666,7 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
     } while (0);
 }
 
-esp_err_t gravity_ble_test() {
+esp_err_t gravity_ble_scan_start() {
     esp_err_t err = ESP_OK;
 
     if (!btInitialised) {
@@ -702,8 +703,9 @@ esp_err_t gravity_ble_test() {
         }
         bleInitialised = true;
         printf("BLE Initialised.\n");
+    } else {
+        err |= esp_ble_gap_start_scanning(30);
     }
-    err |= esp_ble_gap_start_scanning(30);
     return err;
 }
 
@@ -738,7 +740,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     memcpy(dev_bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
     bda2str(param->disc_res.bda, bda_str, 18);
     for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
-                    gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
+                    gravity_bt_devices[deviceIdx]->bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
 
     int numProp = param->disc_res.num_prop;
     #ifdef CONFIG_DEBUG_VERBOSE
@@ -815,7 +817,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
         /* Found an existing device with the same BDA - Update its RSSI */
         /* YAGNI - Update bdname if it's changed */
         // TODO: Include a timestamp so we can age devices
-        if (paramUpdated[BT_PARAM_BDNAME] && strcmp(gravity_bt_devices[deviceIdx].bdName, dev_bdname)) {
+        if (paramUpdated[BT_PARAM_BDNAME] && strcmp(gravity_bt_devices[deviceIdx]->bdName, dev_bdname)) {
             #ifdef CONFIG_FLIPPER
                 printf("BT: Update BT Device %s Name \"%s\"\n", bda_str, dev_bdname);
             #else
@@ -859,30 +861,30 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
 esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod, int32_t theRssi, uint8_t theNameLen, char *theName, uint8_t theEirLen, uint8_t *theEir) {
     esp_err_t err = ESP_OK;
     int deviceIdx = 0;
-    while (deviceIdx < gravity_bt_dev_count && memcmp(theBda, gravity_bt_devices[deviceIdx].bda, ESP_BD_ADDR_LEN)) {
+    while (deviceIdx < gravity_bt_dev_count && memcmp(theBda, gravity_bt_devices[deviceIdx]->bda, ESP_BD_ADDR_LEN)) {
         ++deviceIdx;
     }
     if (deviceIdx < gravity_bt_dev_count) {
         /* We found a stored device with the same BDA */
         if (updatedFlags[BT_PARAM_COD]) {
-            gravity_bt_devices[deviceIdx].cod = theCod;
+            gravity_bt_devices[deviceIdx]->cod = theCod;
             updatedFlags[BT_PARAM_COD] = false;
         }
         if (updatedFlags[BT_PARAM_RSSI]) {
-            gravity_bt_devices[deviceIdx].rssi = theRssi;
+            gravity_bt_devices[deviceIdx]->rssi = theRssi;
             updatedFlags[BT_PARAM_RSSI] = false;
         }
         if (updatedFlags[BT_PARAM_BDNAME]) {
-            strcpy(gravity_bt_devices[deviceIdx].bdName, theName);
-            gravity_bt_devices[deviceIdx].bdname_len = theNameLen;
+            strcpy(gravity_bt_devices[deviceIdx]->bdName, theName);
+            gravity_bt_devices[deviceIdx]->bdname_len = theNameLen;
             updatedFlags[BT_PARAM_BDNAME] = false;
         }
         if (updatedFlags[BT_PARAM_EIR]) {
-            memcpy(gravity_bt_devices[deviceIdx].eir, theEir, theEirLen);
-            gravity_bt_devices[deviceIdx].eir_len = theEirLen;
+            memcpy(gravity_bt_devices[deviceIdx]->eir, theEir, theEirLen);
+            gravity_bt_devices[deviceIdx]->eir_len = theEirLen;
         }
         /* Update lastSeen and lastSeen */
-        gravity_bt_devices[deviceIdx].lastSeen = clock();
+        gravity_bt_devices[deviceIdx]->lastSeen = clock();
     } else {
         /* Device doesn't exist, add it instead */
         return bt_dev_add_components(theBda, theName, theNameLen, theEir, theEirLen, theCod, theRssi, BT_SCAN_TYPE_DISCOVERY);
@@ -1023,8 +1025,11 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
         return ESP_ERR_NOT_SUPPORTED;
     }
 
+    char bdaStr[18];
+    printf("Found new device BDA %s name %s\n", bda2str(bda, bdaStr, 18), bdName==NULL?"":bdName);
+
     /* Set up a replacement copy of gravity_bt_devices */
-    app_gap_cb_t *newDevices = malloc(sizeof(app_gap_cb_t) * (gravity_bt_dev_count + 1));
+    app_gap_cb_t **newDevices = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count + 1));
     if (newDevices == NULL) {
         #ifdef CONFIG_FLIPPER
             printf("Unable to allocate memory to add BT device\n");
@@ -1039,28 +1044,45 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
        brain and come up with a simple solution - Copy the memory contents of the first array
        to the second.
     */
-    memcpy(newDevices, gravity_bt_devices, (gravity_bt_dev_count * sizeof(app_gap_cb_t)));
-
+    //memcpy(newDevices, gravity_bt_devices, (gravity_bt_dev_count * sizeof(app_gap_cb_t *)));
+    for (int i=0;i<gravity_bt_dev_count;++i) {
+        newDevices[i] = gravity_bt_devices[i];
+    }
     /* Create new device at index gravity_bt_dev_count */
-    newDevices[gravity_bt_dev_count].bdname_len = bdNameLen;
-    newDevices[gravity_bt_dev_count].eir_len = eirLen;
-    newDevices[gravity_bt_dev_count].rssi = rssi;
-    newDevices[gravity_bt_dev_count].cod = cod;
-    newDevices[gravity_bt_dev_count].scanType = devScanType;
-    newDevices[gravity_bt_dev_count].lastSeen = clock();
-    newDevices[gravity_bt_dev_count].selected = false;
-    newDevices[gravity_bt_dev_count].index = gravity_bt_dev_count;
-    memcpy(newDevices[gravity_bt_dev_count].bda, bda, ESP_BD_ADDR_LEN);
-    memset(newDevices[gravity_bt_dev_count].bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
-    strncpy(newDevices[gravity_bt_dev_count].bdName, (char *)bdName, bdNameLen);
-    memcpy(newDevices[gravity_bt_dev_count].eir, eir, eirLen);
+    newDevices[gravity_bt_dev_count] = malloc(sizeof(app_gap_cb_t));
+    if (newDevices[gravity_bt_dev_count] == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Insufficient memory to malloc BT device %d.\n", gravity_bt_dev_count + 1);
+        #else
+            ESP_LOGE(BT_TAG, "Insufficient memory to malloc %d bytes for BT device #%d.", sizeof(app_gap_cb_t), gravity_bt_dev_count + 1);
+        #endif
+        free(newDevices);
+        return ESP_ERR_NO_MEM;
+    }
+    newDevices[gravity_bt_dev_count]->bdname_len = bdNameLen;
+    newDevices[gravity_bt_dev_count]->eir_len = eirLen;
+    newDevices[gravity_bt_dev_count]->rssi = rssi;
+    newDevices[gravity_bt_dev_count]->cod = cod;
+    newDevices[gravity_bt_dev_count]->scanType = devScanType;
+    newDevices[gravity_bt_dev_count]->lastSeen = clock();
+    newDevices[gravity_bt_dev_count]->selected = false;
+    newDevices[gravity_bt_dev_count]->index = gravity_bt_dev_count;
+    memcpy(newDevices[gravity_bt_dev_count]->bda, bda, ESP_BD_ADDR_LEN);
+    memset(newDevices[gravity_bt_dev_count]->bdName, '\0', ESP_BT_GAP_MAX_BDNAME_LEN + 1);
+    strncpy(newDevices[gravity_bt_dev_count]->bdName, (char *)bdName, bdNameLen < (ESP_BT_GAP_MAX_BDNAME_LEN + 1)?bdNameLen:(ESP_BT_GAP_MAX_BDNAME_LEN + 1));
+    memcpy(newDevices[gravity_bt_dev_count]->eir, eir, (eirLen < ESP_BT_GAP_EIR_DATA_LEN)?eirLen:ESP_BT_GAP_EIR_DATA_LEN);
 
     /* Finally copy new device array into place */
-    if (gravity_bt_devices != NULL) {
+    if (gravity_bt_devices != NULL && gravity_bt_dev_count > 0) {
+        printf("about to free gravity_bt_devices. It has a count %d\n",gravity_bt_dev_count);
+        if (gravity_bt_dev_count>0) {
+            printf("the first element has a BDA %s\n", bda2str(gravity_bt_devices[0]->bda, bdaStr, 18));
+        }
         free(gravity_bt_devices);
     }
     gravity_bt_devices = newDevices;
     ++gravity_bt_dev_count;
+
 
     #ifdef CONFIG_DEBUG_VERBOSE
         printf("End of bt_dev_add_components(), gravity_bt_devices has %u elements:\n", gravity_bt_dev_count);
@@ -1068,7 +1090,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
             if (i > 0) {
                 printf(",\t");
             }
-            printf("\"%s\"", gravity_bt_devices[i].bdName);
+            printf("\"%s\"", gravity_bt_devices[i]->bdName);
         }
     #endif
 
@@ -1081,9 +1103,9 @@ esp_err_t bt_dev_add(app_gap_cb_t *dev) {
 }
 
 /* Is the specified bluetooth device address in the specified array, which has the specified length? */
-bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t *array, uint8_t arrayLen) {
+bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t **array, uint8_t arrayLen) {
     int i = 0;
-    for (; i < arrayLen && memcmp(bda, array[i].bda, ESP_BD_ADDR_LEN); ++i) { }
+    for (; i < arrayLen && memcmp(bda, array[i]->bda, ESP_BD_ADDR_LEN); ++i) { }
     
     /* If i < arrayLen then it was found */
     return (i < arrayLen);
@@ -1124,17 +1146,17 @@ esp_err_t gravity_bt_discover_all_services() {
         for (int i = 0; i < gravity_bt_dev_count; ++i) {
             char strBda[18];
             char strEir[ESP_BT_GAP_EIR_DATA_LEN + 1];
-            bda2str(gravity_bt_devices[i].bda, strBda, 18);
-            memcpy(strEir, gravity_bt_devices[i].eir, gravity_bt_devices[i].eir_len);
-            strEir[gravity_bt_devices[i].eir_len] = '\0';
-            printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,gravity_bt_devices[i].cod, gravity_bt_devices[i].rssi,gravity_bt_devices[i].bdname_len, gravity_bt_devices[i].eir_len, gravity_bt_devices[i].bdName, strEir);
+            bda2str(gravity_bt_devices[i]->bda, strBda, 18);
+            memcpy(strEir, gravity_bt_devices[i]->eir, gravity_bt_devices[i]->eir_len);
+            strEir[gravity_bt_devices[i]->eir_len] = '\0';
+            printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,gravity_bt_devices[i]->cod, gravity_bt_devices[i]->rssi,gravity_bt_devices[i]->bdname_len, gravity_bt_devices[i]->eir_len, gravity_bt_devices[i]->bdName, strEir);
         }
     #endif
 
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
         char bda_str[18];
-        printf("Requesting services for %s\n", gravity_bt_devices[i].bdname_len > 0?gravity_bt_devices[i].bdName:bda2str(gravity_bt_devices[i].bda, bda_str, ESP_BD_ADDR_LEN));
-        res |= gravity_bt_discover_services(&gravity_bt_devices[i]);
+        printf("Requesting services for %s\n", gravity_bt_devices[i]->bdname_len > 0?gravity_bt_devices[i]->bdName:bda2str(gravity_bt_devices[i]->bda, bda_str, ESP_BD_ADDR_LEN));
+        res |= gravity_bt_discover_services(gravity_bt_devices[i]);
     }
     return res;
 }
@@ -1154,7 +1176,7 @@ esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     bool deviceFound = false;
     if (device != NULL) {
         for (int i = 0; i < gravity_bt_dev_count && !deviceFound; ++i) {
-            deviceFound = !memcmp(gravity_bt_devices[i].bda, device->bda, ESP_BD_ADDR_LEN);
+            deviceFound = !memcmp(gravity_bt_devices[i]->bda, device->bda, ESP_BD_ADDR_LEN);
         }
     }
     /* Display a warning if there are no BT devices, or there are but the specified device is non-NULL and not found */
@@ -1191,22 +1213,7 @@ esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
 
     if (gravity_bt_dev_count > 0) {
-        app_gap_cb_t **retVal = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count));
-        if (retVal == NULL) {
-            #ifdef CONFIG_FLIPPER
-                printf("Unable to allocate memory for device pointers.\n");
-            #else
-                ESP_LOGE(BT_TAG, "Unable to allocate memory to hold pointers to Bluetooth devices");
-            #endif
-            return ESP_ERR_NO_MEM;
-        }
-
-        for (int i = 0; i < gravity_bt_dev_count; ++i) {
-            retVal[i] = &(gravity_bt_devices[i]);
-        }
-
-        err |= gravity_bt_list_devices(retVal, gravity_bt_dev_count, hideExpiredPackets);
-        free(retVal);
+        err |= gravity_bt_list_devices(gravity_bt_devices, gravity_bt_dev_count, hideExpiredPackets);
     }
     return err;
 }
@@ -1473,6 +1480,11 @@ esp_err_t gravity_clear_bt() {
     esp_err_t err = ESP_OK;
 
     if (gravity_bt_devices != NULL) {
+        for (int i = 0; i < gravity_bt_dev_count; ++i) {
+            if (gravity_bt_devices[i] != NULL) {
+                free(gravity_bt_devices[i]);
+            }
+        }
         free(gravity_bt_devices);
         gravity_bt_devices = NULL;
     }
@@ -1494,12 +1506,12 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
 
     /* Find the device */
     uint8_t devIdx = 0;
-    for ( ; devIdx < gravity_bt_dev_count && gravity_bt_devices[devIdx].index != selIndex; ++devIdx) { }
+    for ( ; devIdx < gravity_bt_dev_count && gravity_bt_devices[devIdx]->index != selIndex; ++devIdx) { }
     if (devIdx < gravity_bt_dev_count) {
         /* Found the device - Invert its selected status */
-        gravity_bt_devices[devIdx].selected = !gravity_bt_devices[devIdx].selected;
+        gravity_bt_devices[devIdx]->selected = !gravity_bt_devices[devIdx]->selected;
         /* Are we adding to, or removing from, gravity_selected_bt ? */
-        if (gravity_bt_devices[devIdx].selected) {
+        if (gravity_bt_devices[devIdx]->selected) {
             /* Adding to gravity_selected_bt */
             if (newSel != NULL) {
                 free(newSel);
@@ -1515,7 +1527,7 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
             }
             /* Copy across the old elements */
             memcpy(newSel, gravity_selected_bt, sizeof(app_gap_cb_t *) * (gravity_sel_bt_count - 1));
-            newSel[gravity_sel_bt_count - 1] = &(gravity_bt_devices[devIdx]);
+            newSel[gravity_sel_bt_count - 1] = gravity_bt_devices[devIdx];
 
             if (gravity_selected_bt != NULL && gravity_sel_bt_count > 1) {
                 free(gravity_selected_bt);
@@ -1537,8 +1549,8 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
                 /* Copy across selected indices */
                 int numSelected = 0;
                 for (int i = 0; i < gravity_bt_dev_count; ++i) {
-                    if (gravity_bt_devices[i].selected) {
-                        newSel[numSelected++] = &(gravity_bt_devices[i]);
+                    if (gravity_bt_devices[i]->selected) {
+                        newSel[numSelected++] = gravity_bt_devices[i];
                     }
                 }
                 if (numSelected != gravity_sel_bt_count) {
@@ -1577,10 +1589,10 @@ esp_err_t gravity_select_bt(uint8_t selIndex) {
 bool gravity_bt_isSelected(uint8_t selIndex) {
     /* Find selIndex */
     int i = 0;
-    for ( ; i < gravity_bt_dev_count && gravity_bt_devices[i].index != selIndex; ++i) { }
+    for ( ; i < gravity_bt_dev_count && gravity_bt_devices[i]->index != selIndex; ++i) { }
     if (i < gravity_bt_dev_count) {
         /* We found an item with the specified index */
-        return (gravity_bt_devices[i].selected);
+        return (gravity_bt_devices[i]->selected);
     }
     return false;
 }

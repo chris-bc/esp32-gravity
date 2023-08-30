@@ -984,22 +984,21 @@ TODO
 
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
+* Allow duration of BT and BLE scans to be specified
+  * Unless there's a way I can keep them running indefinitely a la 802.11 scan?
 * Configurable behaviour on BLE out of memory
   * Truncate all non-selected BT devices and continue
   * Truncate all unnamed BT devices and continue
   * Truncate unnamed and unselected BT devices and continue
   * Truncate the oldest BT devices and continue
+  * Truncate lowest RSSI (could even write an incremental cutoff)
   * Halt scanning
-* Refactor gravity_bt_devices to be a app_gap_cb_t**
-  * Duplicating the app_gap_cb_t* requires an increasingly-large contiguous block of memory
-  * Currently getting 51 BLE scan results before hitting OOM
-  * Review changes required to selectedDevices and its management
-  * Add: malloc a single app_gap_cb_t, only needing to extend the byte array
+ * Refactor out EIR and maybe bdName into pointers to further reduce memory usage
 * Further testing of VIEW BT SORT *
 * Move common log outputs into a function to save all the #ifdef-ing
-* Add BT sniffing
+* Add BLE sniffing
 * Add BT service information
-* Add active scanning - connections
+* Add active BT scanning - connections
 * Migrate scan command to SCAN ( [ <ssid> ] WIFI ) | BT | BLE ) [ ON | OFF ]
 * Additional command to inspect a device and its services
   * Move services callback handler into its own function

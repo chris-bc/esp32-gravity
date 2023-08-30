@@ -191,7 +191,8 @@ esp_err_t rmSsid(char *ssid) {
 esp_err_t cmd_bluetooth(int argc, char **argv) {
     esp_err_t err = ESP_OK;
     #if defined(CONFIG_IDF_TARGET_ESP32)
-        err |= gravity_ble_test();
+        //err |= gravity_ble_test();
+        printf("BT Test harness currently inactive.\n");
     #else
         displayBluetoothUnsupported();
     #endif
@@ -1175,6 +1176,13 @@ esp_err_t cmd_scan(int argc, char **argv) {
         #if defined(CONFIG_IDF_TARGET_ESP32)
             err = gravity_bt_scan_display_status();
         #endif
+        /* Also display usage just in case */
+        printf("\n");
+        #ifdef CONFIG_FLIPPER
+            printf("Usage: %s\n", SHORT_SCAN);
+        #else
+            ESP_LOGI(SCAN_TAG, "Usage: %s", SHORT_SCAN);
+        #endif
         return err;
     }
 
@@ -1197,10 +1205,10 @@ esp_err_t cmd_scan(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE")) {
         /* Initialise BT monitor mode and identify devices */
-        #ifdef CONFIG_FLIPPER
-            printf("BT Sniff not yet implemented\n");
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            err |= gravity_ble_scan_start();
         #else
-            ESP_LOGW(SCAN_TAG, "BT Sniff not yet implemented");
+            displayBluetoothUnsupported();
         #endif
     } else {
         /* Use argv[1] as an SSID filter */
