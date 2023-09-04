@@ -1749,6 +1749,56 @@ esp_err_t gravity_bt_disable_scan() {
     return err;
 }
 
+/* Purge all BLE records with the smallest RSSI, unless that 
+   is > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI, then return ESP_ERR_NOT_FOUND */
+esp_err_t purgeBLERSSI() {
+    esp_err_t err = ESP_OK;
+    uint8_t newCount = 0;
+
+    /* Find the smallest RSSI */
+    int32_t smallRSSI = 0; /* Invalid */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->rssi < smallRSSI) {
+            smallRSSI = gravity_bt_devices[i]->rssi;
+        }
+    }
+
+    /* Free any elements with the smallest RSSI */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->rssi == smallRSSI) {
+            /* Delete the object */
+            if (gravity_bt_devices[i]->bdName != NULL && gravity_bt_devices[i]->bdname_len > 0) {
+                free(gravity_bt_devices[i]->bdName);
+            }
+            if (gravity_bt_devices[i]->eir != NULL && gravity_bt_devices[i]->eir_len > 0) {
+                free(gravity_bt_devices[i]->eir);
+            }
+            free(gravity_bt_devices[i]);
+            gravity_bt_devices[i] = NULL;
+        } else {
+            ++newCount;
+        }
+    }
+
+    if (newCount == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("Purging lowest RSSI.\nNo remaining BLE devices.\n");
+        #else
+            ESP_LOGI(BT_TAG, "Purging BLE devices with lowest RSSI... There are no remaining BLE devices, %u have been purged.", gravity_bt_dev_count);
+        #endif
+        /* Free gravity_bt_devices */
+        if (gravity_bt_devices != NULL) {
+            free(gravity_bt_devices);
+            gravity_bt_devices = NULL;
+            gravity_bt_dev_count = 0;
+        }
+    } else {
+        /* Shrink the NULLs out of gravity_bt_devices */
+        err = gravity_bt_shrink_devices();
+    }
+    return err;
+}
+
 /* Purge all BLE devices that are not selected */
 esp_err_t purgeBLEUnselected() {
     esp_err_t err = ESP_OK;
@@ -1844,7 +1894,10 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
             // If RSSI > CONFIG_GRAVITY_BLE_MIN_PURGE_RSSI
             //     Delete all elements with lowest RSSI
             // Otherwise there are no elements left that we can remove
-            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI);
+            err = purgeBLERSSI();
+            if (err == ESP_ERR_NOT_FOUND) {
+                purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI);
+            }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
             /* Purge the oldest BLE devices from Gravity */
             // Loop through array to find lowest time
