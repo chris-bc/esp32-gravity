@@ -1156,18 +1156,35 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
     return err;
 }
 
-/* Usage: SCAN [ ( [ <ssid> ] WIFI ) | BT | BLE | OFF ]*/
+/* Usage: SCAN [ ( [ <ssid> ] WIFI ) | BT | BLE [ PURGE ( RSSI | AGE | UNNAMED | UNSELECTED | NONE )+ ] | OFF ]*/
 esp_err_t cmd_scan(int argc, char **argv) {
-    if (argc > 3 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
+    if (argc > 7 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
                 strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > 32) ||
-            (argc == 3 && strcasecmp(argv[2], "WIFI"))) {
+            (argc == 3 && strcasecmp(argv[2], "WIFI")) || (argc > 3 && (strcasecmp(argv[1], "BLE") ||
+                strcasecmp(argv[2], "PURGE")))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SCAN);
         #endif
         return ESP_ERR_INVALID_ARG;
+    }
+    /* Now validate BLE purge parameters */
+    if (argc > 3) {
+        uint8_t argCount = 3;
+        for ( ; argCount < argc && !(strcasecmp(argv[argCount], "RSSI") && strcasecmp(argv[argCount], "AGE") &&
+                strcasecmp(argv[argCount], "UNNAMED") && strcasecmp(argv[argCount], "UNSELECTED") && strcasecmp(argv[argCount], "NONE")); ++argCount) { }
+                if (argCount < argc) {
+                    /* Dropped out of the loop before processing all args - Invalid arg */
+                    #ifdef CONFIG_FLIPPER
+                        printf("Invalid argument: %s\nUsage: %s\n", argv[argCount], SHORT_SCAN);
+                    #else
+                        ESP_LOGE(SCAN_TAG, "Invalid argument %s", argv[argCount]);
+                        ESP_LOGE(SCAN_TAG, "Usage: %s", SHORT_SCAN);
+                    #endif
+                    return ESP_ERR_INVALID_ARG;
+                }
     }
 
     esp_err_t err = ESP_OK;
@@ -1217,8 +1234,38 @@ esp_err_t cmd_scan(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "BLE")) {
         /* Initialise BT monitor mode and identify devices */
         #if defined(CONFIG_IDF_TARGET_ESP32)
+            /* Do we have purge arguments? */
+            gravity_bt_purge_strategy_t purgeStrat = 0;
+            if (argc > 3 && !strcasecmp(argv[1], "BLE") && !strcasecmp(argv[2], "PURGE")) {
+                for (int i = 3; i < argc; ++i) {
+                    if (!strcasecmp(argv[i], "RSSI")) {
+                        purgeStrat += GRAVITY_BLE_PURGE_RSSI;
+                    } else if (!strcasecmp(argv[i], "AGE")) {
+                        purgeStrat += GRAVITY_BLE_PURGE_AGE;
+                    } else if (!strcasecmp(argv[i], "UNNAMED")) {
+                        purgeStrat += GRAVITY_BLE_PURGE_UNNAMED;
+                    } else if (!strcasecmp(argv[i], "UNSELECTED")) {
+                        purgeStrat += GRAVITY_BLE_PURGE_UNSELECTED;
+                    } else if (!strcasecmp(argv[i], "NONE")) {
+                        purgeStrat += GRAVITY_BLE_PURGE_NONE;
+                    }
+                }
+                if (purgeStrat != GRAVITY_BLE_PURGE_NONE && ((purgeStrat & GRAVITY_BLE_PURGE_NONE) == GRAVITY_BLE_PURGE_NONE)) {
+                    /* Purge strategy NONE was selected, along with at least one other. */
+                    #ifdef CONFIG_FLIPPER
+                        printf("Cannot combine \"NONE\" purge strategy with another purge strategy.\n");
+                    #else
+                        ESP_LOGE(SCAN_TAG, "You have specified the \"NONE\" purge strategy in addition to at least one other purge strategy. Doing something and nothing at the same time doesn't make sense to me, sorry.");
+                    #endif
+                    return ESP_ERR_INVALID_ARG;
+                }
+            }
+            if (purgeStrat == 0) {
+                purgeStrat = GRAVITY_BLE_PURGE_NONE;
+            }
+            /* Now start BLE scanning */
             attack_status[ATTACK_SCAN_BLE] = true;
-            err |= gravity_ble_scan_start();
+            err |= gravity_ble_scan_start(purgeStrat);
         #else
             displayBluetoothUnsupported();
         #endif

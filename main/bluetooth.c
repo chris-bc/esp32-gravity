@@ -21,6 +21,9 @@ uint8_t gravity_sel_bt_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
 static bool bleInitialised = false;
+static gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
+static uint8_t purge_min_age = 30; // TODO: Add these as args to SCAN
+static int32_t purge_min_rssi = -70;// TODO: Add these to menuconfig
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -41,40 +44,6 @@ static esp_gattc_descr_elem_t *descr_elem_result = NULL;
 #define PROFILE_NUM      1
 
 static int bt_comparator(const void *varOne, const void *varTwo);
-
-/* ESP32-Gravity :  Bluetooth
-   Initially-prototyped functionality uses traditional Bluetooth discovery
-   This *works*, but obtains VERY limited results.
-   TODO: Research bluetooth protocol. Hopefully it'll be straightforward to sniff
-         packets in the same way as 802.11, otherwise it might be possible to add
-         a nRF24 to the ESP32.
-   Plan A is to start with this discovery and then dive into sniffing, so BT commands:
-   scan bt-d - Scan BT using Discovery
-   scan bt-s - Scan BT using Sniffing
-   select bt n - Select BT result n. Both discovery and sniffing results are included in the 'BT' reference
-
-   Step 1. Build a list of discovered devices
-   Step 2. Only display info for newly-discovered devices
-   Step 3. Investigate (non-)display of services - All the "TODO"s
-   Step 4. Try to connect and stuff
-   Step 5. Sniff
-   Step 6. Stalk
-
-   What it did:
-   - start discovery
-   - find device
-   - cancel discovery
-   - receive discovery stopped event and start service discovery
-   - display services
-
-   What it should do:
-   - start discovery
-   - find device
-   - pause discovery
-   - receive discovery stopped event and start service discovery
-   - display services
-   - resume discovery
-*/
 
 /* cod2deviceStr
    Converts a uint32_t representing a Bluetooth Class Of Device (COD)'s major
@@ -683,8 +652,9 @@ static void esp_gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp
     } while (0);
 }
 
-esp_err_t gravity_ble_scan_start() {
+esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat) {
     esp_err_t err = ESP_OK;
+    purgeStrategy = purgeStrat;
 
     if (!btInitialised) {
         err = gravity_bt_initialise();
@@ -1035,6 +1005,9 @@ esp_err_t gravity_bt_initialise() {
    specified for a BT device) is bt_dev_add(myValidBDA, NULL, 0, NULL, 0, myValidCOD, 0, 0);
    bdNameLen should specify the raw length of the name because it is stored in a uint8_t[],
    excluding the trailing '\0'.
+   
+   gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
+   This variable is used by the function if memory allocation for the new device fails
 */
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir,
                         uint8_t eirLen, uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType) {
@@ -1052,7 +1025,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     }
 
     /* Set up a replacement copy of gravity_bt_devices */
-    app_gap_cb_t **newDevices = malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count + 1));
+    app_gap_cb_t **newDevices = gravity_ble_purge_and_malloc(sizeof(app_gap_cb_t *) * (gravity_bt_dev_count + 1));
     if (newDevices == NULL) {
         #ifdef CONFIG_FLIPPER
             printf("%sto add BT device\n", STRINGS_MALLOC_FAIL);
@@ -1072,7 +1045,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
         newDevices[i] = gravity_bt_devices[i];
     }
     /* Create new device at index gravity_bt_dev_count */
-    newDevices[gravity_bt_dev_count] = malloc(sizeof(app_gap_cb_t));
+    newDevices[gravity_bt_dev_count] = gravity_ble_purge_and_malloc(sizeof(app_gap_cb_t));
     if (newDevices[gravity_bt_dev_count] == NULL) {
         #ifdef CONFIG_FLIPPER
             printf("%sfor BT device %d.\n", STRINGS_MALLOC_FAIL, gravity_bt_dev_count + 1);
@@ -1091,7 +1064,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->selected = false;
     newDevices[gravity_bt_dev_count]->index = gravity_bt_dev_count;
     memcpy(newDevices[gravity_bt_dev_count]->bda, bda, ESP_BD_ADDR_LEN);
-    newDevices[gravity_bt_dev_count]->bdName = malloc(sizeof(char) * (bdNameLen + 1));
+    newDevices[gravity_bt_dev_count]->bdName = gravity_ble_purge_and_malloc(sizeof(char) * (bdNameLen + 1));
     if (newDevices[gravity_bt_dev_count]->bdName == NULL) {
         #ifdef CONFIG_FLIPPER
             printf("%sfor BDName (len %u).\n", STRINGS_MALLOC_FAIL, bdNameLen);
@@ -1103,7 +1076,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     }
     strncpy(newDevices[gravity_bt_dev_count]->bdName, bdName, bdNameLen);
     newDevices[gravity_bt_dev_count]->bdName[bdNameLen] = '\0';
-    newDevices[gravity_bt_dev_count]->eir = malloc(sizeof(uint8_t) * eirLen);
+    newDevices[gravity_bt_dev_count]->eir = gravity_ble_purge_and_malloc(sizeof(uint8_t) * eirLen);
     if (newDevices[gravity_bt_dev_count]->eir == NULL) {
         #ifdef CONFIG_FLIPPER
             printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, eirLen);
@@ -1773,6 +1746,204 @@ esp_err_t gravity_bt_disable_scan() {
     if (attack_status[ATTACK_SCAN_BLE]) {
         err |= esp_ble_gap_stop_scanning();
     }
+    return err;
+}
+
+/* Purge all BLE devices that are not selected */
+esp_err_t purgeBLEUnselected() {
+    esp_err_t err = ESP_OK;
+    uint8_t newCount = 0;
+
+    /* Take a creative, low-memory, way to remove unselected elements from gravity_bt_devices
+       Loop through gravity_bt_devices. Along the way count new devices (selected or not BLE)
+       and free the bdname, eir and app_gap_cb_t */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->scanType != GRAVITY_BT_SCAN_BLE || gravity_bt_devices[i]->selected) {
+            ++newCount;
+        } else {
+            /* Element is BLE and not selected */
+            if (gravity_bt_devices[i]->bdname_len > 0 && gravity_bt_devices[i]->bdName != NULL) {
+                free(gravity_bt_devices[i]->bdName);
+            }
+            if (gravity_bt_devices[i]->eir_len > 0 && gravity_bt_devices[i]->eir != NULL) {
+                free(gravity_bt_devices[i]->eir);
+            }
+            free(gravity_bt_devices[i]);
+            gravity_bt_devices[i] = NULL;
+        }
+    }
+
+    if (newCount == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("Purging unselected BLE devices.\nNo remaining BLE devices.\n");
+        #else
+            ESP_LOGI(BT_TAG, "Purging unselected BLE devices... There are no selected BLE devices, %u have been purged.", gravity_bt_dev_count);
+        #endif
+        if (gravity_bt_devices != NULL) {
+            free(gravity_bt_devices);
+            gravity_bt_devices = NULL;
+            gravity_bt_dev_count = 0;
+        }
+    } else {
+        /* Shorten gravity_bt_devices */
+        err = gravity_bt_shrink_devices();
+    }
+    return err;
+}
+
+/* Purge all BLE devices that don't have a name */
+esp_err_t purgeBLEUnnamed() {
+    esp_err_t err = ESP_OK;
+    uint8_t newCount = 0;
+
+    /* To minimise memory usage, first free any app_gap_cb_t elements that can be purged */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->scanType != GRAVITY_BT_SCAN_BLE || (gravity_bt_devices[i]->bdname_len > 0 &&
+                gravity_bt_devices[i]->bdName != NULL)) {
+            ++newCount;
+        } else {
+            /* Element is BLE and has no name */
+            if (gravity_bt_devices[i]->bdName != NULL) {
+                free(gravity_bt_devices[i]->bdName);
+            }
+            free(gravity_bt_devices[i]);
+            gravity_bt_devices[i] = NULL;
+        }
+    }
+    if (newCount == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("Purging unnamed BLE devices.\nNo remaining BLE devices.\n");
+        #else
+            ESP_LOGI(BT_TAG, "Purging unnamed BLE devices... There are no named BLE devices, %u have been purged.", gravity_bt_dev_count);
+        #endif
+        if (gravity_bt_devices != NULL) {
+            free(gravity_bt_devices);
+            gravity_bt_devices = NULL;
+            gravity_bt_dev_count = 0;
+        }
+    } else {
+        /* Shorten gravity_bt_devices */
+        err = gravity_bt_shrink_devices();
+    }
+    return err;
+}
+
+/* Purge BLE devices based on purgeStrategy until the requested malloc can be completed.
+   Returns a pointer to the allocated memory. If Gravity cannot free sufficient memory
+   using the specified purge strategies NULL will be returned.
+   It is expected that this NULL will signal SCAN to cease BLE scanning.
+*/
+void *gravity_ble_purge_and_malloc(uint16_t bytes) {
+    void *retVal = malloc(bytes);
+    gravity_bt_purge_strategy_t purgeAttempts = purgeStrategy;
+    esp_err_t err = ESP_OK;
+    while (retVal == NULL) {
+        if ((purgeAttempts & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
+            /* Purge the lowest RSSI BLE devices from Gravity */
+            // Loop through array to find lowest RSSI
+            // If RSSI > CONFIG_GRAVITY_BLE_MIN_PURGE_RSSI
+            //     Delete all elements with lowest RSSI
+            // Otherwise there are no elements left that we can remove
+            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI);
+        } else if ((purgeAttempts & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
+            /* Purge the oldest BLE devices from Gravity */
+            // Loop through array to find lowest time
+            // If elapsed (current - lowest time) > CONFIG_GRAVITY_BLE_MIN_PURGE_AGE
+            //     Delete all elements with lowest time
+            // Otherwise there are no elements left that we can remove
+            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
+        } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
+            /* Remove any unnamed BLE elements from bluetooth array */
+            err = purgeBLEUnnamed();
+            if (err != ESP_OK) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Error purging unnamed BLE:\n%s\n", esp_err_to_name(err));
+                #else
+                    ESP_LOGE(BT_TAG, "An error occurred purging unnamed BLE devices: %s.", esp_err_to_name(err));
+                #endif
+            }
+            /* This isn't an iterative process - All devices are removed at the same time
+               Remove UNNAMED from the list of purge strategies to try for this function
+               call. ^ == XOR */
+            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_UNNAMED);
+        } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
+            /* Remove any BLE elements that are not selected */
+            // Loop through all elements, checking the 'selected' attribute
+            // All elements at once
+            err = purgeBLEUnselected();
+            if (err != ESP_OK) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Error purging unselected BLE:\n%s\n", esp_err_to_name(err));
+                #else
+                    ESP_LOGW(BT_TAG, "An error occurred purging unselected BLE devices: %s.", esp_err_to_name(err));
+                #endif
+            }
+            /* This strategy has been tried - Remove it from the todo list */
+            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_UNSELECTED);
+        } else if ((purgeAttempts & GRAVITY_BLE_PURGE_NONE) == GRAVITY_BLE_PURGE_NONE) {
+            /* Purge has been disabled - No action */
+            return NULL;
+        } else if (purgeAttempts == GRAVITY_BLE_PURGE_IDLE) {
+            /* purgeAttempts is down to 0 - There's nothing more we can do */
+            break;
+        } else {
+            /* What is this? */
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid PURGE type: %u\n", purgeAttempts);
+            #else
+                ESP_LOGE(BT_TAG, "Gravity encountered an invalid gravity_bt_purge_strategy_t: %u.", purgeAttempts);
+            #endif
+            return NULL;
+        }
+        // If there's nothing else I can purge
+        //    break;
+        // Purge stuff
+        retVal = malloc(bytes);
+    };
+    return retVal;
+}
+
+/* Shrink gravity_bt_devices to remove gaps left after purging elements
+   This function will regenerate a new instance of gravity_bt_devices,
+   removing any elements of gravity_bt_devices that are NULL.
+*/
+esp_err_t gravity_bt_shrink_devices() {
+    esp_err_t err = ESP_OK;
+    uint8_t targetCount = 0; /* Number of elements at end of function */
+    app_gap_cb_t **newDevices = NULL;
+
+    /* Count number of elements in result */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i] != NULL) {
+            ++targetCount;
+        }
+    }
+    /* Allocate memory for new gravity_bt_devices if it has any elements */
+    if (targetCount > 0) {
+        newDevices = malloc(sizeof(app_gap_cb_t *) * targetCount);
+        if (newDevices == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("Unable to allocate memory for %u pointers.\n", targetCount);
+            #else
+                ESP_LOGE(BT_TAG, "Unable to allocate memory for %u BT pointers.", targetCount);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Copy across pointers from gravity_bt_devices into newDevices */
+    targetCount = 0;
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i] != NULL) {
+            newDevices[targetCount++] = gravity_bt_devices[i];
+        }
+    }
+    /* Free and replace gravity_bt_devices */
+    if (gravity_bt_devices != NULL && gravity_bt_dev_count > 0) {
+        free(gravity_bt_devices);
+    }
+    gravity_bt_devices = newDevices;
+    gravity_bt_dev_count = targetCount;
+
     return err;
 }
 

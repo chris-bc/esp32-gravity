@@ -38,11 +38,13 @@ typedef enum {
 } app_gap_state_t;
 
 typedef enum {
-    GRAVITY_BLE_PRIORITISE_RSSI = 1,
-    GRAVITY_BLE_PRIORITISE_AGE = 2,
-    GRAVITY_BLE_PRIORITISE_NAME = 4,
-    GRAVITY_BLE_PRIORITISE_SELECTED = 8
-} gravity_bt_purge_strategy;
+    GRAVITY_BLE_PURGE_IDLE = 0,
+    GRAVITY_BLE_PURGE_RSSI = 1,
+    GRAVITY_BLE_PURGE_AGE = 2,
+    GRAVITY_BLE_PURGE_UNNAMED = 4,
+    GRAVITY_BLE_PURGE_UNSELECTED = 8,
+    GRAVITY_BLE_PURGE_NONE = 16
+} gravity_bt_purge_strategy_t;
 
 typedef struct {
     uint8_t bdname_len;
@@ -64,7 +66,7 @@ extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
 
-esp_err_t gravity_ble_scan_start();
+esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat);
 esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device);
@@ -75,6 +77,8 @@ esp_err_t gravity_clear_bt();
 esp_err_t gravity_select_bt(uint8_t selIndex);
 bool gravity_bt_isSelected(uint8_t selIndex);
 esp_err_t gravity_bt_disable_scan();
+void *gravity_ble_purge_and_malloc(uint16_t bytes);
+esp_err_t gravity_bt_shrink_devices();
 
 esp_err_t bt_dev_add(app_gap_cb_t *dev);
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir, uint8_t eirLen,

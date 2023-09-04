@@ -1,10 +1,10 @@
-| Supported Targets | ESP32 | ESP32-C6  | ESP32S2 | ESP32S3 |
-| ----------------- | ----- | --------- | ------- | ------- |
-| Wireless (802.11) |  Yes  |    Yes    |   Yes   |    No   |
-| Bluetooth         |  Yes  |  Not Yet  |   No    |    No   |
-| BTLE              |  Yes  |  Maybe?   |   No    |    No   |
-| ZigBee/Thread     |  No   |    Yes    |   No    |    No   |
-|        (802.15.4) |       |           |         |    No   |
+| Supported Targets | ESP32 | ESP32-C6  | ESP32S2 |  ESP32S3  |
+| ----------------- | ----- | --------- | ------- | --------- |
+| Wireless (802.11) |  Yes  |    Yes    |   Yes   | No(t Yet) |
+| Bluetooth         |  Yes  |  Not Yet  |   No    | No(t Yet) |
+| BTLE              |  Yes  |  Maybe?   |   No    | No(t Yet) |
+| ZigBee/Thread     |  No   |    Yes    |   No    | No(t Yet) |
+|        (802.15.4) |       |           |         |           |
 
 **Flipper WiFi Dev Board uses ESP32S2**
 
@@ -128,8 +128,7 @@ console - screen, minicom, netcat, putty - to the device's COM port
 on your computer and explore away!
 
 A Flipper Zero application for Gravity has also been developed, providing a more portable and discreet - if teensy-screened - way of using Gravity.
-ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you
-don't lose any functionality on Flipper.
+ESP32-Gravity (when in Flipper mode - see 'Configuration' above) has been heavily customised to make best use of Flipper's small screen, so you don't lose any functionality on Flipper.
 https://github.com/chris-bc/Flipper-Gravity
 Alternatively you can download a compiled Flipper binary file (FAP) from here:
 [![FAP Factory](https://flipc.org/api/v1/cool4uma/UART_Terminal/badge?firmware=unleashed)](https://flipc.org/chris-bc/Flipper-Gravity?firmware=roguemaster)
@@ -141,10 +140,18 @@ To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, 
 
 Work on Gravity continues on a few fronts, depending on the mood I'm in at the time:
 * Bluetooth and BTLE support
-  * Scanning/Discovery
-  * Follow by RSSID
-  * Fuzzing excessive connections and beacons
-  * Attempting connection to target devices
+  * BT and BLE discovery working well
+  * Selecting and stalking bt and BLE devices
+  Outstanding:
+  * Purging low priority BLE results when out of memory using a variety of strategies
+  * Default strategies (menuconfig)
+  * More aggressive discovery of BT Classic devices
+  * Bluetooth service discovery
+* Stalk UI improvements - I think...
+  * RSSI is inconsistently updated
+  * Age isn't updated
+  * Previously BT and BLE scanning would halt while stalk is active
+  * That won't happen any more, check behaviour of stalk
 * Expanding the number of ingested packet types
   * Improve efficiency & coverage of identifying STA/AP association by looking at
     * Additional management packets
@@ -193,6 +200,10 @@ about that command.
 Tab completion works as expected, and if you pause after typing a command its syntax
 will be displayed on the current line.
 
+
+### A Note On Bluetooth
+
+Many of the commands below, while initially written for 802.11 WiFi exploration, 
 
 ### Using User-Specified SSIDs
 
@@ -1026,7 +1037,6 @@ TODO
   * Refactor code to retrieve service information from discovered devices
   * Sniff-based scanning
   * BLE
-* Incorporate BLE/BT devices into homing attack
 * BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
 
 ## Bugs / Todo
@@ -1035,6 +1045,7 @@ TODO
 * Add VIEW BT SERVICES [selectedBT]
 * Update documentation to include Bluetooth features
   * Have done a little, needs more.
+* Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
 * Configurable behaviour on BLE out of memory
   * Truncate all non-selected BT devices and continue
   * Truncate all unnamed BT devices and continue
@@ -1051,6 +1062,13 @@ TODO
     * Where will malloc fail?
       * bt_device_add_components
         * Any sort of malloc failure, not just struct malloc
+    typedef enum {
+      GRAVITY_BLE_PURGE_RSSI = 1,
+      GRAVITY_BLE_PURGE_AGE = 2,
+      GRAVITY_BLE_PURGE_UNNAMED = 4,
+      GRAVITY_BLE_PURGE_UNSELECTED = 8,
+      GRAVITY_BLE_PURGE_NONE = 16
+    } gravity_bt_purge_strategy_t;
 * Further testing of VIEW BT SORT *
 * Add BT service information
 * Add active BT scanning - connections
