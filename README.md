@@ -1069,6 +1069,7 @@ TODO
       GRAVITY_BLE_PURGE_UNSELECTED = 8,
       GRAVITY_BLE_PURGE_NONE = 16
     } gravity_bt_purge_strategy_t;
+  * Move min RSSI and min AGE into menuconfig and CLI parameters
 * Further testing of VIEW BT SORT *
 * Add BT service information
 * Add active BT scanning - connections

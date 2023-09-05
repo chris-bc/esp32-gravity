@@ -1749,6 +1749,50 @@ esp_err_t gravity_bt_disable_scan() {
     return err;
 }
 
+/* Purge all BLE records with the oldest age, unless that age
+   is > CONFIG_GRAVITY_BLE_PURGE_MIN_AGE
+*/
+esp_err_t purgeBLEAge() {
+    esp_err_t err = ESP_OK;
+    uint8_t newCount = 0;
+
+    /* Find the oldest age */
+    clock_t minAge = -1;
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && (minAge == -1 ||
+                gravity_bt_devices[i]->lastSeen < minAge)) {
+            minAge = gravity_bt_devices[i]->lastSeen;
+        }
+    }
+
+    /* We're done with this purge strategy if the oldest age is less than the minimum purge age */
+    /* Calculate elapsed time in seconds to test this */
+    clock_t nowTime = clock();
+    double elapsed = (nowTime - minAge) / CLOCKS_PER_SEC;
+    if (elapsed < 120) { // TODO config setting
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    /* If we're still here, remove all BLE records lastSeen at minAge */
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->lastSeen == minAge) {
+            /* Don't forget to free the name and EIR */
+            if (gravity_bt_devices[i]->bdName != NULL && gravity_bt_devices[i]->bdname_len > 0) {
+                free(gravity_bt_devices[i]->bdName);
+            }
+            if (gravity_bt_devices[i]->eir != NULL && gravity_bt_devices[i]->eir_len > 0) {
+                free(gravity_bt_devices[i]->eir);
+            }
+            free(gravity_bt_devices[i]);
+            gravity_bt_devices[i] = NULL;
+        }
+    }
+    /* Finally, generate a new gravity_bt_devices with those elements removed */
+    err = gravity_bt_shrink_devices();
+
+    return err;
+}
+
 /* Purge all BLE records with the smallest RSSI, unless that 
    is > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI, then return ESP_ERR_NOT_FOUND */
 esp_err_t purgeBLERSSI() {
@@ -1761,6 +1805,13 @@ esp_err_t purgeBLERSSI() {
         if (gravity_bt_devices[i]->rssi < smallRSSI) {
             smallRSSI = gravity_bt_devices[i]->rssi;
         }
+    }
+
+    /* Fail this purge method if smallest RSSI is larger than the min RSSI */
+    //if (smallRSSI > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI) { TODO
+    // TODO: move min RSSI into menuconfig and commandline
+    if (smallRSSI > -75) {
+        return ESP_ERR_NOT_FOUND;
     }
 
     /* Free any elements with the smallest RSSI */
@@ -1904,7 +1955,10 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
             // If elapsed (current - lowest time) > CONFIG_GRAVITY_BLE_MIN_PURGE_AGE
             //     Delete all elements with lowest time
             // Otherwise there are no elements left that we can remove
-            purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
+            err = purgeBLEAge();
+            if (err == ESP_ERR_NOT_FOUND) {
+                purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
+            }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
             /* Remove any unnamed BLE elements from bluetooth array */
             err = purgeBLEUnnamed();
