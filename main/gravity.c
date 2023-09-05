@@ -1534,16 +1534,16 @@ esp_err_t cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL, HOP_MODE
-      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS */
+      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS, BLE_PURGE_STRAT */
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\nBLE_PURGE_STRAT\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
-            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
+            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE | MAC");
+            ESP_LOGE(TAG, "             ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS | BLE_PURGE_STRAT");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1667,6 +1667,51 @@ esp_err_t cmd_get(int argc, char **argv) {
             printf("Not Implemented\n");
         #else
             ESP_LOGI(TAG, "Not yet implemented");
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
+        /* Syntax GET BLE_PURGE_STRAT */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("Purge Strategy: %u\n", purgeStrategy); // TODO: Print useful output
+            #else
+                ESP_LOGI(BT_TAG, "Bluetooth Strategy: %u", purgeStrategy); //TODO: Useful output
+            #endif
+        #else
+            #ifdef CONFIG_FLIPPER
+                printf("Device doesn't support Bluetooth\n");
+            #else
+                ESP_LOGW(TAG, "Bluetooth unsupported by this device.");
+            #endif
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
+        /* Syntax: GET BLE_PURGE_MAX_RSSI */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("Max Purged RSSI %ld\n", PURGE_MAX_RSSI);
+            #else
+                ESP_LOGI(BT_TAG, "BLE Maximum Purge RSSI: %ld.", PURGE_MAX_RSSI);
+            #endif
+        #else
+            #ifdef CONFIG_FLIPPER
+                printf("Device doesn't support Bluetooth\n");
+            #else
+                ESP_LOGW(TAG, "Bluetooth unsupported by this device.");
+            #endif
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
+        /* Syntax: GET BLE_PURGE_MAX_AGE */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("Min Purged Agexxx\n");
+            #else
+                ESP_LOGI(BT_TAG, "BLE Minimum Purge Age: xxxx s");
+            #endif
+        #else
+            #ifdef CONFIG_FLIPPER
+                printf("Device doesn't support Bluetooth\n");
+            #else
+                ESP_LOGW(TAG, "Bluetooth unsupported by this device.");
+            #endif
         #endif
     } else {
         #ifdef CONFIG_FLIPPER

@@ -65,6 +65,9 @@ extern app_gap_cb_t **gravity_selected_bt;
 extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
+extern gravity_bt_purge_strategy_t purgeStrategy;
+extern uint8_t PURGE_MIN_AGE;
+extern int32_t PURGE_MAX_RSSI;
 
 esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat);
 esp_err_t gravity_bt_initialise();

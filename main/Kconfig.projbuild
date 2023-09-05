@@ -47,6 +47,31 @@ menu "Gravity Configuration"
             like a status update.
             Developer's recommendation: 0x10 (16).
 
+    config BLE_PURGE_MIN_AGE
+        int "Do not automatically purge BLE devices seen within the specified number of seconds"
+        default 30
+        help
+            BLE devices are pervasive and it is far from difficult to exhaust ESP32's memory by
+            performing a BLE scan in a crowded area (a rough estimate has around 150 BLE devices
+            filling ESP32's 4MB). To avoid the disruption this causes Gravity provides several
+            approaches to automatically purge the least-interesting BLE devices; one of these is
+            based on the time since the device was last seen.
+            If enabled, age-based BLE purging will not remove any BLE devices seen within the
+            specified number of seconds.
+
+    config BLE_PURGE_MAX_RSSI
+        int "Do not automatically purge BLE devices with an RSSI greater than this value"
+        default -70
+        help
+            BLE devices are pervasive and it is far from difficult to exhaust ESP32's memory by
+            performing a BLE scan in a crowded area (a rough estimate has around 150 BLE devices
+            filling ESP32's 4MB). To avoid the disruption this causes Gravity provides several
+            approaches to automatically purge the least-interesting BLE devices; one of these is
+            based on the Received Signal Strength Indicator, or RSSI, of discovered devices.
+            If enabled, RSSI-based BLE purging will not remove any BLE devices with an RSSI greater
+            than the specified number. Remember that RSSI is a negative number; numbers closer to
+            zero are better.
+
     config DEFAULT_ATTACK_MILLIS
         int "Default time between packets during an attack (milliseconds)"
         default 5

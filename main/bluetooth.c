@@ -21,9 +21,9 @@ uint8_t gravity_sel_bt_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
 static bool bleInitialised = false;
-static gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
-static uint8_t purge_min_age = 30; // TODO: Add these as args to SCAN
-static int32_t purge_min_rssi = -70;// TODO: Add these to menuconfig
+gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
+uint8_t PURGE_MIN_AGE = 30; // TODO: Add these as args to SCAN
+int32_t PURGE_MAX_RSSI = -70;// TODO: Add these to menuconfig
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -982,6 +982,13 @@ esp_err_t gravity_bt_gap_start() {
 }
 
 esp_err_t gravity_bt_initialise() {
+    #ifdef CONFIG_BLE_PURGE_MIN_AGE
+        PURGE_MIN_AGE = CONFIG_BLE_PURGE_MIN_AGE;
+    #endif
+    #ifdef CONFIG_BLE_PURGE_MAX_RSSI
+        PURGE_MAX_RSSI = CONFIG_BLE_PURGE_MAX_RSSI;
+    #endif
+
     esp_err_t err = ESP_OK;
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
     bt_cfg.mode = ESP_BT_MODE_BTDM;
@@ -1005,9 +1012,6 @@ esp_err_t gravity_bt_initialise() {
    specified for a BT device) is bt_dev_add(myValidBDA, NULL, 0, NULL, 0, myValidCOD, 0, 0);
    bdNameLen should specify the raw length of the name because it is stored in a uint8_t[],
    excluding the trailing '\0'.
-   
-   gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
-   This variable is used by the function if memory allocation for the new device fails
 */
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir,
                         uint8_t eirLen, uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType) {
@@ -1749,8 +1753,8 @@ esp_err_t gravity_bt_disable_scan() {
     return err;
 }
 
-/* Purge all BLE records with the oldest age, unless that age
-   is > CONFIG_GRAVITY_BLE_PURGE_MIN_AGE
+/* Purge all BLE records with the earliest lastSeen, unless lastSeen
+   is > CONFIG_BLE_PURGE_MIN_AGE
 */
 esp_err_t purgeBLEAge() {
     esp_err_t err = ESP_OK;
@@ -1769,7 +1773,7 @@ esp_err_t purgeBLEAge() {
     /* Calculate elapsed time in seconds to test this */
     clock_t nowTime = clock();
     double elapsed = (nowTime - minAge) / CLOCKS_PER_SEC;
-    if (elapsed < 120) { // TODO config setting
+    if (elapsed < PURGE_MIN_AGE) {
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -1808,9 +1812,7 @@ esp_err_t purgeBLERSSI() {
     }
 
     /* Fail this purge method if smallest RSSI is larger than the min RSSI */
-    //if (smallRSSI > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI) { TODO
-    // TODO: move min RSSI into menuconfig and commandline
-    if (smallRSSI > -75) {
+    if (smallRSSI > PURGE_MAX_RSSI) {
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -1933,6 +1935,8 @@ esp_err_t purgeBLEUnnamed() {
    Returns a pointer to the allocated memory. If Gravity cannot free sufficient memory
    using the specified purge strategies NULL will be returned.
    It is expected that this NULL will signal SCAN to cease BLE scanning.
+   gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
+   This variable is used by the function if memory allocation for the new device fails
 */
 void *gravity_ble_purge_and_malloc(uint16_t bytes) {
     void *retVal = malloc(bytes);
@@ -1941,22 +1945,16 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
     while (retVal == NULL) {
         if ((purgeAttempts & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
             /* Purge the lowest RSSI BLE devices from Gravity */
-            // Loop through array to find lowest RSSI
-            // If RSSI > CONFIG_GRAVITY_BLE_MIN_PURGE_RSSI
-            //     Delete all elements with lowest RSSI
-            // Otherwise there are no elements left that we can remove
             err = purgeBLERSSI();
             if (err == ESP_ERR_NOT_FOUND) {
-                purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI);
+                /* There's nothing left that we can purge */
+                purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI); /* XOR out GRAVITY_BLE_PURGE_RSSI */
             }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
             /* Purge the oldest BLE devices from Gravity */
-            // Loop through array to find lowest time
-            // If elapsed (current - lowest time) > CONFIG_GRAVITY_BLE_MIN_PURGE_AGE
-            //     Delete all elements with lowest time
-            // Otherwise there are no elements left that we can remove
             err = purgeBLEAge();
             if (err == ESP_ERR_NOT_FOUND) {
+                /* If no more devices can be purged XOR out GRAVITY_BLE_PURGE_AGE */
                 purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
             }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
@@ -1975,8 +1973,6 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
             purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_UNNAMED);
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
             /* Remove any BLE elements that are not selected */
-            // Loop through all elements, checking the 'selected' attribute
-            // All elements at once
             err = purgeBLEUnselected();
             if (err != ESP_OK) {
                 #ifdef CONFIG_FLIPPER
