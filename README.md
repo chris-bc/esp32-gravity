@@ -12,7 +12,8 @@
 ## The unseen force
 
 This project contains an evolving collection of wireless utilities for use on the ESP32.
-Initial development will be focused on implementing a core set of 802.11 exploratory tools, with the goal to expand into Bluetooth, BLE and 802.15.4 (ZigBee).
+Initial development focused on implementing a core set of 802.11 exploratory tools, which is gradually being expanded to include Bluetooth and Bluetooth Low Energy (BLE), with 802.15.4 (ZigBee/Thread) and general-purpose
+2.4GHz radio hopefully not too far behind.
 
 ### Flipper Zero App
 
@@ -24,14 +25,22 @@ Please note the comments below about compiling ESP32-Gravity for the Flipper Zer
 
 ![Flipper Gravity Stalk Mode](https://github.com/chris-bc/esp32-gravity/blob/main/flip-grav-homing.png)
 
-## What happened to ESP32-C6 Gravity?
+## Device Compatibility
 
-ESP-IDF v5.2 beta does not yet properly support many bluetooth features, including
-bluetooth scanning. Because of this Gravity now targets the ESP32.
+This project was originally intending to target the ESP32-C6 due in particular to its
+Thread & ZigBee support. Unfortunately, when I began looking beyond the WiFi libraries, I found
+that the (then) latest beta didn't yet support many Bluetooth features for the ESP32-C6.
 
-If you would like to use Gravity on an ESP32-C6 or ESP32-S2 (like
-the Flipper WiFi Dev Board) just build it as usual. Bluetooth
-functionality will automatically be excluded for those two chipsets.
+This prompted a shift back to the base ESP32 chipset. Testing with the Flipper Zero WiFi Dev Board
+shows that its ESP32S2 lacks Bluetooth. Given the popularity of that board Gravity will customise
+the build based on the selected chipset (you don't need to do anything other than select the chipset),
+including Bluetooth features only if Bluetooth is available.
+
+I recently got a ESP32S3 and, excited by its larger memory footprint, began thinking about the best way
+to include an OUI database in Gravity while flashing Gravity to the device. Strangely, it froze during
+the initialisation process. And does this reliably. That's unfortunate, but it looks like it's failing
+during WiFi initialisation so hopefully will be an easy fix in the near future.
+
 
 ## Version Compatibility
 
@@ -41,6 +50,7 @@ which esp32-Gravity is compatible with which Flipper-Gravity.
 
 * From here on out versions will be numbered `(major).(minor).(release)`;
 * For example `1.2.1`;
+* This is sometimes called *semantic versioning*;
 * Different **release** versions (such as `1.2.1` and `1.2.9`) will always be compatible with each other, although the addition or significant modification of some features may result in a small number of features not working;
 * Changes in minor version, such as `1.2.1` and `1.3.1`, are unlikely to be compatible. A change in minor version represents a noteable change to the platform or a breaking change to the platform;
 * Changes in major verson, such as `1.4.9` to `2.0.0`, represent substantial changes to the application and how it runs. Different major versions *will not* be compatible with each other.
@@ -82,19 +92,6 @@ All you need to do to build, flash and run Gravity is:
 To open a console to Gravity:
 * `idf.py monitor`
 
-To use Flipper-Gravity:
-* Connect 3v3 on the Flipper (pin 9) to 3v3 on the ESP32
-* Connect GND on the Flipper (pin 8, 11 or 18) to GND on the ESP32
-* Connect TX on the Flipper (pin 13) to RX/RX0 on the ESP32
-* Connect RX on the Flipper (pin 14) to TX/TX0 on the ESP32
-* Start Gravity on the Flipper
-
-I've been told to avoid powering the ESP32 from Flipper's 3V3 pin, purportedly
-because *it does not support hot plugging*.
-
-I have no idea whether that's true or not, or what it would mean if it were true,
-but consider yoursef warned. (I use the 3V3 pin myself).
-
 ## Installing From Binaries
 
 A number of different binary packages are available with each release.
@@ -119,7 +116,6 @@ For Windows and MacOS users you'll just need to take an extra couple of steps:
 
 This should have resulted in you flashing three binary files to your esp32: `esp-wireless-tools.bin`, `bootloader.bin` and `partition-table.bin`.
 
-
 ## Using Gravity
 
 To provide a nice, large output screen Gravity was first designed
@@ -135,23 +131,36 @@ Alternatively you can download a compiled Flipper binary file (FAP) from here:
 
 To connect your Flipper Zero and your ESP32, simply connect RX to TX, TX to RX, GND to GND and 3V3 to 3V3.
 
+### Running on Flipper Zero
+
+Flash the app as normal using one of the above methods, ensuring you either download the Flipper binaries or
+enable Flipper Zero output in `idf.py menuconfig` before building it.
+
+Once your microcontroller has been flashed with a compatible version of ESP32-Gravity::
+* Connect 3v3 on the Flipper (pin 9) to 3v3 on the ESP32
+* Connect GND on the Flipper (pin 8, 11 or 18) to GND on the ESP32
+* Connect TX on the Flipper (pin 13) to RX/RX0 on the ESP32
+* Connect RX on the Flipper (pin 14) to TX/TX0 on the ESP32
+* Start Gravity on the Flipper
+
+I've been told to avoid powering the ESP32 from Flipper's 3V3 pin, purportedly
+because *it does not support hot plugging*.
+
+I have no idea whether that's true or not, or what it would mean if it were true,
+but consider yoursef warned. (I use the 3V3 pin myself).
 
 ### What's Next?
 
 Work on Gravity continues on a few fronts, depending on the mood I'm in at the time:
 * Bluetooth and BTLE support
-  * BT and BLE discovery working well
-  * Selecting and stalking bt and BLE devices
+  * Initial functionality recently built;
+  * Improving device discovery, adding more features, and better understanding the protocol
   Outstanding:
-  * Purging low priority BLE results when out of memory using a variety of strategies
-  * Default strategies (menuconfig)
   * More aggressive discovery of BT Classic devices
   * Bluetooth service discovery
 * Stalk UI improvements - I think...
   * RSSI is inconsistently updated
   * Age isn't updated
-  * Previously BT and BLE scanning would halt while stalk is active
-  * That won't happen any more, check behaviour of stalk
 * Expanding the number of ingested packet types
   * Improve efficiency & coverage of identifying STA/AP association by looking at
     * Additional management packets
@@ -160,25 +169,44 @@ Work on Gravity continues on a few fronts, depending on the mood I'm in at the t
 * General improvements/bugfixes as I go
 
 
-## Using Gravity on a console
+## Using Gravity
+
+### Read Me First
+
+The remainder of this document describes Gravity's features from the perspective of somebody
+using Gravity's serial console UI. If your only interaction with Gravity is through the Flipper
+Zero application *please **don't** feel this documentation won't be useful for you.*
+
+While you won't be interested in command syntax when using the Flipper app, it will save you
+a lot of trial and error by explaining what commands do, and what other configuration items or
+commands they're dependent on.
+
+I also encourage you to put their Flipper to the side for an afternoon and connect Gravity to your
+laptop while in a populated area. With the substantially-improved screen real-estate you can get
+so much more information over a console. The Flipper Zero is wonderful for discreet exploration,
+or targeting a small number of known devices.
+
+This documentation has been completely reviewed and updated for Gravity v0.5.0 (20230907).
 
 ### Introduction
 
-Gravity provides a number of offensive and defensive wireless features that may be
-useful for testing the robustness of your wireless networks.
+Gravity provides a number of exploratory, offensive and defensive wireless features that
+you may find useful for testing the robustness of your wireless devices and networks.
+Gravity currently supports 3 varieties of wireless device - 802.11 (WiFi) and 802.15.1
+(Bluetooth Classic and Bluetooth Low Energy) - with the intention to expand into 802.15.4
+(ZigBee/Thread) after consolidating existing functionality.
 
 Some features do not require any configuration and can be started immediately, for
-example the random, infinite and rickroll Beacon Spam. Most features, however,
-require one or more targets to be selected. Depending on the feature, the targets
-may be real APs, real STAs or user-specified SSIDs.
-Real APs and STAs are identified using `scan`; user-specified SSIDs
-are managed using `target-ssids`.
+example the random, infinite and rickroll Beacon Spam. Most features require one or more
+targets to be selected. Depending on the feature, the targets may be real APs, real STAs, real
+Bluetooth devices (BT/BLE) or user-specified SSIDs. Real BT, BLE, APs and STAs are
+identified using `scan`; user-specified SSIDs are managed using `target-ssids`.
 
 Settings that affect the behaviour of Gravity are controlled using `get`, `set`, and
-`hop`. One of the most important of these is `hop`, which determines whether channel
-hopping is enabled. If this has not been explicitly set Gravity will use the default
-channel hop setting for that command, starting and stopping hopping if necessary when
-the feature is started and stopped.
+`hop`. One of the most important of these for WiFi is `hop`, which determines whether
+channel hopping is enabled. If this has not been explicitly set Gravity will use the
+default channel hop setting for command you run, starting and stopping hopping if necessary
+when features are started and stopped.
 
 All commands accept a variety of parameters. See the *Help* section for information on
 using Gravity's help system to obtain syntax and usage information for commands.
@@ -197,15 +225,21 @@ Once you're sick of that wall of text, `commands` will provide a list of Gravity
 commands and their syntax, and `info <command>` will provide more detailed information
 about that command.
 
-Tab completion works as expected, and if you pause after typing a command its syntax
-will be displayed on the current line.
+Tab completion works as expected (but only for commands, not parameters I'm afraid), and
+if you pause after typing a command its syntax will be displayed on the current line.
 
 
-### A Note On Bluetooth
+### Applicability to Wifi / BT / BTLE
 
-Many of the commands below, while initially written for 802.11 WiFi exploration, 
+All command documentation will begin with a line identifying which technologies the
+command applies to. For example:
+```c
+Applies To: WiFi, BT, BLE
+```
 
 ### Using User-Specified SSIDs
+
+Applies To: WiFi
 
 `target-ssids` is used to manage user-specified (i.e. fake) SSIDs. These can be used
 by features such as *Beacon Spam* and *Probe Flood* as the SSIDs broadcast by
@@ -220,26 +254,32 @@ As a simple list of strings its use is straightforward:
 * `target-ssids add <ssidName>` adds `<ssidName>` to the list
 * `target-ssids remove <ssidName>` removed `<ssidName>` from the list
 
-### Using Scanned APs/STAs
+### Using Scanned Devices (AP/STA/BT/BLE)
 
 #### SCAN
 
-`scan` controls whether packet scanning is currently active. Scanning parses several
-types of wireless packet to identify nearby *stations* (devices) and *access points*.
+Applies To: WiFi, BT, BLE
+
+`scan` controls whether different types of scanning are currently active. Scanning
+parses several types of wireless protocol packets to identify nearby *stations* (WiFi
+devices), *access points* (WiFi routers), *bluetooth devices* (Phones, Cars, etc.) and
+*Bluetooth Low Energy devices* (tokens, beacons, etc.).
 
 ```c
-Syntax: scan [ <ssidName> | ON | OFF ]
+Syntax: scan [ ( [ <ssidName> ] WIFI ) | BT | BLE [ PURGE ( RSSI | AGE | UNNAMED | UNSELECTED | NONE )+ ] | OFF ]
 ```
 
 If `debug` has been enabled in `idf.py menuconfig` you will receive a notification
-every time a new STA or AP is discovered.
+every time a new device or AP is discovered. BLE devices are too prevalent to display a notification every time one is seen.
 * `scan` returns the current status of scanning
-* `scan on` activates scanning
+* `scan wifi` activates 802.11 Wireless scanning
+* `scan bt` activates Bluetooth Classic scanning
+* `scan ble` activates Bluetooth Low Energy scanning
 * `scan off` deactivates scanning
 
-Once Gravity has discovered stations and access points by scanning, you can select
+Once Gravity has discovered devices and access points by scanning, you can select
 one or more of those objects as targets for your commands. If you leave `scan` running
-while you run other commands it will continue to discover new APs and STAs in the
+while you run other commands it will continue to discover new APs and devices in the
 background.
 
 ##### SCANNING A SPECIFIC SSID
@@ -258,14 +298,29 @@ a short delay until a suitable packet is found, followed by a lot of
 output from cached data that suddenly becomes relevant once the AP's
 MAC is known.
 
+##### PURGING LOW-QUALITY BLE DEVICES
+
+Because Bluetooth Low-Energy devices are so prevalent it is quite easy to fill all of ESP32's
+memory with cached BLE device information. To assist with this Gravity can automatically
+remove devices from its cache to make memory available for new BLE devices if it runs
+out of memory. In order to do this you need to provide Gravity with a Purge Strategy, informing
+it how it should prioritise BLE devices in order to select the best ones to delete.
+
+Future enhancements are planned to implement automatic purging for WiFi and Bluetooth Classic devices.
+
+**See documentation for the command PURGE for information on this.**
+
+TODO Add a link here
+
 
 #### VIEW
 
-`view`, you guessed it, allows you to view the access points and stations discovered
-by `scan`.
+Applies To: WiFi, BT, BLE
+
+`view`, you guessed it, allows you to view the devices discovered by `scan`.
 
 ```c
-Syntax: view ( ( AP [ selectedSTA ] ) | ( STA [ selectedAP ] ) | SORT ( AGE | RSSI | SSID ) )+
+Syntax: view ( ( AP [ selectedSTA ] ) | ( STA [ selectedAP ] ) | BT | SORT ( AGE | RSSI | SSID ) )+
 ```
 
 `view ap`
@@ -287,6 +342,16 @@ lists stations discovered during scanning. The following information is provided
 * *Ch*: The wireless channel the station was last seen on.
 * *Last Seen*: How long ago the STA was last seen by Gravity.
 
+`view bt`
+Lists Bluetooth and Bluetooth Low-Energy devices discovered during scanning. The following information is provided for each device:
+* *ID*: The identifier to use when interacting with this device in Gravity For example, `select bt 13`. As asterisk (*) displayed before the ID indicates that the device has been selected.
+* *RSSI*: Received Signal Strength Indicator. Indicates the strength of the signal being received from the device, from -127dBm to 0dBm.
+* *Name*: The name of the device, if it has been obtained.
+* *BSSID*: The Bluetooth Device Address (BDA) of the device.
+* *Class*: The Class of Device advertised by the device.
+* *Scan Method*: The scan method by which the device was discovered.
+* *LastSeen*: How long ago the device was last seen by Gravity.
+
 If one or more stations or access points have been selected additional options can be
 used to filter your results based on the selected items.
 
@@ -304,7 +369,7 @@ Display options can be combined in any way you like, for example `view ap select
 #### CLEAR
 
 ```c
-Syntax: clear AP | STA | ALL
+Syntax: clear AP | STA | BT | ALL
 ```
 
 Clears `scan` results of the specified type. `scan` results are kept until the ESP32 is
@@ -312,17 +377,18 @@ switched off, with subsequent scans *adding to*, rather than replacing, results.
 If you wish to remove these results and start afresh you can run:
 * `clear ap` clears cached access points
 * `clear sta` clears cached stations
-* `clear all` clears both access points and stations
+* `clear bt` clears cached Bluetooth devices (both Classic and Low-Energy)
+* `clear all` clears access points, stations and Bluetooth devices
 
 #### SELECT
 
-Selects and deselects stations and access points discovered during scanning. Rather
+Selects and deselects devices discovered during scanning. Rather
 than specifying whether you want to select or deselect something, `select` will
 simply toggle the item's selected status, selecting specified items if they are
 not selected and deselecting them if they are selected.
 
 ```c
-Syntax: select ap <id>+
+Syntax: select ( AP | STA | BT ) <id>+
 ```
 
 `<id>` refers to the identifiers displayed by `view ap`. Multiple IDs can be specified by
@@ -330,69 +396,22 @@ separating them with either a space or a `^` (for Flipper Zero compatibility).
 For example `select ap 1 2 3`. If AP 2 had already been selected before running this
 command then, after running, APs 1 and 3 will be selected and AP 2 no longer selected.
 
-`select sta <id>+` operates in exactly the same way, except for stations rather than
-access points.
+`select sta <id>+` and `select bt <id>+` operate in exactly the same way, except for stations
+rather than access points.
 
 #### SELECTED
 
 ```c
-Syntax: selected [ AP | STA ]+
+Syntax: selected [ AP | STA | BT ]+
 ```
 
-Displays only selected access points and/or stations. These are displayed in the same
-format as `view`.
+Displays only selected devices. These are displayed in the same format as `view`.
 * `selected ap` displays selected access points
 * `selected sta` displays selected stations
-* `selected`, `selected ap sta` and `selected sta ap` each display both selected access points and selected stations
-
-
-### Bluetooth Classic and Bluetooth Low Energy (BLE)
-
-In addition to WiFi/802.11, many of the commands above also support Bluetooth Classic and Bluetooth Low Energy
-devices. At the time of writing Bluetooth Classic devices can only be discovered if they are set to discoverable,
-I hope to find a more robust sniffing solution in the near future.
-
-#### Scanning
-
-```c
-Syntax: scan [ ( [ <ssid> ] WIFI ) | BT | BLE | OFF ]
-```
-
-`scan BT` will initiate Classic Bluetooth Discovery. Currently Discovery will automatically terminate after 0x10
-time units, with each time unit being approximately 1.26s. That's about 20 seconds. Devices discovered by this
-method advertise several services. These services can be queried by <DOING SOMETHING WITH THEM>.
-
-`scan BLE` will commence Bluetooth Low Energy sniffing. Currently connections are not established with identified devices. Currently sniffing will automatically terminate after 30 seconds. CAUTION: This feature can easily
-cause Gravity to exhaust the memory available on all ESP32 variants. ESP32-Gravity v0.5.0 will introduce a
-variety of strategies to prevent this, for now you'll typically be able to cache around 150 Bluetooth devices
-before running out of memory.
-
-#### Scan Results
-
-Interacting with Bluetooth Classic and Bluetooth Low Enengy devices is done in much the same way as 802.11 WiFi
-devices.
-
-```c
-view BT
-```
-
-Display all Bluetooth devices identified by scanning. This includes both Bluetooth Classic and Bluetooth Low
-Energy devices; when using Gravity from a console the scan method by which a device is identified is included
-in the output.
+* `selected bt` displays selected Bluetooth devices
+* `selected`, `selected bt ap sta` and variations display all three device types
 
 ![ESP32 Gravity Bluetooth Devices](https://github.com/chris-bc/esp32-gravity/blob/main/gravity-bluetooth.png)
-
-```c
-select BT <elementId>
-```
-
-Select the specified Bluetooth device, with 'elementId' referencing the ID displayed by `view BT`.
-
-```c
-selected BT
-```
-
-Display selected Bluetooth devices.
 
 
 ### Settings & Helper Features
@@ -440,6 +459,8 @@ MAC Randomisation. Specifies whether Gravity will change its MAC address after
 every packet that is sent.
 
 Valid values to `set` MAC Randomisation are `on` and `off`.
+
+**This is not currently operational**
 
 ##### expires
 
@@ -510,8 +531,26 @@ The default number of SSIDs to generate for features that generate random SSIDs.
 
 Currently this is only used by `beacon random` (where `count` is not specified).
 
+##### BLE_PURGE_STRAT
+
+The Purge Strategy - The set of Purge Methods to apply. This is a bitwise composition
+of BLE_PURGE_RSSI (1), BLE_PURGE_AGE (2), BLE_PURGE_UNNAMED (4), BLE_PURGE_UNSELECTED (8),
+and BLE_PURGE_NONE (16)
+
+##### BLE_PURGE_MIN_AGE
+
+The minimum age that will be purged by `purge`. Age purging will be considered complete
+when no more devices exist with an age greater than `BLE_PURGE_MIN_AGE`.
+
+##### BLE_PURGE_MAX_RSSI
+
+The maximum RSSI that will be purged by `purge`. RSSI purging will be considered complete
+when no more devices exist with an RSSI less than `BLE_PURGE_MAX_RSSI`.
+
 
 #### HOP
+
+Applies To: WiFi
 
 Channel hopping is a background process that we sometimes want and sometimes don't.
 Because of that it has its own command to turn it on and off, but Gravity attempts
@@ -577,6 +616,8 @@ soon!) - So with all the above information out of the way let's get into it.
 
 #### BEACON SPAM
 
+Applies To: WiFi
+
 Broadcast forged beacon frames, simulating the presence of fake wireless networks.
 
 This function on its own has limited potential beyond practical jokes, although has
@@ -637,6 +678,8 @@ Points must have been `scan`ned and `select`ed prior to starting this mode.
 
 #### PROBE REQUEST FLOOD
 
+Applies To: WiFi
+
 Broadcast forged probe request frames, sending requests for specified SSIDs.
 
 Probe requests are the mechanism that allows a station (like a phone) to
@@ -660,6 +703,8 @@ Run `probe` with no parameters to display its current status.
 `APs` sends probe requests for the SSIDs of the selected access points.
 
 #### DEAUTHENTICATION ATTACK
+
+Applies To: WiFi
 
 Deauthentication frames are a valid part of the wireless protocol which, for a
 variety of reasons, alert a connected station that it is being deauthenticated
@@ -710,6 +755,8 @@ this mode will target stations connected to those access points.
 
 
 #### Mana
+
+Applies To: WiFi
 
 ```c
 Syntax: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )
@@ -824,6 +871,8 @@ Enable or disable `Loud Mana`, described above. If `Mana` is not running when
 
 #### FUZZ
 
+Applies To: WiFi
+
 Sends a variety of invalid packets to see how different devices respond to
 different types of invalid packets.
 
@@ -868,6 +917,8 @@ specifying an SSID_LEN of 17, then 15, 18, 14, 19, 13, 20, 12, etc.
 
 #### SNIFF
 
+Applies To: WiFi
+
 `sniff` doesn't offer any really compelling functionality and started life as a
 debugging flag during the very early stages of Gravity's development, when I
 was learning how to parse wireless frames.
@@ -888,14 +939,16 @@ Syntax: sniff [ ON | AFF ]
 
 #### STALK
 
-NOT YET IMPLEMENTED.
+Applies To: WiFi, BT, BLE
 
-The intent of this feature is to generate a composite RSSI based on selected
-wireless and bluetooth devices, and create a sort of 'homing' feature, attempting
-to make it simple to follow the RSSI of several devices to locate the person carrying
-them all. 
+This is a sort of *homing* feature, allowing you to follow selected devices to their
+source using their RSSIs.
+In the future a more considered implementation will be developed, generating a single,
+composite score.
 
 #### AP-DOS
+
+Applies To: WiFi
 
 This feature is intended to simulate a denial-of-service (DOS) attack on the
 selected AP(s) by
@@ -915,6 +968,8 @@ Syntax: ap-dos [ ON | OFF ]
 
 #### AP-CLONE
 
+Applies To: WiFi
+
 This feature is intended to simulate a 'clone-and-takeover' attack on the selected
 AP. At a general level you could say that it combines `AP-DOS`'s `deauthentication`
 and `disassociation` messages, `beacon`'s forged beacon frames, and `Mana`'s
@@ -932,6 +987,45 @@ may be detected by some routers as an attack.
 ```c
 Syntax: ap-clone [ ( ON | OFF ) ( OPEN | WEP | WPA )+ ]
 ```
+
+
+#### PURGE
+
+Applies To: BLE
+
+This feature allows memory to be recovered by removing devices from Gravity's cache.
+```c
+Syntax: purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
+```
+
+##### [ WIFI | BT | BLE ]+
+
+Specify the device types to purge. As of v 0.5.0 BLE is the only implemented device type.
+If no device type is specified all device types are selected.
+
+##### [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
+
+Specify the methods used to select devices for purging.
+
+`RSSI`
+
+Delete devices with the lowest RSSI, repeating until there are no devices with an RSSI below BLE_PURGE_MAX_RSSI.
+
+`AGE`
+
+Delete devices with the greatest age, repeating until there are no devices with an age greater than BLE_PURGE_MIN_AGE.
+
+`UNNAMED`
+
+Delete devices without a name.
+
+`UNSELECTED`
+
+Delete devices that are not selected.
+
+`NONE`
+
+Do not delete any devices. If memory runs out halt scanning.
 
 
 #### HANDSHAKE
@@ -957,176 +1051,6 @@ TODO
 ![Flipper-Gravity Main Menu](https://github.com/chris-bc/flipper-gravity/blob/main/assets/flip-grav-mainmenu.png)
 
 ![Flipper-Gravity Manna Attack](https://github.com/chris-bc/flipper-gravity/blob/main/assets/flip-grav-mana.png)
-
-## Features Done
-
-* Automatically include/exclude bluetooth based on target chipset
-  * ESP32 is currently the only device with Bluetooth support
-  * Hopefully ESP32-C6 will join it soon!
-* Soft AP
-* Command line interface with commands:
-    * scan [ ON | OFF ]
-      * Scan APs - Fast (API)
-      * Scan APs - Continual (SSID + lastSeen when beacons seen)
-      * Commands to select/view/remove APs/STAs in scope
-      *  Scan STAs - Only include clients of selected AP(s), or all 
-      * Fix bug with hidden SSIDs being included in network scan and getting garbled names
-      * Update client count when new STAs are found
-      * Format timestamps for display
-      * RSSI, channel, secondary channel and WPS now being displayed reliably
-    * set/get SSID_LEN_MIN SSID_LEN_MAX channel hopping MAC channel
-      * Options to get/set MAC hopping between frames
-      * Options to get/set EXPIRY - When set (value in minutes) Gravity will not use packets of the specified age or older.
-    * view: view [ SSID | STA ] - List available targets for the included tools. Each element is prefixed by an identifier for use with the *select* command, with selected items also indicated. "MAC" is a composite set of identifiers consisting of selected stations in addition to MACs for selected SSIDs.
-      * VIEW AP selectedSTA - View all APs that are associated with the selected STAs
-      * VIEW STA selectedAP - View all STAs that are associated with the selected APs
-    * select: select ( SSID | STA ) &lt;specifier&gt;+ - Select/deselect targets for the included tools.
-    * beacon: beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | USER | OFF ]  - target SSIDs must be specified for USER option. No params returns current status of beacon attack.
-      * Beacon spam - Rickroll
-      * Beacon spam - User-specified SSIDs
-      * Beacon spam - Fuzzing (Random strings)
-      * Beacon spam - Infinite (Random strings)
-      * Beacon spam - Selected APs
-        * Current implementation will include STAs who probed but did not connect to a specified AP. I think that's a good thing?
-    * probe: probe [ ANY | SSIDS | AP | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users. SSIDs sourced either from user-specified target-ssids or selected APs from scan results.
-    * deauth: deauth [ STA | AP | BROADCAST | OFF ] - Send deauthentication packets to broadcast if no parameters provided, to selected STAs if STA is specified, or to STAs who are or have been associated with selected APs if AP is specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
-    * mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
-      verbose output, and set the authentication type it indicates. If not specified returns the current status. 
-      * Mana attack - Respond to all probes
-      * Loud Mana - Respond with SSIDs from all STAs
-    * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len) - FUZZ OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
-      * SSID longer/shorter than ssid_len
-      * SSID matches ssid_len, is greater than 32 (MAX_SSID_LEN)
-    * ap-dos
-      * Respond to frames to/from a selectedAP with
-        * deauth to STA using AP's MAC
-        * disassoc to AP using STA's MAC
-      * Respond to frames between STAs, where one STA is known to be associated with a selectedAP
-        * deauth to both STAs using AP's MAC
-    * ap-clone
-      * composite attack
-      * AP-DOS: Clone AP - Use target's MAC, respond to messages with deauth and APs with disassoc
-      * Beacon: Send forged beacon frames
-      * Mana (almost): Send forged probe responses
-      * (Hopefully the SoftAP will handle everything else once a STA initiates a connection)
-      * Ability to select security of broadcast AP - open so you can get connections, or matching the target so you get assoc requests not them?
-        * No way to get the target's configured auth type
-        * Command line parameter - can specify multiple
-    * stalk
-      * Homing attack (Focus on RSSI for selected STA(s) or AP)
-      * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
-  * Configurable behaviour on BLE out of memory
-    * Truncate all non-selected BT devices and continue
-    * Truncate all unnamed BT devices and continue
-    * Truncate unnamed and unselected BT devices and continue
-    * Truncate the oldest BT devices and continue
-    * Truncate lowest RSSI (could even write an incremental cutoff)
-    * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
-  * Move max RSSI and min AGE into menuconfig and CLI parameters
-
-
-
-
-* **ONGOING** Receive and parse 802.11 frames
-
-## Features TODO
-
-* Web Server serving a page and various endpoints
-    * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
-    * Once complete can decide whether to go ahead with a web server
-* TODO: additional option to show hidden SSIDs
-* improvements to stalk
-  * Average
-  * Median (or trimmed mean)
-* CLI commands to analyse captured data - stations/aps(channel), etc
-* handshake
-* Capture authentication frames for cracking
-* Scan 802.15.1 (BLE/BT) devices and types
-  * Currently runs discovery-based scanning, building device list
-  * Refactor code to retrieve service information from discovered devices
-  * Sniff-based scanning
-  * BLE
-* BLE/BT fuzzer - Attempt to establish a connection with selected/all devices
-
-## Bugs / Todo
-
-* Add SCAN BT SERVICES [selectedBT]
-* Add VIEW BT SERVICES [selectedBT]
-* Update documentation to include Bluetooth features
-  * Have done a little, needs more.
-* Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
-* Further testing of VIEW BT SORT *
-* Add BT service information
-* Add active BT scanning - connections
-* Additional command to inspect a device and its services
-  * Move services callback handler into its own function
-  * Manage a data model for the services rather than displaying them
-  * Don't bother doing that until confirming they can provide useful information
-* Retrieve services for all devices
-* Interpret services based on their UUIDs
-* BT discovery Progress indicator - seconds remaining?
-* Better formatting of remaining UIs
-* Sorting APs not working. Looks like it should :(
-* MAC changing problems on ESP32
-  * Dropped packets after setting MAC
-    * Which bits to re-init?
-    * Currently disabled MAC randomisation
-  * Fix MAC randomisation for Probe
-  * Implement MAC randomisation for beacon
-  * Re-implement MAC spoofing for deauth
-  * Re-implement MAC spoofing for DOS (Used in 5 places)
-* parse additional packet types
-* Decode OUI when displaying MACs (in the same way Wireshark does)
-* Test using fuzz with multiple packet types
-* Add non-broadcast targets to fuzz
-* Mana "Scream" - Broadcast known APs in beacon frames
-* Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
-* Improve sniff implementation
-* Eventually deauth triggers "wifi:max connection, deauth!"
-    
-## Testing / Packet verification
-
-| Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
-|----------------------|-----------|-----------------|-------------------|--------------|
-| Beacon - Random MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
-| Beacon - Device MAC  |  Pass     |  N/A            |  N/A              |  Pass        |
-| Probe - Random MAC   |  Pass     |  N/A            |  N/A              |  Pass        |
-| Probe - Device MAC   |  Pass     |  N/A            |  N/A              |  Pass        |
-| Deauth - Frame Src   |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
-| Deauth - Device Src  |  Pass     |  Pass   | Pass  |  Pass             |  N/A         |
-| Deauth - Spoof Src   |  N/A      |  Pass   | Pass  |  Pass             |  N/A         |
-| Mana - Open Auth     |           |                 |                   |              |
-| Mana - Open - Loud   |           |                 |                   |              |
-| Mana - WEP           |           |                 |                   |              |
-| Mana - WPA           |           |                 |                   |              |
-|----------------------|-----------|-----------------|-------------------|--------------|
-
-
-## Packet types
-
-802.11 type/subtypes
-0x40 Probe request
-0x50 Probe response
-0x80 Beacon
-0xB4 RTS
-0xC4 CTS
-0xD4 ACK
-0x1A PS-Poll
-0x1E CF-End
-0x1F CF-End+CF-Ack
-0x08 Data
-0x88 QoS Data
-
-QoS data & data both have STA and BSSID
-DATA:
-BSSID 10
-STA 4
-QoS DATA:
-BSSID 10
-
-STA 431:83:40:14:00:00
-
-TelstraB20819 BC:30:D9:B2:08:1B
 
 
 # Installation notes
