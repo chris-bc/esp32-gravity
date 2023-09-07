@@ -1696,6 +1696,39 @@ esp_err_t cmd_get(int argc, char **argv) {
         #else
             ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (scrambledWords)?"Enabled":"Disabled");
         #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("");
+            #else
+                //
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("Max Purge RSSI: %lddBm\n", PURGE_MAX_RSSI);
+            #else
+                ESP_LOGI(BT_TAG, "BLE devices with RSSI greater than %ld dBm will not be automatically purged.", PURGE_MAX_RSSI);
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            #ifdef CONFIG_FLIPPER
+                printf("Min Purge Age: %us\n", PURGE_MIN_AGE);
+            #else
+                ESP_LOGI(BT_TAG, "BLE devices seen within the last %u seconds will not be automatically purged.", PURGE_MIN_AGE);
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
     } else if (!strcasecmp(argv[1], "HOP_MODE")) {
         char mode[19] = "";
         if (hopModeToString(hopMode, mode) != ESP_OK) {
