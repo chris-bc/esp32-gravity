@@ -211,7 +211,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             char strStrat[56];
             purgeStrategyToString(purgeStrategy, strStrat);
             #ifdef CONFIG_FLIPPER
-                printf("Purge Configuration\nMin Age: %u\nMax RSSI: %ld\nPurge Strategies:\n%s\n", PURGE_MIN_AGE, PURGE_MAX_RSSI, purgeStrategy);
+                printf("Purge Configuration\nMin Age: %u\nMax RSSI: %ld\nPurge Strategies:\n%s\n", PURGE_MIN_AGE, PURGE_MAX_RSSI, strStrat);
             #else
                 ESP_LOGI(PURGE_TAG, "Purge Minimum Age: %u\tPurge Maximum RSSI: %ld", PURGE_MIN_AGE, PURGE_MAX_RSSI);
                 ESP_LOGI(PURGE_TAG, "Active Purge Strategies:");
@@ -1804,7 +1804,7 @@ esp_err_t cmd_set(int argc, char **argv) {
                 ageSpec = 255;
                 #ifdef CONFIG_DEBUG
                     #ifdef CONFIG_FLIPPER
-                        printf("Rcvd age %d\nTrunc to 255 (8bit)\n", atol(argv[2]));
+                        printf("Rcvd age %ld\nTrunc to 255 (8bit)\n", atol(argv[2]));
                     #else
                         ESP_LOGI(BT_TAG, "Received age %ld. Truncating to 255 for 8-bit container.", atol(argv[2]));
                     #endif

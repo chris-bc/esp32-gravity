@@ -228,7 +228,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
     char *ssid = malloc(sizeof(char) * (ssidSize + 1)); /* Other callers may want to use it as a string */
     if (ssid == NULL) {
         #ifdef CONFIG_FLIPPER
-            printf("%s(%db) for an SSID\n", STRINGS_MALLOC_FAIL (ssidSize + 1));
+            printf("%s(%db) for an SSID\n", STRINGS_MALLOC_FAIL, (ssidSize + 1));
         #else
             ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for an SSID", STRINGS_MALLOC_FAIL, (ssidSize + 1));
         #endif
