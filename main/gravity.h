@@ -49,8 +49,10 @@
 /* Command usage strings */
 extern const char USAGE_BT[];
 extern const char USAGE_BEACON[];
+extern const char USAGE_BT_STRAT[];
 extern const char USAGE_TARGET_SSIDS[];
 extern const char USAGE_PROBE[];
+extern const char USAGE_PURGE[];
 extern const char USAGE_SNIFF[];
 extern const char USAGE_DEAUTH[];
 extern const char USAGE_MANA[];
@@ -72,6 +74,7 @@ extern const char USAGE_COMMANDS[];
 esp_err_t cmd_bluetooth(int argc, char **argv);
 esp_err_t cmd_beacon(int argc, char **argv);
 esp_err_t cmd_probe(int argc, char **argv);
+esp_err_t cmd_purge(int argc, char **argv);
 esp_err_t cmd_fuzz(int argc, char **argv);
 esp_err_t cmd_sniff(int argc, char **argv);
 esp_err_t cmd_deauth(int argc, char **argv);
@@ -108,7 +111,7 @@ static bool WIFI_INITIALISED = false;
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-#define CMD_COUNT 23
+#define CMD_COUNT 24
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -225,6 +228,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_VERSION,
         .help = "Display esp32-Gravity version information.",
         .func = cmd_version
+    }, {
+        .command = "purge",
+        .hint = USAGE_PURGE,
+        .help = "Reduce memory usage - and UI clutter - by removing lower-priority devices from Gravity's cache. The type of device (WiFi, Bluetooth and/or BLE) can be selected, as can the method(s) used to prioritise devices.",
+        .func = cmd_purge
     }
 };
 

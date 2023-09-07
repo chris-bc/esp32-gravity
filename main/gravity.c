@@ -199,6 +199,32 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
     return err;
 }
 
+/* Manually execute purge methods
+   Usage: purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
+*/
+esp_err_t cmd_purge(int argc, char **argv) {
+    /* Parameter validation */
+    if (argc == 1) {
+        /* Return purge settings */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            char strStrat[56];
+            purgeStrategyToString(purgeStrategy, strStrat);
+            #ifdef CONFIG_FLIPPER
+                printf("Purge Configuration\nMin Age: %u\nMax RSSI: %ld\nPurge Strategies:\n%s\n", PURGE_MIN_AGE, PURGE_MAX_RSSI, purgeStrategy);
+            #else
+                ESP_LOGI(BT_TAG, "Purge Minimum Age: %u\tPurge Maximum RSSI: %ld", PURGE_MIN_AGE, PURGE_MAX_RSSI);
+                ESP_LOGI(BT_TAG, "Active Purge Strategies:");
+                ESP_LOGI(BT_TAG, "%s", strStrat);
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
+    }
+
+    return ESP_OK;
+}
+
 /* Display version info for esp32-Gravity */
 esp_err_t cmd_version(int argc, char **argv) {
     esp_err_t err = ESP_OK;
