@@ -326,13 +326,22 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #endif
         }
         /* Now we know the devices and purge methods to use, get on with the purging! */
-        
+        esp_err_t err = ESP_OK;
+        if ((devices & GRAVITY_DEV_WIFI) == GRAVITY_DEV_WIFI) {
+            /* Purge WiFi devices */
+            //err = purgeWiFi(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+        }
+        if ((devices & GRAVITY_DEV_BT) == GRAVITY_DEV_BT) {
+            err |= purgeBT(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+        }
+        if ((devices & GRAVITY_DEV_BLE) == GRAVITY_DEV_BLE) {
+            err |= purgeBLE(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+        }
+        return err;
     #else
         displayBluetoothUnsupported();
         return ESP_ERR_NOT_SUPPORTED;
     #endif
-
-    return ESP_OK;
 }
 
 /* Display version info for esp32-Gravity */

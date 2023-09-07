@@ -8,6 +8,7 @@
 #include "esp_gattc_api.h"
 #include "probe.h"
 #include "sdkconfig.h"
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 
@@ -1757,7 +1758,7 @@ esp_err_t gravity_bt_disable_scan() {
 /* Purge all BLE records with the earliest lastSeen, unless lastSeen
    is > CONFIG_BLE_PURGE_MIN_AGE
 */
-esp_err_t purgeBLEAge() {
+esp_err_t purgeBLEAge(uint8_t purge_min_age) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
 
@@ -1774,7 +1775,7 @@ esp_err_t purgeBLEAge() {
     /* Calculate elapsed time in seconds to test this */
     clock_t nowTime = clock();
     double elapsed = (nowTime - minAge) / CLOCKS_PER_SEC;
-    if (elapsed < PURGE_MIN_AGE) {
+    if (elapsed < purge_min_age) {
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -1800,7 +1801,7 @@ esp_err_t purgeBLEAge() {
 
 /* Purge all BLE records with the smallest RSSI, unless that 
    is > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI, then return ESP_ERR_NOT_FOUND */
-esp_err_t purgeBLERSSI() {
+esp_err_t purgeBLERSSI(int32_t purge_max_rssi) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
 
@@ -1813,7 +1814,7 @@ esp_err_t purgeBLERSSI() {
     }
 
     /* Fail this purge method if smallest RSSI is larger than the min RSSI */
-    if (smallRSSI > PURGE_MAX_RSSI) {
+    if (smallRSSI > purge_max_rssi) {
         return ESP_ERR_NOT_FOUND;
     }
 
@@ -1932,6 +1933,34 @@ esp_err_t purgeBLEUnnamed() {
     return err;
 }
 
+/* Manually execute purging functions for BLE devices */
+esp_err_t purgeBLE(gravity_bt_purge_strategy_t strategy, uint8_t minAge, int32_t maxRssi) {
+    esp_err_t err = ESP_OK;
+    if ((strategy & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
+        /* Re-run purge RSSI until there are no more devices with RSSIs below the cutoff */
+        while (purgeBLERSSI(maxRssi) != ESP_ERR_NOT_FOUND) { }
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
+        /* Likewise for age */
+        while (purgeBLEAge(minAge) != ESP_ERR_NOT_FOUND) { }
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
+        err |= purgeBLEUnnamed();
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
+        err |= purgeBLEUnselected();
+    }
+    return err;
+}
+
+/* Manually execute purging functions for Bluetooth Classic devices */
+esp_err_t purgeBT(gravity_bt_purge_strategy_t, uint8_t minAge, int32_t maxRssi) {
+    esp_err_t err = ESP_OK;
+
+
+    return err;
+}
+
 /* Purge BLE devices based on purgeStrategy until the requested malloc can be completed.
    Returns a pointer to the allocated memory. If Gravity cannot free sufficient memory
    using the specified purge strategies NULL will be returned.
@@ -1946,14 +1975,14 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
     while (retVal == NULL) {
         if ((purgeAttempts & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
             /* Purge the lowest RSSI BLE devices from Gravity */
-            err = purgeBLERSSI();
+            err = purgeBLERSSI(PURGE_MAX_RSSI);
             if (err == ESP_ERR_NOT_FOUND) {
                 /* There's nothing left that we can purge */
                 purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI); /* XOR out GRAVITY_BLE_PURGE_RSSI */
             }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
             /* Purge the oldest BLE devices from Gravity */
-            err = purgeBLEAge();
+            err = purgeBLEAge(PURGE_MIN_AGE);
             if (err == ESP_ERR_NOT_FOUND) {
                 /* If no more devices can be purged XOR out GRAVITY_BLE_PURGE_AGE */
                 purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
