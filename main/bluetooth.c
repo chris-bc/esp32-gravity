@@ -2080,6 +2080,12 @@ char *purgeStrategyToString(gravity_bt_purge_strategy_t strategy, char *strOutpu
         }
         strcat(strOutput, "PURGE_UNSELECTED");
     }
+    if ((strategy & GRAVITY_BLE_PURGE_NONE) == GRAVITY_BLE_PURGE_NONE) {
+        if (strlen(strOutput) > 1) {
+            strcat(strOutput, ", ");
+        }
+        strcat(strOutput, "PURGE_NONE");
+    }
     return strOutput;
 }
 

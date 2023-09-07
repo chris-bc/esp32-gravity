@@ -1698,10 +1698,13 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
         #if defined(CONFIG_IDF_TARGET_ESP32)
+            char strStrat[56] = "";
+            purgeStrategyToString(purgeStrategy, strStrat);
             #ifdef CONFIG_FLIPPER
-                printf("");
+                printf("Active Purge Methods:\n%s\n", strStrat);
             #else
-                //
+                ESP_LOGI(BT_TAG, "Active Purge Methods:");
+                ESP_LOGI(BT_TAG, "%s", strStrat);
             #endif
         #else
             displayBluetoothUnsupported();
