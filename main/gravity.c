@@ -1332,16 +1332,18 @@ esp_err_t cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY | HOP_MODE */
+      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY, HOP_MODE, SCRAMBLE_WORDS,
+      BLE_PURGE_STRAT, BLE_PURGE_MAX_RSSI, BLE_PURGE_MIN_AGE */
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_SET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS");
+            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS |");
+            ESP_LOGE(TAG, "             BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1516,13 +1518,91 @@ esp_err_t cmd_set(int argc, char **argv) {
         #else
             ESP_LOGI(TAG, "ATTACK_MILLIS is %ld\n", ATTACK_MILLIS);
         #endif
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
+        // TODO
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            if (argc != 3) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Value required for SET.\n");
+                #else
+                    ESP_LOGE(TAG, "Maximum Purge RSSI (in dBm) is required.");
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            int rssiSpec = atol(argv[2]);
+            if (rssiSpec == 0) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid RSSI: \"%s.\n", argv[2]);
+                #else
+                    ESP_LOGE(TAG, "Invalid RSSI speified: \"%s\".", argv[2]);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            PURGE_MAX_RSSI = rssiSpec;
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Max purge RSSI: %d\n", rssiSpec);
+                #else
+                    ESP_LOGI(TAG, "Maximum BLE purge RSSI set to %d dbM.", rssiSpec);
+                #endif
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
+        return ESP_OK;
+    } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            if (argc != 3) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Value required for SET.\n");
+                #else
+                    ESP_LOGE(TAG, "Minimum Purge Age (seconds) is required.");
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            int ageSpec = atol(argv[2]);
+            if (ageSpec == 0) {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid age: \"%s\".\n", argv[2]);
+                #else
+                    ESP_LOGE(TAG, "Invalid Age specified: \"%s\".", argv[2]);
+                #endif
+
+                return ESP_ERR_INVALID_ARG;
+            }
+            if (ageSpec > 255) {
+                ageSpec = 255;
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("Rcvd age %d\nTrunc to 255 (8bit)\n", atol(argv[2]));
+                    #else
+                        ESP_LOGI(BT_TAG, "Received age %ld. Truncating to 255 for 8-bit container.", atol(argv[2]));
+                    #endif
+                #endif
+            }
+            PURGE_MIN_AGE = ageSpec;
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Min purge age: %d\n", ageSpec);
+                #else
+                    ESP_LOGI(TAG, "Minimum BLE purge age set to %d seconds.", ageSpec);
+                #endif
+            #endif
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
+        return ESP_OK;
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
             ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
+            ESP_LOGE(TAG, "             SCRAMBLE_WORDS | BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1534,16 +1614,18 @@ esp_err_t cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL, HOP_MODE
-      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS, BLE_PURGE_STRAT */
+      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS, BLE_PURGE_STRAT
+      BLE_PURGE_MAX_RSSI, BLE_PURGE_MIN_AGE */
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\nBLE_PURGE_STRAT\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE | MAC");
             ESP_LOGE(TAG, "             ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS | BLE_PURGE_STRAT");
+            ESP_LOGE(TAG, "             BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -1671,10 +1753,12 @@ esp_err_t cmd_get(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
         /* Syntax GET BLE_PURGE_STRAT */
         #if defined(CONFIG_IDF_TARGET_ESP32)
+            char stratStr[56];
+            purgeStrategyToString(purgeStrategy, stratStr);
             #ifdef CONFIG_FLIPPER
-                printf("Purge Strategy: %u\n", purgeStrategy); // TODO: Print useful output
+                printf("Purge Strategy: %s\n", stratStr);
             #else
-                ESP_LOGI(BT_TAG, "Bluetooth Strategy: %u", purgeStrategy); //TODO: Useful output
+                ESP_LOGI(BT_TAG, "Bluetooth Strategy: %s", stratStr);
             #endif
         #else
             #ifdef CONFIG_FLIPPER
@@ -1702,9 +1786,9 @@ esp_err_t cmd_get(int argc, char **argv) {
         /* Syntax: GET BLE_PURGE_MAX_AGE */
         #if defined(CONFIG_IDF_TARGET_ESP32)
             #ifdef CONFIG_FLIPPER
-                printf("Min Purged Agexxx\n");
+                printf("Min Purged Age %ds\n", PURGE_MIN_AGE);
             #else
-                ESP_LOGI(BT_TAG, "BLE Minimum Purge Age: xxxx s");
+                ESP_LOGI(BT_TAG, "BLE Minimum Purge Age: %ds", PURGE_MIN_AGE);
             #endif
         #else
             #ifdef CONFIG_FLIPPER
@@ -1715,11 +1799,12 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY\nHOP_MODE\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
             ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
+            ESP_LOGE(TAG, "             SCRAMBLE_WORDS | BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
     }

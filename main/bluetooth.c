@@ -8,6 +8,7 @@
 #include "esp_gattc_api.h"
 #include "probe.h"
 #include "sdkconfig.h"
+#include <string.h>
 #include <time.h>
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -2048,6 +2049,38 @@ esp_err_t gravity_bt_shrink_devices() {
     gravity_bt_dev_count = targetCount;
 
     return err;
+}
+
+/* purgeStrategyToString
+   Convert the specified purge strategy to a string
+   strategy is any valid (composited) strategy
+   strOutput is at least 56 bytes of initialised memory
+   The function also returns a pointer to strOutput
+*/
+char *purgeStrategyToString(gravity_bt_purge_strategy_t strategy, char *strOutput) {
+    strcpy(strOutput, "");
+    if ((strategy & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
+        strcat(strOutput, "PURGE_RSSI");
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
+        if (strlen(strOutput) > 1) {
+            strcat(strOutput, ", ");
+        }
+        strcat(strOutput, "PURGE_AGE");
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
+        if (strlen(strOutput) > 1) {
+            strcat(strOutput, ", ");
+        }
+        strcat(strOutput, "PURGE_UNNAMED");
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
+        if (strlen(strOutput) > 1) {
+            strcat(strOutput, ", ");
+        }
+        strcat(strOutput, "PURGE_UNSELECTED");
+    }
+    return strOutput;
 }
 
 #endif
