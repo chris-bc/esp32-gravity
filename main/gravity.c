@@ -1519,7 +1519,70 @@ esp_err_t cmd_set(int argc, char **argv) {
             ESP_LOGI(TAG, "ATTACK_MILLIS is %ld\n", ATTACK_MILLIS);
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
-        // TODO
+        /* Set the purge strategy in a way that's not a nightmare for users
+            RSSI = 1,
+            AGE = 2,
+            UNNAMED = 4,
+            UNSELECTED = 8,
+            NONE = 16
+           Allow either a set of strings or a number to be specified
+           Or SET BLE_PURGE_STRAT RSSI UNNAMED AGE UNSELECTED
+        */
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            if (argc < 3) {
+                #ifdef CONFIG_FLIPPER
+                    printf("%s\n", SHORT_BT_STRAT);
+                #else
+                    ESP_LOGE(BT_TAG, "%s", USAGE_BT_STRAT);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            /* If argv[2] is a number then there can only be 3 arguments */
+            int stratSpec = atol(argv[2]);
+            if (stratSpec == 0) {
+                /* Build stratSpec from string arguments */
+                for (int i = 2; i < argc; ++i) {
+                    if (!strcasecmp(argv[i], "RSSI")) {
+                        stratSpec = stratSpec | GRAVITY_BLE_PURGE_RSSI;
+                    } else if (!strcasecmp(argv[i], "AGE")) {
+                        stratSpec = stratSpec | GRAVITY_BLE_PURGE_AGE;
+                    } else if (!strcasecmp(argv[i], "UNNAMED")) {
+                        stratSpec = stratSpec | GRAVITY_BLE_PURGE_UNNAMED;
+                    } else if (!strcasecmp(argv[i], "UNSELECTED")) {
+                        stratSpec = stratSpec | GRAVITY_BLE_PURGE_UNSELECTED;
+                    } else if (!strcasecmp(argv[i], "NONE")) {
+                        stratSpec = stratSpec | GRAVITY_BLE_PURGE_NONE;
+                    } else {
+                        #ifdef CONFIG_FLIPPER
+                            printf("Invalid purge method:\n%35s\nValid: RSSI, AGE, UNNAMED, UNSELECTED, NONE\n", argv[i]);
+                        #else
+                            ESP_LOGE(BT_TAG, "Invalid purge method \"%s\" specified.", argv[i]);
+                        #endif
+                        return ESP_ERR_INVALID_ARG;
+                    }
+                }
+                /* No need to do any further validation - It's done below */
+            } else if (stratSpec < 0) {
+                #ifdef CONFIG_FLIPPER
+                    printf("That's a silly argument.\nDon't be silly.\n");
+                #else
+                    ESP_LOGE(BT_TAG, "That's a silly argument. Don't be silly. :P");
+                #endif
+            }
+            if (stratSpec > 16) {
+                /* NONE cannot be combined with anything else */
+                #ifdef CONFIG_FLIPPER
+                    printf("Cannot combine NONE with\nother purge types.\n");
+                #else
+                    ESP_LOGE(BT_TAG, "Cannot combine purge type NONE with other purge types.");
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            purgeStrategy = stratSpec;
+        #else
+            displayBluetoothUnsupported();
+            return ESP_ERR_NOT_SUPPORTED;
+        #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
         #if defined(CONFIG_IDF_TARGET_ESP32)
             if (argc != 3) {
@@ -1551,7 +1614,6 @@ esp_err_t cmd_set(int argc, char **argv) {
             displayBluetoothUnsupported();
             return ESP_ERR_NOT_SUPPORTED;
         #endif
-        return ESP_OK;
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
         #if defined(CONFIG_IDF_TARGET_ESP32)
             if (argc != 3) {
@@ -1594,7 +1656,6 @@ esp_err_t cmd_set(int argc, char **argv) {
             displayBluetoothUnsupported();
             return ESP_ERR_NOT_SUPPORTED;
         #endif
-        return ESP_OK;
     } else {
         #ifdef CONFIG_FLIPPER
             printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
