@@ -1015,6 +1015,15 @@ TODO
     * stalk
       * Homing attack (Focus on RSSI for selected STA(s) or AP)
       * Individual wireless devices selected (selected AP, STA, BT, BTLE, ...)
+  * Configurable behaviour on BLE out of memory
+    * Truncate all non-selected BT devices and continue
+    * Truncate all unnamed BT devices and continue
+    * Truncate unnamed and unselected BT devices and continue
+    * Truncate the oldest BT devices and continue
+    * Truncate lowest RSSI (could even write an incremental cutoff)
+    * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
+  * Move max RSSI and min AGE into menuconfig and CLI parameters
+
 
 
 
@@ -1046,30 +1055,6 @@ TODO
 * Update documentation to include Bluetooth features
   * Have done a little, needs more.
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
-* Configurable behaviour on BLE out of memory
-  * Truncate all non-selected BT devices and continue
-  * Truncate all unnamed BT devices and continue
-  * Truncate unnamed and unselected BT devices and continue
-  * Truncate the oldest BT devices and continue
-  * Truncate lowest RSSI (could even write an incremental cutoff)
-  * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
-  * How will this work?
-    * If malloc fails look to prioritisation strategy
-      * if name delete everything without a name
-      * if age delete the oldest (n, incrementally - if can't malloc after deleting one, delete another and try again)
-      * if RSSI find the smallest and delete all elements with that value. Try again, repeat if necessary
-      * if selected delete everything that isn't selected (triggered by out of memory, standard behaviour as per normal)
-    * Where will malloc fail?
-      * bt_device_add_components
-        * Any sort of malloc failure, not just struct malloc
-    typedef enum {
-      GRAVITY_BLE_PURGE_RSSI = 1,
-      GRAVITY_BLE_PURGE_AGE = 2,
-      GRAVITY_BLE_PURGE_UNNAMED = 4,
-      GRAVITY_BLE_PURGE_UNSELECTED = 8,
-      GRAVITY_BLE_PURGE_NONE = 16
-    } gravity_bt_purge_strategy_t;
-  * Move min RSSI and min AGE into menuconfig and CLI parameters
 * Further testing of VIEW BT SORT *
 * Add BT service information
 * Add active BT scanning - connections

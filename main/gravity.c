@@ -204,6 +204,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
 */
 esp_err_t cmd_purge(int argc, char **argv) {
     #if defined(CONFIG_IDF_TARGET_ESP32)
+        const char PURGE_TAG[] = "purge@GRAVITY";
         /* Parameter validation */
         if (argc == 1) {
             /* Return purge settings */
@@ -212,9 +213,9 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("Purge Configuration\nMin Age: %u\nMax RSSI: %ld\nPurge Strategies:\n%s\n", PURGE_MIN_AGE, PURGE_MAX_RSSI, purgeStrategy);
             #else
-                ESP_LOGI(BT_TAG, "Purge Minimum Age: %u\tPurge Maximum RSSI: %ld", PURGE_MIN_AGE, PURGE_MAX_RSSI);
-                    ESP_LOGI(BT_TAG, "Active Purge Strategies:");
-                ESP_LOGI(BT_TAG, "%s", strStrat);
+                ESP_LOGI(PURGE_TAG, "Purge Minimum Age: %u\tPurge Maximum RSSI: %ld", PURGE_MIN_AGE, PURGE_MAX_RSSI);
+                ESP_LOGI(PURGE_TAG, "Active Purge Strategies:");
+                ESP_LOGI(PURGE_TAG, "%s", strStrat);
             #endif
             return ESP_OK;
         }
@@ -222,7 +223,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_PURGE);
             #else
-                ESP_LOGE(TAG, "%s", SHORT_PURGE);
+                ESP_LOGE(PURGE_TAG, "%s", SHORT_PURGE);
             #endif
             return ESP_ERR_INVALID_ARG;
         }
@@ -238,7 +239,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
                     #ifdef CONFIG_FLIPPER
                         printf("Purge: Selected WiFi\n");
                     #else
-                        ESP_LOGI(TAG, "Purge: Selected WiFi");
+                        ESP_LOGI(PURGE_TAG, "Purge: Selected WiFi");
                     #endif
                 #endif
             } else if (!strcasecmp(argv[argIdx], "BT")) {
@@ -247,7 +248,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
                     #ifdef CONFIG_FLIPPER
                         printf("Purge: Selected Bluetooth\n");
                     #else
-                        ESP_LOGI(TAG, "Purge: Selected Bluetooth");
+                        ESP_LOGI(PURGE_TAG, "Purge: Selected Bluetooth");
                     #endif
                 #endif
             } else if (!strcasecmp(argv[argIdx], "BLE")) {
@@ -256,7 +257,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
                     #ifdef CONFIG_FLIPPER
                         printf("Purge: Selected BLE\n");
                     #else
-                        ESP_LOGI(TAG, "Purge: Selected Bluetooth Low Energy");
+                        ESP_LOGI(PURGE_TAG, "Purge: Selected Bluetooth Low Energy");
                     #endif
                 #endif
             }
@@ -267,7 +268,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("No devices specified.\nSelecting all devices.\n");
             #else
-                ESP_LOGI(TAG, "No devices specified. Selecting all devices.");
+                ESP_LOGI(PURGE_TAG, "No devices specified. Selecting all devices.");
             #endif
             devices = GRAVITY_DEV_WIFI | GRAVITY_DEV_BT | GRAVITY_DEV_BLE;
         }
@@ -289,7 +290,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
                 #ifdef CONFIG_FLIPPER
                     printf("Invalid Purge Method:\n%30s\n", argv[argIdx]);
                 #else
-                    ESP_LOGE(TAG, "Invalid Purge Method specified: \"%s\"", argv[argIdx]);
+                    ESP_LOGE(PURGE_TAG, "Invalid Purge Method specified: \"%s\"", argv[argIdx]);
                 #endif
                 return ESP_ERR_INVALID_ARG;
             }
@@ -303,7 +304,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
                 #ifdef CONFIG_FLIPPER
                     printf("No Purge Methods specified.\nNo default purge methods.\n");
                 #else
-                    ESP_LOGE(TAG, "No Purge Methods were specified and Gravity has not been configured with default Purge Methods.");
+                    ESP_LOGE(PURGE_TAG, "No Purge Methods were specified and Gravity has not been configured with default Purge Methods.");
                 #endif
                 return ESP_ERR_INVALID_ARG;
             } else {
@@ -312,8 +313,8 @@ esp_err_t cmd_purge(int argc, char **argv) {
                 #ifdef CONFIG_FLIPPER
                     printf("No Purge Methods specified.\nUsing defaults:\n%s\n", strStrat);
                 #else
-                    ESP_LOGI(TAG, "No Purge Methods specified, using Gravity default Purge Methods:");
-                    ESP_LOGI(TAG, "%s", strStrat);
+                    ESP_LOGI(PURGE_TAG, "No Purge Methods specified, using Gravity default Purge Methods:");
+                    ESP_LOGI(PURGE_TAG, "%s", strStrat);
                 #endif
             }
         } else {
@@ -322,7 +323,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #ifdef CONFIG_FLIPPER
                 printf("Using Purge Methods:\n%s\n", strStrat);
             #else
-                ESP_LOGI(TAG, "Using Purge Methods: %s", strStrat);
+                ESP_LOGI(PURGE_TAG, "Using Purge Methods: %s", strStrat);
             #endif
         }
         /* Now we know the devices and purge methods to use, get on with the purging! */

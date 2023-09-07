@@ -1770,6 +1770,10 @@ esp_err_t purgeBLEAge(uint8_t purge_min_age) {
             minAge = gravity_bt_devices[i]->lastSeen;
         }
     }
+    if (minAge == -1) {
+        /* No valid devices found. Nothing to do */
+        return ESP_ERR_NOT_FOUND;
+    }
 
     /* We're done with this purge strategy if the oldest age is less than the minimum purge age */
     /* Calculate elapsed time in seconds to test this */
@@ -1779,9 +1783,9 @@ esp_err_t purgeBLEAge(uint8_t purge_min_age) {
         return ESP_ERR_NOT_FOUND;
     }
 
-    /* If we're still here, remove all BLE records lastSeen at minAge */
+    /* If we're still here, remove all BLE records lastSeen at (or before, to cater for minAge dodginess) minAge */
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->lastSeen == minAge) {
+        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->lastSeen <= minAge) {
             /* Don't forget to free the name and EIR */
             if (gravity_bt_devices[i]->bdName != NULL && gravity_bt_devices[i]->bdname_len > 0) {
                 free(gravity_bt_devices[i]->bdName);
