@@ -1261,8 +1261,20 @@ esp_err_t cmd_scan(int argc, char **argv) {
                 }
             }
             if (purgeStrat == 0) {
-                purgeStrat = GRAVITY_BLE_PURGE_NONE;
+                if (purgeStrategy != 0) {
+                    purgeStrat = purgeStrategy;
+                } else {
+                    purgeStrat = GRAVITY_BLE_PURGE_NONE;
+                }
             }
+            char strStrat[56];
+            purgeStrategyToString(purgeStrat, strStrat);
+            #ifdef CONFIG_FLIPPER
+                printf("Starting BLE scanning.\nOut-of-memory purge methods:\n%s\n", strStrat);
+            #else
+                ESP_LOGI(BT_TAG, "Starting BLE scanning. Purge Methods if out of memory:");
+                ESP_LOGI(BT_TAG, "%s", strStrat);
+            #endif
             /* Now start BLE scanning */
             attack_status[ATTACK_SCAN_BLE] = true;
             err |= gravity_ble_scan_start(purgeStrat);
@@ -1578,6 +1590,14 @@ esp_err_t cmd_set(int argc, char **argv) {
                 #endif
                 return ESP_ERR_INVALID_ARG;
             }
+            char strStrat[56];
+            purgeStrategyToString(stratSpec, strStrat);
+            #ifdef CONFIG_FLIPPER
+                printf("Setting Purge Methods:\n%s\n", strStrat);
+            #else
+                ESP_LOGI(BT_TAG, "Setting Purge Methods:");
+                ESP_LOGI(BT_TAG, "%s", strStrat);
+            #endif
             purgeStrategy = stratSpec;
         #else
             displayBluetoothUnsupported();
