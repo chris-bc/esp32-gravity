@@ -203,24 +203,134 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
    Usage: purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
 */
 esp_err_t cmd_purge(int argc, char **argv) {
-    /* Parameter validation */
-    if (argc == 1) {
-        /* Return purge settings */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_IDF_TARGET_ESP32)
+        /* Parameter validation */
+        if (argc == 1) {
+            /* Return purge settings */
             char strStrat[56];
             purgeStrategyToString(purgeStrategy, strStrat);
             #ifdef CONFIG_FLIPPER
                 printf("Purge Configuration\nMin Age: %u\nMax RSSI: %ld\nPurge Strategies:\n%s\n", PURGE_MIN_AGE, PURGE_MAX_RSSI, purgeStrategy);
             #else
                 ESP_LOGI(BT_TAG, "Purge Minimum Age: %u\tPurge Maximum RSSI: %ld", PURGE_MIN_AGE, PURGE_MAX_RSSI);
-                ESP_LOGI(BT_TAG, "Active Purge Strategies:");
+                    ESP_LOGI(BT_TAG, "Active Purge Strategies:");
                 ESP_LOGI(BT_TAG, "%s", strStrat);
             #endif
-        #else
-            displayBluetoothUnsupported();
-            return ESP_ERR_NOT_SUPPORTED;
-        #endif
-    }
+            return ESP_OK;
+        }
+        if (argc > 8) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", SHORT_PURGE);
+            #else
+                ESP_LOGE(TAG, "%s", SHORT_PURGE);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
+        GravityDeviceType devices = 0;
+        /* Process device arguments */
+        uint8_t argIdx = 1;
+        uint8_t methIdx = 0;
+        while (argIdx < argc && !(strcasecmp(argv[argIdx], "WIFI") && strcasecmp(argv[argIdx], "BT") &&
+                strcasecmp(argv[argIdx], "BLE"))) {
+            if (!strcasecmp(argv[argIdx], "WIFI")) {
+                devices = devices | GRAVITY_DEV_WIFI;
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("Purge: Selected WiFi\n");
+                    #else
+                        ESP_LOGI(TAG, "Purge: Selected WiFi");
+                    #endif
+                #endif
+            } else if (!strcasecmp(argv[argIdx], "BT")) {
+                devices = devices | GRAVITY_DEV_BT;
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("Purge: Selected Bluetooth\n");
+                    #else
+                        ESP_LOGI(TAG, "Purge: Selected Bluetooth");
+                    #endif
+                #endif
+            } else if (!strcasecmp(argv[argIdx], "BLE")) {
+                devices = devices | GRAVITY_DEV_BLE;
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("Purge: Selected BLE\n");
+                    #else
+                        ESP_LOGI(TAG, "Purge: Selected Bluetooth Low Energy");
+                    #endif
+                #endif
+            }
+            ++argIdx;
+        }
+        if (argIdx == 1) {
+            /* No device parameters were provided */
+            #ifdef CONFIG_FLIPPER
+                printf("No devices specified.\nSelecting all devices.\n");
+            #else
+                ESP_LOGI(TAG, "No devices specified. Selecting all devices.");
+            #endif
+            devices = GRAVITY_DEV_WIFI | GRAVITY_DEV_BT | GRAVITY_DEV_BLE;
+        }
+        /* Process purge method arguments */
+        gravity_bt_purge_strategy_t strat = GRAVITY_BLE_PURGE_IDLE;
+        while (argIdx < argc && !(strcasecmp(argv[argIdx], "RSSI") && strcasecmp(argv[argIdx], "AGE") &&
+                strcasecmp(argv[argIdx], "UNNAMED") && strcasecmp(argv[argIdx], "UNSELECTED") && strcasecmp(argv[argIdx], "NONE"))) {
+            if (!strcasecmp(argv[argIdx], "RSSI")) {
+                strat = strat | GRAVITY_BLE_PURGE_RSSI;
+            } else if (!strcasecmp(argv[argIdx], "AGE")) {
+                strat = strat | GRAVITY_BLE_PURGE_AGE;
+            } else if (!strcasecmp(argv[argIdx], "UNNAMED")) {
+                strat = strat | GRAVITY_BLE_PURGE_UNNAMED;
+            } else if (!strcasecmp(argv[argIdx], "UNSELECTED")) {
+                strat = strat | GRAVITY_BLE_PURGE_UNSELECTED;
+            } else if (!strcasecmp(argv[argIdx], "NONE")) {
+                strat = strat | GRAVITY_BLE_PURGE_NONE;
+            } else {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid Purge Method:\n%30s\n", argv[argIdx]);
+                #else
+                    ESP_LOGE(TAG, "Invalid Purge Method specified: \"%s\"", argv[argIdx]);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+            ++argIdx;
+        }
+        /* Note we're checking equality here, not & - IDLE is 0 */
+        if (strat == GRAVITY_BLE_PURGE_IDLE) {
+            /* No purge methods specified - Is a default one specified? */
+            strat = purgeStrategy;
+            if (strat == GRAVITY_BLE_PURGE_IDLE) {
+                #ifdef CONFIG_FLIPPER
+                    printf("No Purge Methods specified.\nNo default purge methods.\n");
+                #else
+                    ESP_LOGE(TAG, "No Purge Methods were specified and Gravity has not been configured with default Purge Methods.");
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            } else {
+                char strStrat[56];
+                purgeStrategyToString(strat, strStrat);
+                #ifdef CONFIG_FLIPPER
+                    printf("No Purge Methods specified.\nUsing defaults:\n%s\n", strStrat);
+                #else
+                    ESP_LOGI(TAG, "No Purge Methods specified, using Gravity default Purge Methods:");
+                    ESP_LOGI(TAG, "%s", strStrat);
+                #endif
+            }
+        } else {
+            char strStrat[56];
+            purgeStrategyToString(strat, strStrat);
+            #ifdef CONFIG_FLIPPER
+                printf("Using Purge Methods:\n%s\n", strStrat);
+            #else
+                ESP_LOGI(TAG, "Using Purge Methods: %s", strStrat);
+            #endif
+        }
+        /* Now we know the devices and purge methods to use, get on with the purging! */
+        
+    #else
+        displayBluetoothUnsupported();
+        return ESP_ERR_NOT_SUPPORTED;
+    #endif
 
     return ESP_OK;
 }

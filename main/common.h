@@ -130,6 +130,14 @@ typedef enum GRAVITY_SORT_TYPE {
     GRAVITY_SORT_SSID
 } GRAVITY_SORT_TYPE;
 
+/* General-purpose device selector */
+typedef enum GravityDeviceType {
+    GRAVITY_DEV_WIFI = 1,
+    GRAVITY_DEV_BT = 2,
+    GRAVITY_DEV_BLE = 4,
+    GRAVITY_DEV_NONE = 8
+} GravityDeviceType;
+
 /* Declared here because I get an error trying to use this enum in beacon.h (but it's fine in beacon.c) */
 extern PROBE_RESPONSE_AUTH_TYPE authTypes[];
 
