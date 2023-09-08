@@ -1,6 +1,6 @@
 {
     "C_Cpp.intelliSenseEngine": "Tag Parser",
-    "idf.adapterTargetName": "esp32s2",
+    "idf.adapterTargetName": "esp32",
     "idf.customExtraPaths": "/home/chris/.espressif/tools/xtensa-esp-elf-gdb/12.1_20221002/xtensa-esp-elf-gdb/bin:/home/chris/.espressif/tools/riscv32-esp-elf-gdb/12.1_20221002/riscv32-esp-elf-gdb/bin:/home/chris/.espressif/tools/xtensa-esp32-elf/esp-12.2.0_20230208/xtensa-esp32-elf/bin:/home/chris/.espressif/tools/xtensa-esp32s2-elf/esp-12.2.0_20230208/xtensa-esp32s2-elf/bin:/home/chris/.espressif/tools/xtensa-esp32s3-elf/esp-12.2.0_20230208/xtensa-esp32s3-elf/bin:/home/chris/.espressif/tools/riscv32-esp-elf/esp-12.2.0_20230208/riscv32-esp-elf/bin:/home/chris/.espressif/tools/esp32ulp-elf/2.35_20220830/esp32ulp-elf/bin:/home/chris/.espressif/tools/openocd-esp32/v0.12.0-esp32-20230419/openocd-esp32/bin:/home/chris/.espressif/tools/esp-rom-elfs/20230320",
     "idf.customExtraVars": {
         "OPENOCD_SCRIPTS": "/home/chris/.espressif/tools/openocd-esp32/v0.12.0-esp32-20230419/openocd-esp32/share/openocd/scripts",
@@ -11,7 +11,7 @@
         "interface/ftdi/esp32_devkitj_v1.cfg",
         "target/esp32s2.cfg"
     ],
-    "idf.port": "/dev/ttyACM0",
+    "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/chris/.espressif/python_env/idf5.1_py3.10_env/bin/python",
     "idf.toolsPath": "/home/chris/.espressif",
     "idf.flashType": "UART",

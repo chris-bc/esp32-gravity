@@ -2299,34 +2299,81 @@ esp_err_t cmd_select(int argc, char **argv) {
         }
     }
 
-    esp_err_t err = ESP_OK;;
+    /* Check whether 'ALL' is specified anywhere in the arguments */
+    bool selectAll = false;
+    for (int i = 2; i < argc && !selectAll; ++i) {
+        if (!strcasecmp(argv[i], "ALL")) {
+            selectAll = true;
+        }
+    }
+
+    esp_err_t err = ESP_OK;
     if (!strcasecmp(argv[1], "AP")) {
-        for (int i = 2; i < argc; ++i) {
-            err |= gravity_select_ap(atoi(argv[i]));
-            #ifdef CONFIG_FLIPPER
-                printf("AP %d %sselected\n", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
-            #else
-                ESP_LOGI(TAG, "AP element %d is %sselected", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
-            #endif
+        /* All or some */
+        if (selectAll) {
+            /* Toggle select status of all APs */
+            for (int i = 0; i < gravity_ap_count; ++i) {
+                err |= gravity_select_ap(gravity_aps[i].index);
+                #ifdef CONFIG_FLIPPER
+                    printf("AP %d %sselected\n", gravity_aps[i].index, (gravity_ap_isSelected(gravity_aps[i].index))?"":"not ");
+                #else
+                    ESP_LOGI(TAG, "AP element %d is %sselected", gravity_aps[i].index, (gravity_ap_isSelected(gravity_aps[i].index))?"":"not ");
+                #endif
+            }
+        } else {
+            for (int i = 2; i < argc; ++i) {
+                err |= gravity_select_ap(atoi(argv[i]));
+                #ifdef CONFIG_FLIPPER
+                    printf("AP %d %sselected\n", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
+                #else
+                    ESP_LOGI(TAG, "AP element %d is %sselected", atoi(argv[i]), (gravity_ap_isSelected(atoi(argv[i])))?"":"not ");
+                #endif
+            }
         }
     } else if (!strcasecmp(argv[1], "STA")) {
-        for (int i = 2; i < argc; ++i) {
-            err |= gravity_select_sta(atoi(argv[i]));
-            #ifdef CONFIG_FLIPPER
-                printf("STA %d %sselected\n", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
-            #else
-                ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
-            #endif
+        /* All or some */
+        if (selectAll) {
+            /* Toggle select status of all STAs */
+            for (int i = 0; i < gravity_sta_count; ++i) {
+                err |= gravity_select_sta(gravity_stas[i].index);
+                #ifdef CONFIG_FLIPPER
+                    printf("STA %d %sselected\n", gravity_stas[i].index, (gravity_sta_isSelected(gravity_stas[i].index))?"":"not ");
+                #else
+                    ESP_LOGI(TAG, "STA element %d is %sselected", gravity_stas[i].index, (gravity_sta_isSelected(gravity_stas[i].index))?"":"not ");
+                #endif
+            }
+        } else {
+            for (int i = 2; i < argc; ++i) {
+                err |= gravity_select_sta(atoi(argv[i]));
+                #ifdef CONFIG_FLIPPER
+                    printf("STA %d %sselected\n", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
+                #else
+                    ESP_LOGI(TAG, "STA element %d is %sselected", atoi(argv[i]), (gravity_sta_isSelected(atoi(argv[i])))?"":"not ");
+                #endif
+            }
         }
     } else if (!strcasecmp(argv[1], "BT")) {
         #if defined(CONFIG_IDF_TARGET_ESP32)
-            for (int i = 2; i < argc; ++i) {
-                err |= gravity_select_bt(atoi(argv[i]));
-                #ifdef CONFIG_FLIPPER
-                    printf(" BT %d %sselected\n", atoi(argv[i]), (gravity_bt_isSelected(atoi(argv[i])))?"":"not ");
-                #else
-                    ESP_LOGI(TAG, " BT element %d is %sselected", atoi(argv[i]), gravity_bt_isSelected(atoi(argv[i]))?"":"not ");
-                #endif
+            /* All or some */
+            if (selectAll) {
+                /* Toggle select status of all BT devices */
+                for (int i = 0; i < gravity_bt_dev_count; ++i) {
+                    err |= gravity_select_bt(gravity_bt_devices[i]->index);
+                    #ifdef CONFIG_FLIPPER
+                        printf(" BT %d %sselected\n", gravity_bt_devices[i]->index, (gravity_bt_isSelected(gravity_bt_devices[i]->index))?"":"not ");
+                    #else
+                        ESP_LOGI(TAG, " BT element %d is %sselected", gravity_bt_devices[i]->index, (gravity_bt_isSelected(gravity_bt_devices[i]->index))?"":"not ");
+                    #endif
+                }
+            } else {
+                for (int i = 2; i < argc; ++i) {
+                    err |= gravity_select_bt(atoi(argv[i]));
+                    #ifdef CONFIG_FLIPPER
+                        printf(" BT %d %sselected\n", atoi(argv[i]), (gravity_bt_isSelected(atoi(argv[i])))?"":"not ");
+                    #else
+                        ESP_LOGI(TAG, " BT element %d is %sselected", atoi(argv[i]), gravity_bt_isSelected(atoi(argv[i]))?"":"not ");
+                    #endif
+                }
             }
         #else
             displayBluetoothUnsupported();

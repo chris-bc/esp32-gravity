@@ -122,7 +122,6 @@
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * Improve sniff implementation
-* Eventually deauth triggers "wifi:max connection, deauth!"
     
 ## Testing / Packet verification
 
