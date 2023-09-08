@@ -92,8 +92,6 @@
 
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
-* Update documentation to include Bluetooth features
-  * Have done a little, needs more.
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
 * Further testing of VIEW BT SORT *
 * Add BT service information
@@ -104,7 +102,7 @@
   * Don't bother doing that until confirming they can provide useful information
 * Retrieve services for all devices
 * Interpret services based on their UUIDs
-* BT discovery Progress indicator - seconds remaining?
+* BT discovery Progress indicator?
 * Better formatting of remaining UIs
 * Sorting APs not working. Looks like it should :(
 * MAC changing problems on ESP32

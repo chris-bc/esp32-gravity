@@ -1,4 +1,6 @@
 #include "bluetooth.h"
+#include "common.h"
+#include "esp_err.h"
 #include "probe.h"
 #include "sdkconfig.h"
 #include <stdint.h>
@@ -1750,14 +1752,31 @@ esp_err_t gravity_bt_disable_scan() {
 /* Purge all BLE records with the earliest lastSeen, unless lastSeen
    is > CONFIG_BLE_PURGE_MIN_AGE
 */
-esp_err_t purgeBLEAge(uint8_t purge_min_age) {
+esp_err_t purgeAge(GravityDeviceType devType, uint16_t purge_min_age) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
+    gravity_bt_scan_t scanType = GRAVITY_BT_SCAN_TYPE_COUNT;
+
+    switch (devType) {
+        case GRAVITY_DEV_BT:
+            scanType = GRAVITY_BT_SCAN_CLASSIC_DISCOVERY;
+            break;
+        case GRAVITY_DEV_BLE:
+            scanType = GRAVITY_BT_SCAN_BLE;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Bluetooth: Invalid device type %d\n", devType);
+            #else
+                ESP_LOGE(BT_TAG, "Invalid device type %d", devType);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
 
     /* Find the oldest age */
     clock_t minAge = -1;
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && (minAge == -1 ||
+        if (gravity_bt_devices[i]->scanType == scanType && (minAge == -1 ||
                 gravity_bt_devices[i]->lastSeen < minAge)) {
             minAge = gravity_bt_devices[i]->lastSeen;
         }
@@ -1777,7 +1796,7 @@ esp_err_t purgeBLEAge(uint8_t purge_min_age) {
 
     /* If we're still here, remove all BLE records lastSeen at (or before, to cater for minAge dodginess) minAge */
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->lastSeen <= minAge) {
+        if (gravity_bt_devices[i]->scanType == scanType && gravity_bt_devices[i]->lastSeen <= minAge) {
             /* Don't forget to free the name and EIR */
             if (gravity_bt_devices[i]->bdName != NULL && gravity_bt_devices[i]->bdname_len > 0) {
                 free(gravity_bt_devices[i]->bdName);
@@ -1797,9 +1816,26 @@ esp_err_t purgeBLEAge(uint8_t purge_min_age) {
 
 /* Purge all BLE records with the smallest RSSI, unless that 
    is > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI, then return ESP_ERR_NOT_FOUND */
-esp_err_t purgeBLERSSI(int32_t purge_max_rssi) {
+esp_err_t purgeRSSI(GravityDeviceType devType, int32_t purge_max_rssi) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
+    gravity_bt_scan_t scanType = GRAVITY_BT_SCAN_TYPE_COUNT;
+
+    switch (devType) {
+        case GRAVITY_DEV_BT:
+            scanType = GRAVITY_BT_SCAN_CLASSIC_DISCOVERY;
+            break;
+        case GRAVITY_DEV_BLE:
+            scanType = GRAVITY_BT_SCAN_BLE;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Bluetooth: Invalid device type %d\n", devType);
+            #else
+                ESP_LOGE(BT_TAG, "Invalid device type %d", devType);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
 
     /* Find the smallest RSSI */
     int32_t smallRSSI = 0; /* Invalid */
@@ -1816,7 +1852,7 @@ esp_err_t purgeBLERSSI(int32_t purge_max_rssi) {
 
     /* Free any elements with the smallest RSSI */
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType == GRAVITY_BT_SCAN_BLE && gravity_bt_devices[i]->rssi == smallRSSI) {
+        if (gravity_bt_devices[i]->scanType == scanType && gravity_bt_devices[i]->rssi == smallRSSI) {
             /* Delete the object */
             if (gravity_bt_devices[i]->bdName != NULL && gravity_bt_devices[i]->bdname_len > 0) {
                 free(gravity_bt_devices[i]->bdName);
@@ -1833,9 +1869,9 @@ esp_err_t purgeBLERSSI(int32_t purge_max_rssi) {
 
     if (newCount == 0) {
         #ifdef CONFIG_FLIPPER
-            printf("Purging lowest RSSI.\nNo remaining BLE devices.\n");
+            printf("Purging lowest RSSI.\nNo remaining %s devices.\n", (devType == GRAVITY_DEV_BLE)?"BLE":"BT");
         #else
-            ESP_LOGI(BT_TAG, "Purging BLE devices with lowest RSSI... There are no remaining BLE devices, %u have been purged.", gravity_bt_dev_count);
+            ESP_LOGI(BT_TAG, "Purging devices with lowest RSSI... There are no remaining %s devices, %u have been purged.", (devType == GRAVITY_DEV_BLE)?"BLE":"BT", gravity_bt_dev_count);
         #endif
         /* Free gravity_bt_devices */
         if (gravity_bt_devices != NULL) {
@@ -1851,15 +1887,32 @@ esp_err_t purgeBLERSSI(int32_t purge_max_rssi) {
 }
 
 /* Purge all BLE devices that are not selected */
-esp_err_t purgeBLEUnselected() {
+esp_err_t purgeUnselected(GravityDeviceType devType) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
+    gravity_bt_scan_t scanType = GRAVITY_BT_SCAN_TYPE_COUNT;
+
+    switch (devType) {
+        case GRAVITY_DEV_BT:
+            scanType = GRAVITY_BT_SCAN_CLASSIC_DISCOVERY;
+            break;
+        case GRAVITY_DEV_BLE:
+            scanType = GRAVITY_BT_SCAN_BLE;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Bluetooth: Invalid device type %d\n", devType);
+            #else
+                ESP_LOGE(BT_TAG, "Invalid device type %d", devType);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
 
     /* Take a creative, low-memory, way to remove unselected elements from gravity_bt_devices
        Loop through gravity_bt_devices. Along the way count new devices (selected or not BLE)
        and free the bdname, eir and app_gap_cb_t */
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType != GRAVITY_BT_SCAN_BLE || gravity_bt_devices[i]->selected) {
+        if (gravity_bt_devices[i]->scanType != scanType || gravity_bt_devices[i]->selected) {
             ++newCount;
         } else {
             /* Element is BLE and not selected */
@@ -1876,9 +1929,9 @@ esp_err_t purgeBLEUnselected() {
 
     if (newCount == 0) {
         #ifdef CONFIG_FLIPPER
-            printf("Purging unselected BLE devices.\nNo remaining BLE devices.\n");
+            printf("Purging unselected devices.\nNo remaining %s devices.\n", (devType == GRAVITY_DEV_BLE)?"BLE":"BT");
         #else
-            ESP_LOGI(BT_TAG, "Purging unselected BLE devices... There are no selected BLE devices, %u have been purged.", gravity_bt_dev_count);
+            ESP_LOGI(BT_TAG, "Purging unselected devices... There are no selected %s devices, %u have been purged.",(devType == GRAVITY_DEV_BLE)?"BLE":"BT", gravity_bt_dev_count);
         #endif
         if (gravity_bt_devices != NULL) {
             free(gravity_bt_devices);
@@ -1893,17 +1946,34 @@ esp_err_t purgeBLEUnselected() {
 }
 
 /* Purge all BLE devices that don't have a name */
-esp_err_t purgeBLEUnnamed() {
+esp_err_t purgeUnnamed(GravityDeviceType devType) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
+    gravity_bt_scan_t scanType = GRAVITY_BT_SCAN_TYPE_COUNT;
+
+    switch (devType) {
+        case GRAVITY_DEV_BT:
+            scanType = GRAVITY_BT_SCAN_CLASSIC_DISCOVERY;
+            break;
+        case GRAVITY_DEV_BLE:
+            scanType = GRAVITY_BT_SCAN_BLE;
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Bluetooth: Invalid device type %d\n", devType);
+            #else
+                ESP_LOGE(BT_TAG, "Invalid device type %d", devType);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+    }
 
     /* To minimise memory usage, first free any app_gap_cb_t elements that can be purged */
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        if (gravity_bt_devices[i]->scanType != GRAVITY_BT_SCAN_BLE || (gravity_bt_devices[i]->bdname_len > 0 &&
+        if (gravity_bt_devices[i]->scanType != scanType || (gravity_bt_devices[i]->bdname_len > 0 &&
                 gravity_bt_devices[i]->bdName != NULL)) {
             ++newCount;
         } else {
-            /* Element is BLE and has no name */
+            /* Element is devType and has no name */
             if (gravity_bt_devices[i]->bdName != NULL) {
                 free(gravity_bt_devices[i]->bdName);
             }
@@ -1913,9 +1983,9 @@ esp_err_t purgeBLEUnnamed() {
     }
     if (newCount == 0) {
         #ifdef CONFIG_FLIPPER
-            printf("Purging unnamed BLE devices.\nNo remaining BLE devices.\n");
+            printf("Purging unnamed devices.\nNo remaining %s devices.\n", (devType == GRAVITY_DEV_BLE)?"BLE":"BT");
         #else
-            ESP_LOGI(BT_TAG, "Purging unnamed BLE devices... There are no named BLE devices, %u have been purged.", gravity_bt_dev_count);
+            ESP_LOGI(BT_TAG, "Purging unnamed devices... There are no named %s devices, %u have been purged.", (devType == GRAVITY_DEV_BLE)?"BLE":"BT", gravity_bt_dev_count);
         #endif
         if (gravity_bt_devices != NULL) {
             free(gravity_bt_devices);
@@ -1930,31 +2000,32 @@ esp_err_t purgeBLEUnnamed() {
 }
 
 /* Manually execute purging functions for BLE devices */
-esp_err_t purgeBLE(gravity_bt_purge_strategy_t strategy, uint8_t minAge, int32_t maxRssi) {
+esp_err_t purge(GravityDeviceType devType, gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi) {
     esp_err_t err = ESP_OK;
     if ((strategy & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
         /* Re-run purge RSSI until there are no more devices with RSSIs below the cutoff */
-        while (purgeBLERSSI(maxRssi) != ESP_ERR_NOT_FOUND) { }
+        while (purgeRSSI(devType, maxRssi) != ESP_ERR_NOT_FOUND) { }
     }
     if ((strategy & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
         /* Likewise for age */
-        while (purgeBLEAge(minAge) != ESP_ERR_NOT_FOUND) { }
+        while (purgeAge(devType, minAge) != ESP_ERR_NOT_FOUND) { }
     }
     if ((strategy & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
-        err |= purgeBLEUnnamed();
+        err |= purgeUnnamed(devType);
     }
     if ((strategy & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
-        err |= purgeBLEUnselected();
+        err |= purgeUnselected(devType);
     }
     return err;
 }
 
+esp_err_t purgeBLE(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi) {
+    return purge(GRAVITY_DEV_BLE, strategy, minAge, maxRssi);
+}
+
 /* Manually execute purging functions for Bluetooth Classic devices */
-esp_err_t purgeBT(gravity_bt_purge_strategy_t, uint8_t minAge, int32_t maxRssi) {
-    esp_err_t err = ESP_OK;
-
-
-    return err;
+esp_err_t purgeBT(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi) {
+    return purge(GRAVITY_DEV_BT, strategy, minAge, maxRssi);
 }
 
 /* Purge BLE devices based on purgeStrategy until the requested malloc can be completed.
@@ -1971,21 +2042,21 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
     while (retVal == NULL) {
         if ((purgeAttempts & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
             /* Purge the lowest RSSI BLE devices from Gravity */
-            err = purgeBLERSSI(PURGE_MAX_RSSI);
+            err = purgeRSSI(GRAVITY_DEV_BLE, PURGE_MAX_RSSI);
             if (err == ESP_ERR_NOT_FOUND) {
                 /* There's nothing left that we can purge */
                 purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_RSSI); /* XOR out GRAVITY_BLE_PURGE_RSSI */
             }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
             /* Purge the oldest BLE devices from Gravity */
-            err = purgeBLEAge(PURGE_MIN_AGE);
+            err = purgeAge(GRAVITY_DEV_BLE, PURGE_MIN_AGE);
             if (err == ESP_ERR_NOT_FOUND) {
                 /* If no more devices can be purged XOR out GRAVITY_BLE_PURGE_AGE */
                 purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_AGE);
             }
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
             /* Remove any unnamed BLE elements from bluetooth array */
-            err = purgeBLEUnnamed();
+            err = purgeUnnamed(GRAVITY_DEV_BLE);
             if (err != ESP_OK) {
                 #ifdef CONFIG_FLIPPER
                     printf("Error purging unnamed BLE:\n%s\n", esp_err_to_name(err));
@@ -1999,7 +2070,7 @@ void *gravity_ble_purge_and_malloc(uint16_t bytes) {
             purgeAttempts = (purgeAttempts ^ GRAVITY_BLE_PURGE_UNNAMED);
         } else if ((purgeAttempts & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
             /* Remove any BLE elements that are not selected */
-            err = purgeBLEUnselected();
+            err = purgeUnselected(GRAVITY_DEV_BLE);
             if (err != ESP_OK) {
                 #ifdef CONFIG_FLIPPER
                     printf("Error purging unselected BLE:\n%s\n", esp_err_to_name(err));
