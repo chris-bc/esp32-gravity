@@ -149,7 +149,11 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
         gravity_selected_aps[index]->espRecord.rssi = rx_ctrl.rssi;
         /* In case the channel has changed */
         gravity_selected_aps[index]->espRecord.primary = rx_ctrl.channel;
-        gravity_selected_aps[index]->espRecord.second = rx_ctrl.secondary_channel;
+        #if defined(CONFIG_IDF_TARGET_ESP32C6)
+            gravity_selected_aps[index]->espRecord.second = rx_ctrl.second;
+        #else
+            gravity_selected_aps[index]->espRecord.second = rx_ctrl.secondary_channel;
+        #endif
     } else {
         /* No matching selectedAP, is there a matching selectedSTA? */
         for (index = 0; index < gravity_sel_sta_count && memcmp(srcAddr, gravity_selected_stas[index]->mac, 6); ++index) { }
@@ -158,7 +162,11 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
             gravity_selected_stas[index]->rssi = rx_ctrl.rssi;
             /* In case channel has changed */
             gravity_selected_stas[index]->channel = rx_ctrl.channel;
-            gravity_selected_stas[index]->second = rx_ctrl.secondary_channel;
+            #if defined(CONFIG_IDF_TARGET_ESP32C6)
+                gravity_selected_stas[index]->second = rx_ctrl.second;
+            #else
+                gravity_selected_stas[index]->second = rx_ctrl.secondary_channel;
+            #endif
         } else {
             /* It's not a selected interface */
         }

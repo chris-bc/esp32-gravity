@@ -1,15 +1,7 @@
 #include "bluetooth.h"
-#include "common.h"
-#include "esp_bt.h"
-#include "esp_err.h"
-#include "esp_gap_ble_api.h"
-#include "esp_gap_bt_api.h"
-#include "esp_gatt_common_api.h"
-#include "esp_gattc_api.h"
 #include "probe.h"
 #include "sdkconfig.h"
 #include <stdint.h>
-#include <string.h>
 #include <time.h>
 
 #if defined(CONFIG_IDF_TARGET_ESP32)

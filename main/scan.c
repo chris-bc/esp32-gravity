@@ -1346,14 +1346,22 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
         /* Found the AP in index i. Update it */
         gravity_aps[i].espRecord.primary = rx_ctrl.channel;
         gravity_aps[i].espRecord.rssi = rx_ctrl.rssi;
-        gravity_aps[i].espRecord.second = rx_ctrl.secondary_channel;
+        #if defined(CONFIG_IDF_TARGET_ESP32C6)
+            gravity_aps[i].espRecord.second = rx_ctrl.second;
+        #else
+            gravity_aps[i].espRecord.second = rx_ctrl.secondary_channel;
+        #endif
     } else {
         for (i = 0; i < gravity_sta_count && memcmp(&payload[10], gravity_stas[i].mac, 6); ++i) { }
         if (i < gravity_sta_count) {
             /* Found the STA in index i. Update it */
             gravity_stas[i].channel = rx_ctrl.channel;
             gravity_stas[i].rssi = rx_ctrl.rssi;
-            gravity_stas[i].second = rx_ctrl.secondary_channel;
+            #if defined(CONFIG_IDF_TARGET_ESP32C6)
+                gravity_stas[i].second = rx_ctrl.second;
+            #else
+                gravity_stas[i].second = rx_ctrl.secondary_channel;
+            #endif
         } else {
             #ifdef CONFIG_DEBUG_VERBOSE
                 char theMac[18] = "";
