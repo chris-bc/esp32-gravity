@@ -21,6 +21,7 @@
  * Licensed under the MIT Open Source License.                *
  **************************************************************/
 #define GRAVITY_VERSION "0.5.1"
+#define MAX_16_BIT 65535
 
 #include <cmd_nvs.h>
 #include <cmd_system.h>

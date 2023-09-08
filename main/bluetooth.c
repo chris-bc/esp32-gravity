@@ -16,7 +16,7 @@ app_gap_state_t state;
 static bool btInitialised = false;
 static bool bleInitialised = false;
 gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
-uint8_t PURGE_MIN_AGE = 30; // TODO: Add these as args to SCAN
+uint16_t PURGE_MIN_AGE = 180; // TODO: Add these as args to SCAN
 int32_t PURGE_MAX_RSSI = -70;// TODO: Add these to menuconfig
 
 enum bt_device_parameters {

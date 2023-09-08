@@ -1800,13 +1800,13 @@ esp_err_t cmd_set(int argc, char **argv) {
 
                 return ESP_ERR_INVALID_ARG;
             }
-            if (ageSpec > 255) {
-                ageSpec = 255;
+            if (ageSpec > MAX_16_BIT) {
+                ageSpec = MAX_16_BIT;
                 #ifdef CONFIG_DEBUG
                     #ifdef CONFIG_FLIPPER
-                        printf("Rcvd age %ld\nTrunc to 255 (8bit)\n", atol(argv[2]));
+                        printf("Rcvd age %ld\nTrunc to %d (16bit)\n", atol(argv[2]), MAX_16_BIT);
                     #else
-                        ESP_LOGI(BT_TAG, "Received age %ld. Truncating to 255 for 8-bit container.", atol(argv[2]));
+                        ESP_LOGI(BT_TAG, "Received age %ld. Truncating to %d for 16-bit container.", atol(argv[2]), MAX_16_BIT);
                     #endif
                 #endif
             }
