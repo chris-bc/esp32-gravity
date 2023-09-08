@@ -14,7 +14,6 @@
 #include "usage_const.h"
 #include "dos.h"
 #include "beacon.h"
-#include "bluetooth.h"
 #include "deauth.h"
 #include "fuzz.h"
 #include "gravity.h"
@@ -22,6 +21,20 @@
 #include "probe.h"
 #include "sniff.h"
 #include "stalk.h"
+
+/* Purge methods, used by Bluetooth and Scan modules */
+// TODO: Rename from BLE
+typedef enum {
+    GRAVITY_BLE_PURGE_IDLE = 0,
+    GRAVITY_BLE_PURGE_RSSI = 1,
+    GRAVITY_BLE_PURGE_AGE = 2,
+    GRAVITY_BLE_PURGE_UNNAMED = 4,
+    GRAVITY_BLE_PURGE_UNSELECTED = 8,
+    GRAVITY_BLE_PURGE_NONE = 16
+} gravity_bt_purge_strategy_t;
+
+/* Include after the above enum */
+#include "bluetooth.h"
 
 struct ScanResultAP {
     wifi_ap_record_t espRecord;
@@ -132,10 +145,11 @@ typedef enum GRAVITY_SORT_TYPE {
 
 /* General-purpose device selector */
 typedef enum GravityDeviceType {
-    GRAVITY_DEV_WIFI = 1,
-    GRAVITY_DEV_BT = 2,
-    GRAVITY_DEV_BLE = 4,
-    GRAVITY_DEV_NONE = 8
+    GRAVITY_DEV_AP = 1,
+    GRAVITY_DEV_STA = 2,
+    GRAVITY_DEV_BT = 4,
+    GRAVITY_DEV_BLE = 8,
+    GRAVITY_DEV_NONE = 16
 } GravityDeviceType;
 
 /* Declared here because I get an error trying to use this enum in beacon.h (but it's fine in beacon.c) */
@@ -194,6 +208,10 @@ esp_err_t bytes_to_string(uint8_t *bytes, char *string, int byteCount);
 void displayBluetoothUnsupported();
 
 extern const char *TAG;
+
+extern gravity_bt_purge_strategy_t purgeStrategy;
+extern uint16_t PURGE_MIN_AGE;
+extern int32_t PURGE_MAX_RSSI;
 
 /* Common string definitions */
 extern char STRINGS_HOP_STATE_FAIL[];

@@ -15,6 +15,10 @@ char STRINGS_MALLOC_FAIL[] = "Unable to allocate memory ";
 char STRINGS_SET_MAC_FAIL[] = "Unable to set MAC ";
 char STRINGS_HOPMODE_INVALID[] = "Invalid hopMode ";
 
+gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
+uint16_t PURGE_MIN_AGE = 180; // TODO: Add these as args to SCAN
+int32_t PURGE_MAX_RSSI = -70;
+
 int max(int one, int two) {
     if (one >= two) {
         return one;

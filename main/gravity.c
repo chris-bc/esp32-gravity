@@ -200,7 +200,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
 }
 
 /* Manually execute purge methods
-   Usage: purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
+   Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
 */
 esp_err_t cmd_purge(int argc, char **argv) {
     #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -230,16 +230,24 @@ esp_err_t cmd_purge(int argc, char **argv) {
         GravityDeviceType devices = 0;
         /* Process device arguments */
         uint8_t argIdx = 1;
-        uint8_t methIdx = 0;
-        while (argIdx < argc && !(strcasecmp(argv[argIdx], "WIFI") && strcasecmp(argv[argIdx], "BT") &&
-                strcasecmp(argv[argIdx], "BLE"))) {
-            if (!strcasecmp(argv[argIdx], "WIFI")) {
-                devices = devices | GRAVITY_DEV_WIFI;
+        while (argIdx < argc && !(strcasecmp(argv[argIdx], "AP") && strcasecmp(argv[argIdx], "STA") &&
+                strcasecmp(argv[argIdx], "BT") && strcasecmp(argv[argIdx], "BLE"))) {
+            if (!strcasecmp(argv[argIdx], "AP")) {
+                devices = devices | GRAVITY_DEV_AP;
                 #ifdef CONFIG_DEBUG
                     #ifdef CONFIG_FLIPPER
-                        printf("Purge: Selected WiFi\n");
+                        printf("Purge: Selected AP\n");
                     #else
-                        ESP_LOGI(PURGE_TAG, "Purge: Selected WiFi");
+                        ESP_LOGI(PURGE_TAG, "Purge: Selected AP");
+                    #endif
+                #endif
+            } else if (!strcasecmp(argv[argIdx], "STA")) {
+                devices = devices | GRAVITY_DEV_STA;
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("Purge: Selected STA\n");
+                    #else
+                        ESP_LOGI(PURGE_TAG, "Purge: Selected STA");
                     #endif
                 #endif
             } else if (!strcasecmp(argv[argIdx], "BT")) {
@@ -270,7 +278,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #else
                 ESP_LOGI(PURGE_TAG, "No devices specified. Selecting all devices.");
             #endif
-            devices = GRAVITY_DEV_WIFI | GRAVITY_DEV_BT | GRAVITY_DEV_BLE;
+            devices = GRAVITY_DEV_AP | GRAVITY_DEV_STA | GRAVITY_DEV_BT | GRAVITY_DEV_BLE;
         }
         /* Process purge method arguments */
         gravity_bt_purge_strategy_t strat = GRAVITY_BLE_PURGE_IDLE;
@@ -300,7 +308,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
         if (strat == GRAVITY_BLE_PURGE_IDLE) {
             /* No purge methods specified - Is a default one specified? */
             strat = purgeStrategy;
-            if (strat == GRAVITY_BLE_PURGE_IDLE) {
+            if (strat == GRAVITY_BLE_PURGE_IDLE || strat == GRAVITY_BLE_PURGE_NONE) {
                 #ifdef CONFIG_FLIPPER
                     printf("No Purge Methods specified.\nNo default purge methods.\n");
                 #else
@@ -328,9 +336,13 @@ esp_err_t cmd_purge(int argc, char **argv) {
         }
         /* Now we know the devices and purge methods to use, get on with the purging! */
         esp_err_t err = ESP_OK;
-        if ((devices & GRAVITY_DEV_WIFI) == GRAVITY_DEV_WIFI) {
-            /* Purge WiFi devices */
-            //err = purgeWiFi(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+        if ((devices & GRAVITY_DEV_AP) == GRAVITY_DEV_AP) {
+            /* Purge Wireless Access Points */
+            err |= purgeAP(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+        }
+        if ((devices & GRAVITY_DEV_STA) == GRAVITY_DEV_STA) {
+            /* Purge wireless STAtions */
+            err |= purgeSTA(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
         }
         if ((devices & GRAVITY_DEV_BT) == GRAVITY_DEV_BT) {
             err |= purgeBT(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);

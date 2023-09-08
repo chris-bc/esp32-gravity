@@ -17,9 +17,6 @@ uint8_t gravity_sel_bt_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
 static bool bleInitialised = false;
-gravity_bt_purge_strategy_t purgeStrategy = GRAVITY_BLE_PURGE_NONE;
-uint16_t PURGE_MIN_AGE = 180; // TODO: Add these as args to SCAN
-int32_t PURGE_MAX_RSSI = -70;// TODO: Add these to menuconfig
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -1915,7 +1912,7 @@ esp_err_t purgeUnselected(GravityDeviceType devType) {
         if (gravity_bt_devices[i]->scanType != scanType || gravity_bt_devices[i]->selected) {
             ++newCount;
         } else {
-            /* Element is BLE and not selected */
+            /* Element is specified type and not selected */
             if (gravity_bt_devices[i]->bdname_len > 0 && gravity_bt_devices[i]->bdName != NULL) {
                 free(gravity_bt_devices[i]->bdName);
             }

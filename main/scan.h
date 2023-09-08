@@ -19,6 +19,8 @@ extern uint8_t scan_filter_ssid_bssid[6];
 
 static const char* SCAN_TAG = "scan@GRAVITY";
 
+esp_err_t purgeAP(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi);
+esp_err_t purgeSTA(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi);
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);
 esp_err_t gravity_clear_ap();
 esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets);

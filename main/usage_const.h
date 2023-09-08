@@ -26,9 +26,9 @@ const char USAGE_COMMANDS[] = "Display a *brief* summary of Gravity commands";
 const char USAGE_INFO[] = "Provide help information for the specified command. Usage: info <cmd>";
 const char USAGE_VERSION[] = "Display esp32-Gravity version information. Usage: gravity-version";
 const char USAGE_BT_STRAT[] = "BLE Purge Strategy. Permitted values: RSSI AGE UNNAMED UNSELECTED NONE. Alternatively can be specified by providing a total value where RSSI is 1, AGE 2, UNNAMED 4, UNSELECTED 8, and NONE 16.";
-const char USAGE_PURGE[] = "Purge cached devices based on criteria. Usage: purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+";
+const char USAGE_PURGE[] = "Purge cached devices based on criteria. Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+";
 
-const char SHORT_PURGE[] = "purge [ WIFI | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+";
+const char SHORT_PURGE[] = "purge [ AP | STA | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+";
 const char SHORT_BT_STRAT[] = "set BLE_PURGE_STRAT ( RSSI | AGE | UNNAMED | UNSELECTED | NONE )+";
 const char SHORT_BT[] = "bluetooth [ ON | OFF ]";
 const char SHORT_BEACON[] = "beacon [ RICKROLL | RANDOM [ COUNT ] | INFINITE | TARGET-SSIDs | APs | OFF] [ AUTH ( OPEN | WPA )+ ]";

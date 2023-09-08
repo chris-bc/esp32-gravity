@@ -338,6 +338,74 @@ esp_err_t update_links() {
     return ESP_OK;
 }
 
+esp_err_t purge_sta_rssi(int32_t maxRssi) {
+    return ESP_OK;
+}
+
+esp_err_t purge_ap_rssi(int32_t maxRssi) {
+    return ESP_OK;
+}
+
+esp_err_t purge_sta_age(uint16_t minAge) {
+    return ESP_OK;
+}
+
+esp_err_t purge_ap_age(uint16_t minAge) {
+    return ESP_OK;
+}
+
+esp_err_t purge_sta_unassoc() {
+    return ESP_OK;
+}
+
+esp_err_t purge_ap_unnamed() {
+    return ESP_OK;
+}
+
+esp_err_t purge_sta_unselected() {
+    return ESP_OK;
+}
+
+esp_err_t purge_ap_unselected() {
+    return ESP_OK;
+}
+
+/* Run the specified purge methods against cached APs */
+esp_err_t purgeAP(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi) {
+    esp_err_t err = ESP_OK;
+    if ((strategy & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
+        err |= purge_ap_rssi(maxRssi);
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
+        err |= purge_ap_age(minAge);
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
+        err |= purge_ap_unnamed();
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
+        err |= purge_ap_unselected();
+    }
+    return err;
+}
+
+/* Run the specified purge methods against cached STAs */
+esp_err_t purgeSTA(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi) {
+    esp_err_t err = ESP_OK;
+    if ((strategy & GRAVITY_BLE_PURGE_RSSI) == GRAVITY_BLE_PURGE_RSSI) {
+        err |= purge_sta_rssi(maxRssi);
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_AGE) == GRAVITY_BLE_PURGE_AGE) {
+        err |= purge_sta_age(minAge);
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNNAMED) == GRAVITY_BLE_PURGE_UNNAMED) {
+        err |= purge_sta_unassoc();
+    }
+    if ((strategy & GRAVITY_BLE_PURGE_UNSELECTED) == GRAVITY_BLE_PURGE_UNSELECTED) {
+        err |= purge_sta_unselected();
+    }
+    return err;
+}
+
 bool gravity_ap_isSelected(int index) {
     int i;
     for (i=0; i < gravity_sel_ap_count && gravity_selected_aps[i]->index != index; ++i) {}

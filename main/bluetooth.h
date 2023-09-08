@@ -7,6 +7,7 @@
 #include <esp_err.h>
 #include <esp_wifi_types.h>
 #include <stddef.h>
+#include "common.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
@@ -19,8 +20,6 @@
 #include <esp_bt_main.h>
 #include <esp_bt_device.h>
 #include <esp_bt_defs.h>
-
-#include "common.h"
 
 typedef enum {
     GRAVITY_BT_SCAN_CLASSIC_DISCOVERY = 0,
@@ -36,15 +35,6 @@ typedef enum {
     APP_GAP_STATE_SERVICE_DISCOVERING,
     APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE,
 } app_gap_state_t;
-
-typedef enum {
-    GRAVITY_BLE_PURGE_IDLE = 0,
-    GRAVITY_BLE_PURGE_RSSI = 1,
-    GRAVITY_BLE_PURGE_AGE = 2,
-    GRAVITY_BLE_PURGE_UNNAMED = 4,
-    GRAVITY_BLE_PURGE_UNSELECTED = 8,
-    GRAVITY_BLE_PURGE_NONE = 16
-} gravity_bt_purge_strategy_t;
 
 typedef struct {
     uint8_t bdname_len;
@@ -65,9 +55,6 @@ extern app_gap_cb_t **gravity_selected_bt;
 extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
-extern gravity_bt_purge_strategy_t purgeStrategy;
-extern uint16_t PURGE_MIN_AGE;
-extern int32_t PURGE_MAX_RSSI;
 
 esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat);
 esp_err_t gravity_bt_initialise();
