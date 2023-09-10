@@ -200,7 +200,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
 }
 
 /* Manually execute purge methods
-   Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI | AGE | UNNAMED | UNSELECTED | NONE ]+
+   Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+
 */
 esp_err_t cmd_purge(int argc, char **argv) {
     #if defined(CONFIG_IDF_TARGET_ESP32)
@@ -219,7 +219,7 @@ esp_err_t cmd_purge(int argc, char **argv) {
             #endif
             return ESP_OK;
         }
-        if (argc > 8) {
+        if (argc > 10) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_PURGE);
             #else
@@ -282,12 +282,24 @@ esp_err_t cmd_purge(int argc, char **argv) {
         }
         /* Process purge method arguments */
         gravity_bt_purge_strategy_t strat = GRAVITY_BLE_PURGE_IDLE;
+        int8_t rssiSpec = PURGE_MAX_RSSI;
+        unsigned long ageSpec = PURGE_MIN_AGE;
         while (argIdx < argc && !(strcasecmp(argv[argIdx], "RSSI") && strcasecmp(argv[argIdx], "AGE") &&
                 strcasecmp(argv[argIdx], "UNNAMED") && strcasecmp(argv[argIdx], "UNSELECTED") && strcasecmp(argv[argIdx], "NONE"))) {
             if (!strcasecmp(argv[argIdx], "RSSI")) {
                 strat = strat | GRAVITY_BLE_PURGE_RSSI;
+                if (atol(argv[argIdx + 1]) != 0) {
+                    /* RSSI arg was provided */
+                    rssiSpec = atol(argv[argIdx + 1]);
+                    ++argIdx;
+                }
             } else if (!strcasecmp(argv[argIdx], "AGE")) {
                 strat = strat | GRAVITY_BLE_PURGE_AGE;
+                if (atol(argv[argIdx + 1]) != 0) {
+                    /* AGE arg was provided */
+                    ageSpec = atol(argv[argIdx + 1]);
+                    ++argIdx;
+                }
             } else if (!strcasecmp(argv[argIdx], "UNNAMED")) {
                 strat = strat | GRAVITY_BLE_PURGE_UNNAMED;
             } else if (!strcasecmp(argv[argIdx], "UNSELECTED")) {
@@ -338,17 +350,17 @@ esp_err_t cmd_purge(int argc, char **argv) {
         esp_err_t err = ESP_OK;
         if ((devices & GRAVITY_DEV_AP) == GRAVITY_DEV_AP) {
             /* Purge Wireless Access Points */
-            err |= purgeAP(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+            err |= purgeAP(strat, ageSpec, rssiSpec);
         }
         if ((devices & GRAVITY_DEV_STA) == GRAVITY_DEV_STA) {
             /* Purge wireless STAtions */
-            err |= purgeSTA(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+            err |= purgeSTA(strat, ageSpec, rssiSpec);
         }
         if ((devices & GRAVITY_DEV_BT) == GRAVITY_DEV_BT) {
-            err |= purgeBT(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+            err |= purgeBT(strat, ageSpec, rssiSpec);
         }
         if ((devices & GRAVITY_DEV_BLE) == GRAVITY_DEV_BLE) {
-            err |= purgeBLE(strat, PURGE_MIN_AGE, PURGE_MAX_RSSI);
+            err |= purgeBLE(strat, ageSpec, rssiSpec);
         }
         return err;
     #else
@@ -1314,9 +1326,9 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
     return err;
 }
 
-/* Usage: SCAN [ ( [ <ssid> ] WIFI ) | BT | BLE [ PURGE ( RSSI | AGE | UNNAMED | UNSELECTED | NONE )+ ] | OFF ]*/
+/* Usage: SCAN [ ( [ <ssid> ] WIFI ) | BT | BLE [ PURGE ( RSSI [ <rssiSpec> ] | AGE [ <ageSpec> ] | UNNAMED | UNSELECTED | NONE )+ ] | OFF ]*/
 esp_err_t cmd_scan(int argc, char **argv) {
-    if (argc > 7 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
+    if (argc > 9 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
                 strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > 32) ||
             (argc == 3 && strcasecmp(argv[2], "WIFI")) || (argc > 3 && (strcasecmp(argv[1], "BLE") ||
@@ -1331,18 +1343,18 @@ esp_err_t cmd_scan(int argc, char **argv) {
     /* Now validate BLE purge parameters */
     if (argc > 3) {
         uint8_t argCount = 3;
-        for ( ; argCount < argc && !(strcasecmp(argv[argCount], "RSSI") && strcasecmp(argv[argCount], "AGE") &&
+        for ( ; argCount < argc && !(strcasecmp(argv[argCount], "RSSI") && strcasecmp(argv[argCount], "AGE") && atol(argv[argCount]) == 0 &&
                 strcasecmp(argv[argCount], "UNNAMED") && strcasecmp(argv[argCount], "UNSELECTED") && strcasecmp(argv[argCount], "NONE")); ++argCount) { }
-                if (argCount < argc) {
-                    /* Dropped out of the loop before processing all args - Invalid arg */
-                    #ifdef CONFIG_FLIPPER
-                        printf("Invalid argument: %s\nUsage: %s\n", argv[argCount], SHORT_SCAN);
-                    #else
-                        ESP_LOGE(SCAN_TAG, "Invalid argument %s", argv[argCount]);
-                        ESP_LOGE(SCAN_TAG, "Usage: %s", SHORT_SCAN);
-                    #endif
-                    return ESP_ERR_INVALID_ARG;
-                }
+        if (argCount < argc) {
+            /* Dropped out of the loop before processing all args - Invalid arg */
+            #ifdef CONFIG_FLIPPER
+                printf("Invalid argument: %s\nUsage: %s\n", argv[argCount], SHORT_SCAN);
+            #else
+                ESP_LOGE(SCAN_TAG, "Invalid argument %s", argv[argCount]);
+                ESP_LOGE(SCAN_TAG, "Usage: %s", SHORT_SCAN);
+            #endif
+            return ESP_ERR_INVALID_ARG;
+        }
     }
 
     esp_err_t err = ESP_OK;
@@ -1398,8 +1410,16 @@ esp_err_t cmd_scan(int argc, char **argv) {
                 for (int i = 3; i < argc; ++i) {
                     if (!strcasecmp(argv[i], "RSSI")) {
                         purgeStrat += GRAVITY_BLE_PURGE_RSSI;
+                        if (atol(argv[i + 1]) != 0) {
+                            PURGE_MAX_RSSI = atol(argv[i + 1]);
+                            ++i;
+                        }
                     } else if (!strcasecmp(argv[i], "AGE")) {
                         purgeStrat += GRAVITY_BLE_PURGE_AGE;
+                        if (atol(argv[i + 1]) != 0) {
+                            PURGE_MIN_AGE = atol(argv[i + 1]);
+                            ++i;
+                        }
                     } else if (!strcasecmp(argv[i], "UNNAMED")) {
                         purgeStrat += GRAVITY_BLE_PURGE_UNNAMED;
                     } else if (!strcasecmp(argv[i], "UNSELECTED")) {
