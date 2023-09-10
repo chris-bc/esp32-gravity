@@ -354,8 +354,52 @@ esp_err_t purge_ap_age(uint16_t minAge) {
     return ESP_OK;
 }
 
+/* Purge unassociated STAs */
 esp_err_t purge_sta_unassoc() {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultSTA *newSta = NULL;
+    uint8_t assocCount = 0;
+    /* Count assoc STAs */
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].ap != NULL) {
+            ++assocCount;
+        }
+    }
+    /* Allocate new STA array */
+    if (assocCount > 0) {
+        newSta = malloc(sizeof(ScanResultSTA) * assocCount);
+        if (newSta == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Copy named elements into place */
+    assocCount = 0;
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].ap != NULL) {
+            memcpy(&(newSta[assocCount++]), &(gravity_stas[i]), sizeof(ScanResultSTA));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining STA %d.\n", gravity_stas[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining STA with index %d.", gravity_stas[i].index);
+                #endif
+            #endif
+        }
+    }
+    /* Copy new array into place */
+    if (gravity_stas != NULL) {
+        free(gravity_stas);
+    }
+    gravity_stas = newSta;
+    gravity_sta_count = assocCount;
+
+    update_links();
+    return err;
 }
 
 /* Purge unnamed access points */
@@ -400,7 +444,9 @@ esp_err_t purge_ap_unnamed() {
         }
     }
     /* Copy the array into place */
-    free(gravity_aps);
+    if (gravity_aps != NULL) {
+        free(gravity_aps);
+    }
     gravity_aps = newAps;
     gravity_ap_count = namedCount;
     
@@ -447,7 +493,9 @@ esp_err_t purge_sta_unselected() {
     }
 
     /* Copy the results into place */
-    free(gravity_stas);
+    if (gravity_stas != NULL) {
+        free(gravity_stas);
+    }
     gravity_stas = newStas;
     gravity_sta_count = staCount;
     /* Update AP-STA links */
