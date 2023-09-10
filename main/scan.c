@@ -362,12 +362,81 @@ esp_err_t purge_ap_unnamed() {
     return ESP_OK;
 }
 
+/* Purge STAs that are not selected */
 esp_err_t purge_sta_unselected() {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultSTA *newStas = NULL;
+    if (gravity_sel_sta_count > 0) {
+        newStas = malloc(sizeof(ScanResultSTA) * gravity_sel_sta_count);
+        if (newStas == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "Error: %s.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    return err;
 }
 
+/* Purge APs that are not selected 
+   This really sucks having a * rather than **
+   TODO: Refactor AP and STA caches to pass around pointers
+*/
 esp_err_t purge_ap_unselected() {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultAP *newAps = NULL;
+    if (gravity_sel_ap_count > 0) {
+        newAps = malloc(sizeof(ScanResultAP) * gravity_sel_ap_count);
+        if (newAps == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "Error: %s", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Iterate through gravity_aps deciding which elements to copy across to newAps */
+    uint8_t apCount = 0;
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if (gravity_aps[i].selected) {
+            /* Copy the AP from gravity_aps to newAps */
+            memcpy(&(newAps[apCount++]), &(gravity_aps[i]), sizeof(ScanResultAP));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining AP %d\n", gravity_aps[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining AP with index %d", gravity_aps[i].index);
+                #endif
+            #endif
+        } else {
+            /* Free its stations array if it has one */
+            if (gravity_aps[i].stations != NULL) {
+                free(gravity_aps[i].stations);
+            }
+        }
+    }
+    if (apCount != gravity_sel_ap_count) {
+        #ifdef CONFIG_FLIPPER
+            printf("WARNING: Expected %d actual %u\n", gravity_sel_ap_count, apCount);
+        #else
+            ESP_LOGW(TAG, "Expected %d elements after purge, got %u elements.", gravity_sel_ap_count, apCount);
+        #endif
+    }
+
+    /* Move newAps into place */
+    if (gravity_aps != NULL) {
+        free(gravity_aps);
+    }
+    gravity_aps = newAps;
+    gravity_ap_count = apCount;
+
+    /* Finally, update links between APs and STAs */
+    update_links();
+    return err;
 }
 
 /* Run the specified purge methods against cached APs */
