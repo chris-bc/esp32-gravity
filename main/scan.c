@@ -2,6 +2,7 @@
 #include "common.h"
 #include "esp_err.h"
 #include "esp_wifi_types.h"
+#include <time.h>
 
 #define CHANNEL_TAG 0x03
 
@@ -338,16 +339,156 @@ esp_err_t update_links() {
     return ESP_OK;
 }
 
+/* Unlike the equivalent bluetooth functions, purge WiFi RSSI and Age
+   will purge all purgeable elements, not just the lowest/oldest */
 esp_err_t purge_sta_rssi(int32_t maxRssi) {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultSTA *newSta = NULL;
+    uint8_t newCount = 0;
+    /* Count remaining elements */
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].rssi >= maxRssi) {
+            ++newCount;
+        }
+    }
+    /* Is min RSSI less than PURGE_MAX_RSSI? */
+    if (newCount == gravity_sta_count) {
+        /* Nothing to do */
+        return ESP_ERR_NOT_FOUND;
+    }
+    /* Allocate memory for new array */
+    if (newCount > 0) {
+        newSta = malloc(sizeof(ScanResultSTA) * newCount);
+        if (newSta == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGI(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+        }
+    }
+    /* Copy across elements to be retained */
+    newCount = 0;
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].rssi >= maxRssi) {
+            memcpy(&(newSta[newCount++]), &(gravity_stas[i]), sizeof(ScanResultSTA));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining STA %d.\n", gravity_stas[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining STA with index %d.", gravity_stas[i].index);
+                #endif
+            #endif
+        }
+    }
+    /* replace gravity_stas */
+    if (gravity_stas != NULL) {
+        free(gravity_stas);
+    }
+    gravity_stas = newSta;
+    gravity_sta_count = newCount;
+    update_links();
+    return err;
 }
 
 esp_err_t purge_ap_rssi(int32_t maxRssi) {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultAP *newAps = NULL;
+    uint8_t newCount = 0;
+    /* Count remaining elements */
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if (gravity_aps[i].espRecord.rssi >= maxRssi) {
+            ++newCount;
+        }
+    }
+
+    if (newCount == gravity_ap_count) {
+        /* Nothing to do */
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (newCount > 0) {
+        newAps = malloc(sizeof(ScanResultAP) * newCount);
+        if (newAps == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+        }
+    }
+    /* Copy contents to new array */
+    newCount = 0;
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if (gravity_aps[i].espRecord.rssi >= maxRssi) {
+            memcpy(&(newAps[newCount++]), &(gravity_aps[i]), sizeof(ScanResultAP));
+        } else {
+            if (gravity_aps[i].stations != NULL) {
+                free(gravity_aps[i].stations);
+                gravity_aps[i].stations = NULL;
+                gravity_aps[i].stationCount = 0;
+            }
+        }
+    }
+    /* Replace old array */
+    if (gravity_aps != NULL) {
+        free(gravity_aps);
+    }
+    gravity_aps = newAps;
+    gravity_ap_count = newCount;
+    update_links();
+    return err;
 }
 
 esp_err_t purge_sta_age(uint16_t minAge) {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultSTA *newSta = NULL;
+    uint8_t newCount = 0;
+    /* Calculate the cutoff lastSeen value based on current time and minAge */
+    clock_t now = clock();
+    clock_t then = now - (minAge * CLOCKS_PER_SEC);
+    /* Count result elements */
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].lastSeen >= then) {
+            ++newCount;
+        }
+    }
+    if (newCount == gravity_sta_count) {
+        /* Nothing to do */
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (newCount > 0) {
+        newSta = malloc(sizeof(ScanResultSTA) * newCount);
+        if (newSta == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Copy across retained elements */
+    newCount = 0;
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].lastSeen >= then) {
+            memcpy(&(newSta[newCount++]), &(gravity_stas[i]), sizeof(ScanResultSTA));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining STA %d.\n", gravity_stas[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining STA with index %d.", gravity_stas[i].index);
+                #endif
+            #endif
+        }
+    }
+    /* Replace old array */
+    if (gravity_stas != NULL) {
+        free(gravity_stas);
+    }
+    gravity_stas = newSta;
+    gravity_sta_count = newCount;
+    update_links();
+    return err;
 }
 
 esp_err_t purge_ap_age(uint16_t minAge) {
