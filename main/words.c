@@ -9,6 +9,9 @@ int gravityWordCount = 1000;
 /* Return the 'i'th element of the wordlist, in a newly-malloc'd char* */
 char *processWord(int i) {
     char *theWord = NULL;
+    #ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
+        return "Not Implemented";
+    #else
     switch (i) {
         case 0:
             theWord = "computer";
@@ -3013,6 +3016,7 @@ char *processWord(int i) {
             theWord = "";
             break;
     }
+    #endif
 
     char *retVal = malloc(sizeof(char) * (strlen(theWord) + 1));
     if (retVal == NULL) {

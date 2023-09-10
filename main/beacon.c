@@ -25,9 +25,10 @@ static int SSID_COUNT;
 static TaskHandle_t beaconTask = NULL;
 
 /* If true, scrambleWords generates random characters rather than random words */
-bool scrambledWords = false;
 #ifdef CONFIG_DEFAULT_SCRAMBLE_WORDS
-    scrambleWords = true;
+    bool scrambledWords = true;
+#else
+	bool scrambledWords = false;
 #endif
 
 uint8_t beacon_raw[] = {

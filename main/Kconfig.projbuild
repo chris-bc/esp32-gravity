@@ -97,6 +97,8 @@ menu "Gravity Configuration"
             beacon RANDOM, beacon INFINITE and all FUZZ commands include the generation
             of random SSIDs. By default these SSIDs use a sequence of words, drawn from
             words.h. Select this option to use random characters rather than random words.
+            Select this if you have memory issues; the 1000-word dictionary will not be
+            loaded to ESP32.
 
     config DISPLAY_FRIENDLY_AGE
         bool "Display age in a friendly, rather than specific, way"
