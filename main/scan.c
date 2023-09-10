@@ -377,6 +377,35 @@ esp_err_t purge_sta_unselected() {
             return ESP_ERR_NO_MEM;
         }
     }
+    /* Iterate through gravity_stas & copy the elements we want */
+    uint8_t staCount = 0;
+    for (int i = 0; i < gravity_sta_count; ++i) {
+        if (gravity_stas[i].selected) {
+            memcpy(&(newStas[staCount++]), &(gravity_stas[i]), sizeof(ScanResultSTA));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining STA %d\n", gravity_stas[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining STA with index %d.", gravity_stas[i].index);
+                #endif
+            #endif
+        }
+    }
+
+    if (staCount != gravity_sel_sta_count) {
+        #ifdef CONFIG_FLIPPER
+            printf("WARNING: Expected %d actual %u.\n", gravity_sel_sta_count, staCount);
+        #else
+            ESP_LOGW(TAG, "Expected %d STAs to be retained, actual was %u.", gravity_sel_sta_count, staCount);
+        #endif
+    }
+
+    /* Copy the results into place */
+    free(gravity_stas);
+    gravity_stas = newStas;
+    gravity_sta_count = staCount;
+    /* Update AP-STA links */
+    update_links();
 
     return err;
 }
