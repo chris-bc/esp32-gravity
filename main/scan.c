@@ -492,7 +492,59 @@ esp_err_t purge_sta_age(uint16_t minAge) {
 }
 
 esp_err_t purge_ap_age(uint16_t minAge) {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultAP *newAp = NULL;
+    uint8_t newCount = 0;
+    /* Calculate cutoff lastSeen value based on now and minAge */
+    clock_t now = clock();
+    clock_t then = now - (CLOCKS_PER_SEC * minAge);
+    /* Count matching elements */
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if (gravity_aps[i].lastSeen >= then) {
+            ++newCount;
+        }
+    }
+    if (newCount == gravity_ap_count) {
+        /* Nothing to do */
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (newCount > 0) {
+        newAp = malloc(sizeof(ScanResultAP) * newCount);
+        if (newAp == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGI(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Copy across values */
+    newCount = 0;
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if (gravity_aps[i].lastSeen >= then) {
+            memcpy(&(newAp[newCount++]), &(gravity_aps[i]), sizeof(ScanResultAP));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining AP %d.\n", gravity_aps[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining AP with index %d.", gravity_aps[i].index);
+                #endif
+            #endif
+        } else {
+            if (gravity_aps[i].stations != NULL) {
+                free(gravity_aps[i].stations);
+            }
+        }
+    }
+    /* Replace old values */
+    if (gravity_aps != NULL) {
+        free(gravity_aps);
+    }
+    gravity_aps = newAp;
+    gravity_ap_count = newCount;
+    update_links();
+    return err;
 }
 
 /* Purge unassociated STAs */
