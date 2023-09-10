@@ -1015,13 +1015,32 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
         /* Stringify timestamp */
         nowTime = clock();
         elapsed = (nowTime - aps[i]->lastSeen) / CLOCKS_PER_SEC;
-        if (elapsed < 60.0) {
-            strcpy(strTime, "Under a minute ago");
-        } else if (elapsed < 3600.0) {
-            sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
-        } else {
-            sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
-        }
+        #ifdef CONFIG_DISPLAY_FRIENDLY_AGE
+            if (elapsed < 60.0) {
+                strcpy(strTime, "Under a minute ago");
+            } else if (elapsed < 3600.0) {
+                sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
+            } else {
+                sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
+            }
+        #else
+            /* Display precise time */
+            char strTmp[16] = "";
+            unsigned long tmp = elapsed;
+            strcpy(strTime, "");
+            if (tmp >= 3600.0) {
+                sprintf(strTmp, "%2dh ", (int)tmp/3600);
+                strcat(strTime, strTmp);
+                tmp = tmp % 3600;
+            }
+            if (tmp >= 60) {
+                sprintf(strTmp, "%2dm ", (int)tmp/60);
+                strcat(strTime, strTmp);
+                tmp = tmp % 60;
+            }
+            sprintf(strTmp, "%2lds", tmp);
+            strcat(strTime, strTmp);
+        #endif
 
         /* Skip the rest of this loop iteration if the packet has expired */
         minutes = (elapsed / 60.0);
@@ -1074,13 +1093,32 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
         /* Stringify timestamp */
         nowTime = clock();
         elapsed = (nowTime - stas[i]->lastSeen) / CLOCKS_PER_SEC;
-        if (elapsed < 60.0) {
-            strcpy(strTime, "Under a minute ago");
-        } else if (elapsed < 3600.0) {
-            sprintf(strTime, "%d %s ago", (int)elapsed / 60, (elapsed > 120)?"minutes":"minute");
-        } else {
-            sprintf(strTime, "%d %s ago", (int)elapsed / 3600, (elapsed > 7200)?"hours":"hour");
-        }
+        #ifdef CONFIG_DISPLAY_FRIENDLY_AGE
+            if (elapsed < 60.0) {
+                strcpy(strTime, "Under a minute ago");
+            } else if (elapsed < 3600.0) {
+                sprintf(strTime, "%d %s ago", (int)elapsed / 60, (elapsed > 120)?"minutes":"minute");
+            } else {
+                sprintf(strTime, "%d %s ago", (int)elapsed / 3600, (elapsed > 7200)?"hours":"hour");
+            }
+        #else
+            /* Display precise time */
+            char strTmp[16] = "";
+            unsigned long tmp = elapsed;
+            strcpy(strTime, "");
+            if (tmp >= 3600.0) {
+                sprintf(strTmp, "%2dh ", (int)tmp/3600);
+                strcat(strTime, strTmp);
+                tmp = tmp % 3600;
+            }
+            if (tmp >= 60) {
+                sprintf(strTmp, "%2dm ", (int)tmp/60);
+                strcat(strTime, strTmp);
+                tmp = tmp % 60;
+            }
+            sprintf(strTmp, "%2lds", tmp);
+            strcat(strTime, strTmp);
+        #endif
         char strAp[18] = "";
         if (stas[i]->ap == NULL) {
             strcpy(strAp, "Unknown");

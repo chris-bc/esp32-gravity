@@ -1307,18 +1307,19 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
         #else
             /* Display precise time */
             char strTmp[16] = "";
+            unsigned long tmp = elapsed;
             strcpy(strTime, "");
-            if (elapsed >= 3600.0) {
-                sprintf(strTmp, "%2dh ", (int)elapsed/3600);
+            if (tmp >= 3600.0) {
+                sprintf(strTmp, "%2dh ", (int)tmp/3600);
                 strcat(strTime, strTmp);
-                elapsed = elapsed % 3600;
+                tmp = tmp % 3600;
             }
-            if (elapsed >= 60) {
-                sprintf(strTmp, "%2dm ", (int)elapsed/60);
+            if (tmp >= 60) {
+                sprintf(strTmp, "%2dm ", (int)tmp/60);
                 strcat(strTime, strTmp);
-                elapsed = elapsed % 60;
+                tmp = tmp % 60;
             }
-            sprintf(strTmp, "%2lds", elapsed);
+            sprintf(strTmp, "%2lds", tmp);
             strcat(strTime, strTmp);
         #endif
         /* Skip the rest of this loop iteration if the packet has expired */
