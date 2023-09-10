@@ -1256,6 +1256,12 @@ esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets) {
 
     if (gravity_bt_dev_count > 0) {
         err |= gravity_bt_list_devices(gravity_bt_devices, gravity_bt_dev_count, hideExpiredPackets);
+    } else {
+        #ifdef CONFIG_FLIPPER
+            printf("No HCIs in scan results\n");
+        #else
+            ESP_LOGI(BT_TAG, "No STAs in scan results to display. Have you run scan?");
+        #endif
     }
     return err;
 }
