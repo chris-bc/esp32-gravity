@@ -1296,14 +1296,31 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
         /* Stringify timestamp */
         nowTime = clock();
         elapsed = (nowTime - devices[deviceIdx]->lastSeen) / CLOCKS_PER_SEC;
-        if (elapsed < 60.0) {
-            strcpy(strTime, "Under a minute ago");
-        } else if (elapsed < 3600.0) {
-            sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
-        } else {
-            sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
-        }
-
+        #ifdef CONFIG_DISPLAY_FRIENDLY_AGE
+            if (elapsed < 60.0) {
+                strcpy(strTime, "Under a minute ago");
+            } else if (elapsed < 3600.0) {
+                sprintf(strTime, "%d %s ago", (int)elapsed/60, (elapsed >= 120)?"minutes":"minute");
+            } else {
+                sprintf(strTime, "%d %s ago", (int)elapsed/3600, (elapsed >= 7200)?"hours":"hour");
+            }
+        #else
+            /* Display precise time */
+            char strTmp[16] = "";
+            strcpy(strTime, "");
+            if (elapsed >= 3600.0) {
+                sprintf(strTmp, "%2dh ", (int)elapsed/3600);
+                strcat(strTime, strTmp);
+                elapsed = elapsed % 3600;
+            }
+            if (elapsed >= 60) {
+                sprintf(strTmp, "%2dm ", (int)elapsed/60);
+                strcat(strTime, strTmp);
+                elapsed = elapsed % 60;
+            }
+            sprintf(strTmp, "%2lds", elapsed);
+            strcat(strTime, strTmp);
+        #endif
         /* Skip the rest of this loop iteration if the packet has expired */
         minutes = (elapsed / 60.0);
         if (hideExpiredPackets && scanResultExpiry != 0 && minutes >= scanResultExpiry) {

@@ -98,6 +98,14 @@ menu "Gravity Configuration"
             of random SSIDs. By default these SSIDs use a sequence of words, drawn from
             words.h. Select this option to use random characters rather than random words.
 
+    config DISPLAY_FRIENDLY_AGE
+        bool "Display age in a friendly, rather than specific, way"
+        default y
+        help
+            The setting determines whether, when displaying the age of discovered devices,
+            Gravity should use a 'user-friendly' format, for example 'under a minute ago',
+            or specify the exact number of seconds that have elapsed. Default is friendly.
+
     config MIN_ATTACK_MILLIS
         int "Minimum time between attack packets for sensitivy processes (milliseconds)."
         default 50
