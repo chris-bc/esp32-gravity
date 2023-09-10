@@ -358,8 +358,54 @@ esp_err_t purge_sta_unassoc() {
     return ESP_OK;
 }
 
+/* Purge unnamed access points */
 esp_err_t purge_ap_unnamed() {
-    return ESP_OK;
+    esp_err_t err = ESP_OK;
+    ScanResultAP *newAps = NULL;
+    uint8_t namedCount = 0;
+    /* First count the number of APs that will remain */
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if ((char)gravity_aps[i].espRecord.ssid[0] != '\0') {
+            ++namedCount;
+        }
+    }
+    /* Reserve memory for new array if needed */
+    if (namedCount > 0) {
+        newAps = malloc(sizeof(ScanResultAP) * namedCount);
+        if (newAps == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(TAG, "%s.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    /* Copy named elements to new array, free unnamed elements' stations */
+    namedCount = 0;
+    for (int i = 0; i < gravity_ap_count; ++i) {
+        if ((char)gravity_aps[i].espRecord.ssid[0] == '\0') {
+            if (gravity_aps[i].stations != NULL) {
+                free(gravity_aps[i].stations);
+            }
+        } else {
+            memcpy(&(newAps[namedCount++]), &(gravity_aps[i]), sizeof(ScanResultAP));
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Retaining AP %d.\n", gravity_aps[i].index);
+                #else
+                    ESP_LOGI(TAG, "Retaining AP %d.", gravity_aps[i].index);
+                #endif
+            #endif
+        }
+    }
+    /* Copy the array into place */
+    free(gravity_aps);
+    gravity_aps = newAps;
+    gravity_ap_count = namedCount;
+    
+    update_links();
+    return err;
 }
 
 /* Purge STAs that are not selected */
