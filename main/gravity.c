@@ -1344,7 +1344,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     /* Now validate BLE purge parameters */
-    if (argc > 3) {
+    if (argc > 3 && !strcasecmp(argv[2], "PURGE")) {
         uint8_t argCount = 3;
         for ( ; argCount < argc && !(strcasecmp(argv[argCount], "RSSI") && strcasecmp(argv[argCount], "AGE") && atol(argv[argCount]) == 0 &&
                 strcasecmp(argv[argCount], "UNNAMED") && strcasecmp(argv[argCount], "UNSELECTED") && strcasecmp(argv[argCount], "NONE")); ++argCount) { }
