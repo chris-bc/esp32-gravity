@@ -1180,27 +1180,37 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
 }
 
 /* Discover all services for gravity_bt_devices */
-esp_err_t gravity_bt_discover_all_services() {
+esp_err_t gravity_bt_discover_services_for(app_gap_cb_t **devices, uint8_t deviceCount) {
     esp_err_t res = ESP_OK;
 
     #ifdef CONFIG_DEBUG_VERBOSE
-        printf("In discover_all_services(), bt_dev_count is %u\n", gravity_bt_dev_count);
-        for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        printf("In discover_services_for(), bt_dev_count is %u\n", deviceCount);
+        for (int i = 0; i < deviceCount; ++i) {
             char strBda[18];
             char strEir[ESP_BT_GAP_EIR_DATA_LEN + 1];
-            bda2str(gravity_bt_devices[i]->bda, strBda, 18);
-            memcpy(strEir, gravity_bt_devices[i]->eir, gravity_bt_devices[i]->eir_len);
-            strEir[gravity_bt_devices[i]->eir_len] = '\0';
-            printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,gravity_bt_devices[i]->cod, gravity_bt_devices[i]->rssi,gravity_bt_devices[i]->bdname_len, gravity_bt_devices[i]->eir_len, gravity_bt_devices[i]->bdName, strEir);
+            bda2str(devices[i]->bda, strBda, 18);
+            memcpy(strEir, devices[i]->eir, devices[i]->eir_len);
+            strEir[devices[i]->eir_len] = '\0';
+            printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,devices[i]->cod, devices[i]->rssi,devices[i]->bdname_len, devices[i]->eir_len, devices[i]->bdName, strEir);
         }
     #endif
 
-    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+    for (int i = 0; i < deviceCount; ++i) {
         char bda_str[18];
-        printf("Requesting services for %s\n", gravity_bt_devices[i]->bdname_len > 0?gravity_bt_devices[i]->bdName:bda2str(gravity_bt_devices[i]->bda, bda_str, ESP_BD_ADDR_LEN));
-        res |= gravity_bt_discover_services(gravity_bt_devices[i]);
+        printf("Requesting services for %s\n", devices[i]->bdname_len > 0?devices[i]->bdName:bda2str(devices[i]->bda, bda_str, ESP_BD_ADDR_LEN));
+        res |= gravity_bt_discover_services(devices[i]);
     }
     return res;
+}
+
+/* Discover all services for gravity_bt_devices */
+esp_err_t gravity_bt_discover_all_services() {
+    return gravity_bt_discover_services_for(gravity_bt_devices, gravity_bt_dev_count);
+}
+
+/* Discover all services for selected devices */
+esp_err_t gravity_bt_discover_selected_services() {
+    return gravity_bt_discover_services_for(gravity_selected_bt, gravity_sel_bt_count);
 }
 
 /* Discover Classic Bluetooth services offered by the specified device

@@ -1331,8 +1331,11 @@ esp_err_t cmd_scan(int argc, char **argv) {
     if (argc > 9 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
                 strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > 32) ||
-            (argc == 3 && strcasecmp(argv[2], "WIFI")) || (argc > 3 && (strcasecmp(argv[1], "BLE") ||
-                strcasecmp(argv[2], "PURGE")))) {
+                // TODO: The following lines have been remediated to support SCAN BT SERVICES [selected]
+                // Validate them
+                // argc=3 && (!wifi && (BT && !services)) orr (argc>3 & ( (!BLE | !PURGE) & (!BT | !SERVICES | !selected))
+            (argc == 3 && ( (!strcasecmp(argv[1], "BT") && strcasecmp(argv[2], "SERVICES")) || (strcasecmp(argv[1], "BT") && strcasecmp(argv[2], "WIFI")))) ||
+            (argc > 3 && ( (!strcasecmp(argv[1], "BLE") && strcasecmp(argv[2], "PURGE")) || (!strcasecmp(argv[1], "BT") && (strcasecmp(argv[2], "SERVICES") || strcasecmp(argv[3], "SELECTED")))))) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_SCAN);
         #else
@@ -1396,8 +1399,18 @@ esp_err_t cmd_scan(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "BT")) {
         /* Initialise BT Classic mode and start discovery */
         #if defined(CONFIG_IDF_TARGET_ESP32)
-            err |= gravity_bt_gap_start();
-            attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+            /* Scanning for devices or services? */
+            if (argc >= 3 && !strcasecmp(argv[2], "SERVICES")) {
+                bool selected = (argc > 3 && !strcasecmp(argv[3], "SELECTED"));
+                if (selected) {
+                    err |= gravity_bt_discover_selected_services();
+                } else {
+                    err |= gravity_bt_discover_all_services();
+                }
+            } else {
+                err |= gravity_bt_gap_start();
+                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+            }
         #else
             displayBluetoothUnsupported();
         #endif
@@ -1416,7 +1429,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
                         }
                     } else if (!strcasecmp(argv[i], "AGE")) {
                         purgeStrat += GRAVITY_BLE_PURGE_AGE;
-                        if (atol(argv[i + 1]) != 0) {
+                        if (argc > (i + 1) && atol(argv[i + 1]) != 0) {
                             PURGE_MIN_AGE = atol(argv[i + 1]);
                             ++i;
                         }
