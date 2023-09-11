@@ -37,6 +37,13 @@ typedef enum {
 } app_gap_state_t;
 
 typedef struct {
+    //esp_bt_uuid_t *uuid;
+    uint16_t uuid16;
+    char name[40];
+} bt_uuid;
+extern bt_uuid bt_uuids[];
+
+typedef struct {
     uint8_t bdname_len;
     uint8_t eir_len;
     int32_t rssi;

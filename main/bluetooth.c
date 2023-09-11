@@ -5,6 +5,7 @@
 #include "sdkconfig.h"
 #include <stdint.h>
 #include <time.h>
+#include "uuids.c"
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
@@ -927,7 +928,7 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
                 for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
                     esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
                     // ESP_UUID_LEN_128 is uint8_t[128]
-                    ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: %lu", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+                    ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
                     if (u->len == ESP_UUID_LEN_128) {
                         char *uuidStr = malloc(sizeof(char) * (3 * 128));
                         if (uuidStr == NULL) {
