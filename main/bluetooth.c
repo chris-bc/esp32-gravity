@@ -1,5 +1,6 @@
 #include "bluetooth.h"
 #include "common.h"
+#include "esp_bt_defs.h"
 #include "esp_err.h"
 #include "esp_gap_bt_api.h"
 #include "probe.h"
@@ -951,15 +952,15 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
         ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
         for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
             esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-            // ESP_UUID_LEN_128 is uint8_t[128]
+            // ESP_UUID_LEN_128 is uint8_t[16]
             ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
             if (u->len == ESP_UUID_LEN_128) {
-                char *uuidStr = malloc(sizeof(char) * (3 * 128));
+                char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
                 if (uuidStr == NULL) {
                     printf("Unable to allocate space for string representation of UUID128\n");
                     return;
                 }
-                if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
+                if (bytes_to_string(u->uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
                     printf ("bytes_to_string returned an error\n");
                     free(uuidStr);
                     return;
