@@ -1,11 +1,14 @@
 #include "bluetooth.h"
 #include "common.h"
 #include "esp_err.h"
+#include "esp_gap_bt_api.h"
 #include "probe.h"
 #include "sdkconfig.h"
 #include <stdint.h>
 #include <time.h>
 #include "uuids.c"
+
+esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev);
 
 #if defined(CONFIG_IDF_TARGET_ESP32)
 
@@ -15,9 +18,12 @@ app_gap_cb_t **gravity_bt_devices = NULL;
 uint8_t gravity_bt_dev_count = 0;
 app_gap_cb_t **gravity_selected_bt = NULL;
 uint8_t gravity_sel_bt_count = 0;
+app_gap_cb_t **gravity_svc_disc_q = NULL;
+uint8_t gravity_svc_disc_count = 0;
 app_gap_state_t state;
 static bool btInitialised = false;
 static bool bleInitialised = false;
+static bool btServiceDiscoveryActive = false;
 
 enum bt_device_parameters {
     BT_PARAM_COD = 0,
@@ -898,10 +904,106 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
     return err;
 }
 
+app_gap_cb_t *gravity_svc_disc_queue_pop() {
+    char bda_str[18] = "";
+    bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
+    printf("Beginning of pop, first queue item is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
+
+    app_gap_cb_t **newQ = NULL;
+    if (gravity_svc_disc_count == 0) {
+        printf("queu is empty, returning NULL\n");
+        return NULL;
+    } else {
+        /* Shrink the queue */
+        if (gravity_svc_disc_count > 1) {
+            newQ = malloc(sizeof(app_gap_cb_t *) * (gravity_svc_disc_count - 1));
+            if (newQ == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("%s\n", STRINGS_MALLOC_FAIL);
+                #else
+                    ESP_LOGE(BT_TAG, "%s.", STRINGS_MALLOC_FAIL);
+                #endif
+                return NULL;
+            }
+            /* Copy relevant array elements beginning with the first */
+            memcpy(newQ, &(gravity_svc_disc_q[1]), (gravity_svc_disc_count - 1));
+        }
+        app_gap_cb_t *retVal = gravity_svc_disc_q[0];
+        --gravity_svc_disc_count;
+        free(gravity_svc_disc_q);
+        gravity_svc_disc_q = newQ;
+        return retVal;
+    }
+}
+
+static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
+    char bda_str[18];
+    ESP_LOGI(BT_TAG, "Receiving services for BDA %s\n", bda2str(param->rmt_srvcs.bda, bda_str, 18));
+    if (state == APP_GAP_STATE_SERVICE_DISCOVERING)
+        printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
+    if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
+        printf("state is APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE\n");
+                
+    state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
+    if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
+        ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
+        for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
+            esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
+            // ESP_UUID_LEN_128 is uint8_t[128]
+            ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+            if (u->len == ESP_UUID_LEN_128) {
+                char *uuidStr = malloc(sizeof(char) * (3 * 128));
+                if (uuidStr == NULL) {
+                    printf("Unable to allocate space for string representation of UUID128\n");
+                    return;
+                }
+                if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
+                    printf ("bytes_to_string returned an error\n");
+                    free(uuidStr);
+                    return;
+                }
+                ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
+                free(uuidStr);
+            }
+        }
+    }
+    #ifdef CONFIG_DEBUG
+        printf("remote service callback - Outputs done, checking queue (len %u, addr %p)\n",
+                gravity_svc_disc_count, gravity_svc_disc_q);
+    #endif
+    /* Service discovery complete - Is there a queue to take the next one from? */
+    if (gravity_svc_disc_count == 0) {
+        /* No queue - Finish service discovery */
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("No devices left in queue.\n");
+            #else
+                ESP_LOGI(BT_TAG, "No devices left in scan queue, finishing.");
+            #endif
+        #endif
+        btServiceDiscoveryActive = false;
+    } else {
+        app_gap_cb_t *thisDev = gravity_svc_disc_queue_pop();
+        #ifdef CONFIG_DEBUG
+            printf("Popped %s from the queue", (thisDev==NULL)?"NULL":thisDev->bdName);
+        #endif
+        if (thisDev != NULL) {
+            #ifdef CONFIG_DEBUG
+                #ifdef CONFIG_FLIPPER
+                    printf("Svc discovery for %s starting\n", (thisDev->bdname_len > 0 && thisDev->bdName != NULL)?thisDev->bdName:bda2str(thisDev->bda, bda_str, 18));
+                #else
+                    ESP_LOGI(BT_TAG, "Service discovery for %s starting\n", (thisDev->bdname_len > 0 && thisDev->bdName != NULL)?thisDev->bdName:bda2str(thisDev->bda, bda_str, 18));
+                #endif
+            #endif
+            esp_bt_gap_get_remote_services(thisDev->bda);
+        }
+    }
+}
+
 static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     switch (event) {
         case ESP_BT_GAP_DISC_RES_EVT:
-            update_device_info(param);
+            update_device_info(param);;
             break;
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
             if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
@@ -915,36 +1017,7 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
             }
             break;
         case ESP_BT_GAP_RMT_SRVCS_EVT:
-            char bda_str[18];
-            ESP_LOGI(BT_TAG, "Receiving services for BDA %s\n", bda2str(param->rmt_srvcs.bda, bda_str, 18));
-            if (state == APP_GAP_STATE_SERVICE_DISCOVERING)
-                printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
-            if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
-                printf("state is APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE\n");
-                
-            state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
-            if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
-                ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
-                for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
-                    esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-                    // ESP_UUID_LEN_128 is uint8_t[128]
-                    ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
-                    if (u->len == ESP_UUID_LEN_128) {
-                        char *uuidStr = malloc(sizeof(char) * (3 * 128));
-                        if (uuidStr == NULL) {
-                            printf("Unable to allocate space for string representation of UUID128\n");
-                            return;
-                        }
-                        if (bytes_to_string(u->uuid.uuid128, uuidStr, 128) != ESP_OK) {
-                            printf ("bytes_to_string returned an error\n");
-                            free(uuidStr);
-                            return;
-                        }
-                        ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
-                        free(uuidStr);
-                    }
-                }
-            }
+            bt_remote_service_cb(param);
             break;
         case ESP_BT_GAP_RMT_SRVC_REC_EVT:
         default:
@@ -1176,8 +1249,66 @@ esp_err_t bt_dev_copy(app_gap_cb_t dest, app_gap_cb_t source) {
     return err;
 }
 
+/* Discover services for the specified Bluetooth device
+   Currently only supports Bluetooth Classic. BLE coming soon :-)
+   Only a single instance of service discovery can run per Bluetooth radio,
+   so a queueing strategy had to be implemented for this.
+   This function will:
+   - Commence service discovery if it is not currently running
+   - append the specified device to the service discovery queue if it is currently running
+   The queue is consumed by bt_gap_cb, with a new instance started when the
+   previous one completes.
+*/
 esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
-    return esp_bt_gap_get_remote_services(dev->bda);
+    if (btServiceDiscoveryActive) {
+        /* Create new queue object */
+        app_gap_cb_t **newQ = malloc(sizeof(app_gap_cb_t *) * (gravity_svc_disc_count + 1));
+        if (newQ == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGI(BT_TAG, "%s svc_disc 1.", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+        /* Copy across gravity_svc_disc_count elements */
+        memcpy(newQ, gravity_svc_disc_q, sizeof(app_gap_cb_t *) * gravity_svc_disc_count);
+        /* Append dev */
+        newQ[gravity_svc_disc_count] = dev;
+        /* Replace queue */
+        if (gravity_svc_disc_count > 0) {
+            free(gravity_svc_disc_q);
+        }
+        gravity_svc_disc_q = newQ;
+        ++gravity_svc_disc_count;
+
+        #ifdef CONFIG_DEBUG
+            char bda_str[18] = "";
+            bda2str(gravity_svc_disc_q[gravity_svc_disc_count - 1]->bda, bda_str, 18);
+            printf("BT Service discovery %s, queueing BDA %s (%s).\nDiscover queue is %u elements at address %p\n",
+                    btServiceDiscoveryActive?"Starting":"Stopped", bda_str, gravity_svc_disc_q[gravity_svc_disc_count - 1]->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
+        #endif
+    } else {
+        #ifdef CONFIG_DEBUG
+            char bda_str[18] = "";
+            bda2str(dev->bda, bda_str, 18);
+            printf("Starting service discovery for %s (%s) starting.\nQueue length %u, address %p.\n",
+                    bda_str, dev->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
+        #endif
+        /* Simply start service discovery */
+        btServiceDiscoveryActive = true;
+        return esp_bt_gap_get_remote_services(dev->bda);
+    }
+    if (btServiceDiscoveryActive && gravity_svc_disc_count == 0) {
+        printf("service discovery is active with no queue at present.\n");
+    }
+    if (btServiceDiscoveryActive && gravity_svc_disc_count > 0) {
+        printf("Service discovery active and queue with length %u.\n", gravity_svc_disc_count);
+        char bda_str[18];
+        bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
+        printf("After pushing, the first element in the queue is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
+    }
+    return ESP_OK;
 }
 
 /* Discover all services for gravity_bt_devices */

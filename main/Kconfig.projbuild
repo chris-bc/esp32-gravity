@@ -99,6 +99,13 @@ menu "Gravity Configuration"
             words.h. Select this option to use random characters rather than random words.
             Select this if you have memory issues; the 1000-word dictionary will not be
             loaded to ESP32.
+    
+    config DECODE_UUIDS
+        bool "Include Bluetooth UUID Dictionary"
+        default y
+        help
+            Bluetooth services are represented by service UUIDs. Select this option to include
+            Bluetooth assigned numbers details, allowing UUIDs to be translated into plain text.
 
     config DISPLAY_FRIENDLY_AGE
         bool "Display age in a friendly, rather than specific, way"

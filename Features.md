@@ -100,7 +100,7 @@
   * Move services callback handler into its own function
   * Manage a data model for the services rather than displaying them
   * Don't bother doing that until confirming they can provide useful information
-* Retrieve services for all devices
+REFACTOR * Retrieve services for all devices
 * Interpret services based on their UUIDs
 * BT discovery Progress indicator?
 * Better formatting of remaining UIs
