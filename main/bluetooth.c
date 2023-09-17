@@ -905,9 +905,11 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
 }
 
 app_gap_cb_t *gravity_svc_disc_queue_pop() {
-    char bda_str[18] = "";
-    bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
-    printf("Beginning of pop, first queue item is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
+    #ifdef CONFIG_DEBUG_VERBOSE
+        char bda_str[18] = "";
+        bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
+        printf("Beginning of pop, first queue item is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
+    #endif
 
     app_gap_cb_t **newQ = NULL;
     if (gravity_svc_disc_count == 0) {
@@ -967,7 +969,7 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
             }
         }
     }
-    #ifdef CONFIG_DEBUG
+    #ifdef CONFIG_DEBUG_VERBOSE
         printf("remote service callback - Outputs done, checking queue (len %u, addr %p)\n",
                 gravity_svc_disc_count, gravity_svc_disc_q);
     #endif
@@ -976,25 +978,26 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
         /* No queue - Finish service discovery */
         #ifdef CONFIG_DEBUG
             #ifdef CONFIG_FLIPPER
-                printf("No devices left in queue.\n");
+                printf("Service Discovery:\n\tNo devices left in queue.\n");
             #else
-                ESP_LOGI(BT_TAG, "No devices left in scan queue, finishing.");
+                ESP_LOGI(BT_TAG, "Service Discovery: No devices left in scan queue, finishing.");
             #endif
         #endif
         btServiceDiscoveryActive = false;
     } else {
         app_gap_cb_t *thisDev = gravity_svc_disc_queue_pop();
         #ifdef CONFIG_DEBUG
-            printf("Popped %s from the queue", (thisDev==NULL)?"NULL":thisDev->bdName);
+            char bda_str[18] = "";
+            if (thisDev != NULL) {
+                bda2str(thisDev->bda, bda_str, 18);
+            }
+            #ifdef CONFIG_FLIPPER
+                printf("Service Discovery:\n\tPopped %s from the queue.\n", (thisDev==NULL)?"NULL":bda_str);
+            #else
+                ESP_LOGI(BT_TAG, "Service Discovery: Popped %s from the queue.", (thisDev == NULL)?"NULL":bda_str);
+            #endif
         #endif
         if (thisDev != NULL) {
-            #ifdef CONFIG_DEBUG
-                #ifdef CONFIG_FLIPPER
-                    printf("Svc discovery for %s starting\n", (thisDev->bdname_len > 0 && thisDev->bdName != NULL)?thisDev->bdName:bda2str(thisDev->bda, bda_str, 18));
-                #else
-                    ESP_LOGI(BT_TAG, "Service discovery for %s starting\n", (thisDev->bdname_len > 0 && thisDev->bdName != NULL)?thisDev->bdName:bda2str(thisDev->bda, bda_str, 18));
-                #endif
-            #endif
             esp_bt_gap_get_remote_services(thisDev->bda);
         }
     }
@@ -1282,14 +1285,14 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
         gravity_svc_disc_q = newQ;
         ++gravity_svc_disc_count;
 
-        #ifdef CONFIG_DEBUG
+        #ifdef CONFIG_DEBUG_VERBOSE
             char bda_str[18] = "";
             bda2str(gravity_svc_disc_q[gravity_svc_disc_count - 1]->bda, bda_str, 18);
             printf("BT Service discovery %s, queueing BDA %s (%s).\nDiscover queue is %u elements at address %p\n",
                     btServiceDiscoveryActive?"Starting":"Stopped", bda_str, gravity_svc_disc_q[gravity_svc_disc_count - 1]->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
         #endif
     } else {
-        #ifdef CONFIG_DEBUG
+        #ifdef CONFIG_DEBUG_VERBOSE
             char bda_str[18] = "";
             bda2str(dev->bda, bda_str, 18);
             printf("Starting service discovery for %s (%s) starting.\nQueue length %u, address %p.\n",
@@ -1298,15 +1301,6 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
         /* Simply start service discovery */
         btServiceDiscoveryActive = true;
         return esp_bt_gap_get_remote_services(dev->bda);
-    }
-    if (btServiceDiscoveryActive && gravity_svc_disc_count == 0) {
-        printf("service discovery is active with no queue at present.\n");
-    }
-    if (btServiceDiscoveryActive && gravity_svc_disc_count > 0) {
-        printf("Service discovery active and queue with length %u.\n", gravity_svc_disc_count);
-        char bda_str[18];
-        bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
-        printf("After pushing, the first element in the queue is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
     }
     return ESP_OK;
 }
