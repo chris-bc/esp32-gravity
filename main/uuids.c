@@ -1,3 +1,5 @@
+#include "bluetooth.h"
+
 /* Source: https://bitbucket.org/bluetooth-SIG/public/raw/4b98566471c03ddbdde0cdd615166f012bc05281/assigned_numbers/uuids/service_class.yaml */
 #if defined(CONFIG_IDF_TARGET_ESP32) && defined(CONFIG_DECODE_UUIDS)
 #define BT_UUID_COUNT 76

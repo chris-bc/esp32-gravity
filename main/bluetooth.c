@@ -939,6 +939,115 @@ app_gap_cb_t *gravity_svc_disc_queue_pop() {
     }
 }
 
+/* Search the store of known UUIDs for the specified UUID */
+bt_uuid *svcForUUID(uint16_t uuid) {
+    uint8_t svcIdx = 0;
+    for ( ; svcIdx < BT_UUID_COUNT && uuid != bt_uuids[svcIdx].uuid16; ++ svcIdx) {}
+
+    if (svcIdx == BT_UUID_COUNT) {
+        return NULL;
+    }
+    return &(bt_uuids[svcIdx]);
+}
+
+esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount) {
+    esp_err_t err = ESP_OK;
+    for (uint8_t i = 0; i < devCount; ++i) {
+        err |= listKnownServicesDev(devices[i]);
+    }
+    return err;
+}
+
+esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev) {
+    esp_err_t err = ESP_OK;
+
+    char bda_str[18] = "";
+    bda2str(thisDev->bda, bda_str, 18);
+    #ifdef CONFIG_FLIPPER
+        printf("Known services for %s\n\t(%s)\n", bda_str, thisDev->bdName == NULL?"(No Name)":thisDev->bdName);
+    #else
+        ESP_LOGI(BT_TAG, "Known services for %s (%s)", bda_str, (thisDev->bdName == NULL)?"(No Name)":thisDev->bdName);
+    #endif
+    /* Display each service */
+    for (int i = 0; i < thisDev->bt_services.known_services_len; ++i) {
+        #ifdef CONFIG_FLIPPER
+            printf("0x%04x\n%s\n", thisDev->bt_services.known_services[i]->uuid16, thisDev->bt_services.known_services[i]->name);
+        #else
+            ESP_LOGI(BT_TAG, "0x%04x :  %s", thisDev->bt_services.known_services[i]->uuid16, thisDev->bt_services.known_services[i]->name);
+        #endif
+    }
+    return err;
+}
+
+/* Parse a list of discovered service UUIDs and collate known UUIDs for display
+   num_services elements of service_uuids will be inspected to see if they are known UUIDs.
+   Known UUIDs will be stored in known_services with the number in known_services_len.
+
+   This function assumes that known_services has not been initialised - It will not free existing
+   values, and it will malloc a new value. It's up to the user to manage memory appropriately.
+*/
+esp_err_t identifyKnownServices(grav_bt_svc *thisDev) {
+    esp_err_t err = ESP_OK;
+
+    /* First, count the number of services that are known */
+    uint8_t knownCount = 0;
+    bt_uuid *thisSvc = NULL;
+    for (int i = 0; i < thisDev->num_services; ++i) {
+        if (thisDev->service_uuids[i].len == ESP_UUID_LEN_16) {
+            /* Only 16-bit UUIDs are known */
+            // TODO: What about 32?
+            thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
+            if (thisSvc != NULL) {
+                ++knownCount;
+            }
+        }
+    }
+    /* Begin preparing known service attributes */
+    thisDev->known_services_len = knownCount;
+    if (knownCount > 0) {
+        thisDev->known_services = malloc(sizeof(bt_uuid *) * knownCount);
+        if (thisDev == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+    }
+
+    /* A second loop through discovered services, this time collating known services as we go */
+    uint8_t curSvc = 0;
+    for (int i = 0; i < thisDev->num_services; ++i) {
+        if (thisDev->service_uuids[i].len == ESP_UUID_LEN_16) {
+            thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
+            if (thisSvc != NULL) {
+                /* Add thisSvc to known_uuids */
+                thisDev->known_services[curSvc++] = thisSvc;
+            }
+        }
+    }
+
+    return err;
+}
+
+app_gap_cb_t *deviceWithBDA(esp_bd_addr_t bda) {
+    uint8_t devIdx = 0;
+    for ( ; devIdx < gravity_bt_dev_count && memcmp(bda, gravity_bt_devices[devIdx]->bda, 6); ++devIdx) { }
+    if (devIdx < gravity_bt_dev_count) {
+        return gravity_bt_devices[devIdx];
+    } else {
+        return NULL;
+    }
+}
+
+/* This function is called by the Bluetooth callback function when a remote service event is received
+   This function maintains the bt_services element of the bluetooth device data model.
+   In order to do this, the function:
+    - Locates the relevant device using its BDA
+    - Copies service UUID details from the results to the data model
+    - Calls an auxilliary function to identify and translate known UUIDs from the list
+*/
 static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
     char bda_str[18];
     ESP_LOGI(BT_TAG, "Receiving services for BDA %s\n", bda2str(param->rmt_srvcs.bda, bda_str, 18));
@@ -946,10 +1055,40 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
         printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
     if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
         printf("state is APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE\n");
-                
+
+    app_gap_cb_t *thisDev = deviceWithBDA(param->rmt_srvcs.bda);
+    if (thisDev == NULL) {
+        #ifdef CONFIG_FLIPPER
+            printf("Device %s no found.\n", bda_str);
+        #else
+            ESP_LOGE(BT_TAG, "Device with BDA %s not found.", bda_str);
+        #endif
+        printf("TODO: Do I return here or hang out?\n");
+    }
+
     state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
     if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
         ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
+        if (thisDev != NULL) {
+            thisDev->bt_services.lastSeen = clock();
+            thisDev->bt_services.num_services = param->rmt_srvcs.num_uuids;
+            /* Allocate space for UUID array */
+            thisDev->bt_services.service_uuids = malloc(sizeof(esp_bt_uuid_t) * param->rmt_srvcs.num_uuids);
+            if (thisDev->bt_services.service_uuids == NULL) {
+                #ifdef CONFIG_FLIPPER
+                    printf("%s\n", STRINGS_MALLOC_FAIL);
+                #else
+                    ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+                #endif
+            }
+            /* Copy UUIDs from discovery results to thisDev */
+            memcpy(thisDev->bt_services.service_uuids, param->rmt_srvcs.uuid_list, param->rmt_srvcs.num_uuids);
+            /* Parse the UUIDs and collate known_uuids */
+            identifyKnownServices(&(thisDev->bt_services));
+            #ifdef CONFIG_DEBUG
+                printf("Found %u of %u known services for %s.\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
+            #endif
+        }
         for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
             esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
             // ESP_UUID_LEN_128 is uint8_t[16]
@@ -965,7 +1104,7 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
                     free(uuidStr);
                     return;
                 }
-                ESP_LOGI(BT_TAG, "UUID128: %s\n", uuidStr);
+                ESP_LOGI(BT_TAG, "UUID128: %s", uuidStr);
                 free(uuidStr);
             }
         }
@@ -1324,7 +1463,7 @@ esp_err_t gravity_bt_discover_services_for(app_gap_cb_t **devices, uint8_t devic
 
     for (int i = 0; i < deviceCount; ++i) {
         char bda_str[18];
-        printf("Requesting services for %s\n", devices[i]->bdname_len > 0?devices[i]->bdName:bda2str(devices[i]->bda, bda_str, ESP_BD_ADDR_LEN));
+        printf("Requesting services for %s\n", devices[i]->bdname_len > 0?devices[i]->bdName:bda2str(devices[i]->bda, bda_str, 18));
         res |= gravity_bt_discover_services(devices[i]);
     }
     return res;
@@ -1489,6 +1628,7 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
 
     }
 
+    err |= listKnownServices(devices, deviceCount);
     return err;
 }
 

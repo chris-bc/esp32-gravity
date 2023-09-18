@@ -41,7 +41,14 @@ typedef struct {
     uint16_t uuid16;
     char name[40];
 } bt_uuid;
-extern bt_uuid bt_uuids[];
+
+typedef struct {
+    uint8_t num_services;
+    esp_bt_uuid_t *service_uuids;
+    bt_uuid **known_services;
+    uint8_t known_services_len;
+    clock_t lastSeen;
+} grav_bt_svc;
 
 typedef struct {
     uint8_t bdname_len;
@@ -55,7 +62,10 @@ typedef struct {
     clock_t lastSeen;
     bool selected;
     uint8_t index;
+    grav_bt_svc bt_services; /* Hold service scan results */
 } app_gap_cb_t;
+
+extern bt_uuid bt_uuids[];
 extern app_gap_cb_t **gravity_bt_devices;
 extern uint8_t gravity_bt_dev_count;
 extern app_gap_cb_t **gravity_selected_bt;
@@ -63,6 +73,10 @@ extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
 
+esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount);
+esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev);
+app_gap_cb_t *deviceWithBDA(esp_bd_addr_t bda);
+esp_err_t identifyKnownServices(grav_bt_svc *thisDev);
 esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat);
 esp_err_t gravity_bt_initialise();
 esp_err_t gravity_bt_gap_start();
