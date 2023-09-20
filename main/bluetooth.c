@@ -957,6 +957,70 @@ esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount) {
     return err;
 }
 
+esp_err_t listAllServicesDev(app_gap_cb_t *thisDev) {
+    esp_err_t err = ESP_OK;
+    char bda_str[18] = "";
+    uint8_t knownIdx = 0;
+    uint8_t allIdx = 0;
+
+    bda2str(thisDev->bda, bda_str, 18);
+    #ifdef CONFIG_FLIPPER
+        printf("%s:\n\t%u/%u known services\n", (thisDev->bdname_len > 0)?thisDev->bdName:bda_str, thisDev->bt_services.known_services_len, thisDev->bt_services.num_services);
+    #else
+        ESP_LOGI(BT_TAG, "%s :  %u / %u Known Services", (thisDev->bdname_len > 0)?thisDev->bdName:bda_str, thisDev->bt_services.known_services_len, thisDev->bt_services.num_services);
+    #endif
+
+    /* Iterate through bt_service.service_uuids, displaying the next known service if 
+       current element has a matching UUID
+    */
+    for (uint8_t i = 0; i < thisDev->bt_services.num_services; ++i) {
+        if (knownIdx < thisDev->bt_services.known_services_len && thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16 && thisDev->bt_services.known_services[knownIdx]->uuid16 == thisDev->bt_services.service_uuids[i].uuid.uuid16) {
+            /* There's a valid known service to display, current service is 16-bit,
+               and the next known service (ordering will always be consistent) has
+               the same UUID as the current service
+            */
+            #ifdef CONFIG_FLIPPER
+                printf("0x%04x:\n%s\n", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
+            #else
+                ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_16, UUID 0x%04x, Service: %s", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
+            #endif
+        } else {
+            /* No name to display, just display UUID type and value */
+            if (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_128) {
+                /* Display 16 bytes */
+                char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
+                if (uuidStr == NULL) {
+                    #ifdef CONFIG_FLIPPER
+                        printf("%s\n", STRINGS_MALLOC_FAIL);
+                    #else
+                        ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+                    #endif
+                    return ESP_ERR_NO_MEM;
+                }
+                if (bytes_to_string(thisDev->bt_services.service_uuids[i].uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
+                    printf ("bytes_to_string returned an error\n");
+                    free(uuidStr);
+                    return ESP_ERR_INVALID_RESPONSE;
+                }
+                #ifdef CONFIG_FLIPPER
+                    printf("%s:\n", uuidStr);
+                #else
+                    ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_128, UUID %s", uuidStr);
+                #endif
+                free(uuidStr);
+            } else {
+                /* Either 2 or 4 byte UUID but we should be able to capture both in a single block */
+                #ifdef CONFIG_FLIPPER
+                    printf("0x%04lx:\n", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?thisDev->bt_services.service_uuids[i].uuid.uuid16:thisDev->bt_services.service_uuids[i].uuid.uuid32);
+                #else
+                    ESP_LOGI(BT_TAG, "-- UUID Type %s, UUID 0x%04lx", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?thisDev->bt_services.service_uuids[i].uuid.uuid16:thisDev->bt_services.service_uuids[i].uuid.uuid32);
+                #endif
+            }
+        }
+    }
+    return err;
+}
+
 esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev) {
     esp_err_t err = ESP_OK;
 
@@ -1049,7 +1113,7 @@ app_gap_cb_t *deviceWithBDA(esp_bd_addr_t bda) {
 */
 static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
     char bda_str[18];
-    ESP_LOGI(BT_TAG, "Receiving services for BDA %s\n", bda2str(param->rmt_srvcs.bda, bda_str, 18));
+    ESP_LOGI(BT_TAG, "Receiving services for BDA %s", bda2str(param->rmt_srvcs.bda, bda_str, 18));
     if (state == APP_GAP_STATE_SERVICE_DISCOVERING)
         printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
     if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
@@ -1087,7 +1151,7 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
                 #ifdef CONFIG_FLIPPER
                     printf("%u/%u known services\nfor %s\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
                 #else
-                    ESP_LOGI(BT_TAG, "Found %u known services of %u total for %s.\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
+                    ESP_LOGI(BT_TAG, "Found %u known services of %u total for %s.", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
                 #endif
             #endif
         }
@@ -1098,7 +1162,11 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
             if (u->len == ESP_UUID_LEN_128) {
                 char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
                 if (uuidStr == NULL) {
-                    printf("Unable to allocate space for string representation of UUID128\n");
+                    #ifdef CONFIG_FLIPPER
+                        printf("%s\n", STRINGS_MALLOC_FAIL);
+                    #else
+                        ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+                    #endif
                     return;
                 }
                 if (bytes_to_string(u->uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
