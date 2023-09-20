@@ -2475,7 +2475,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     for (int i=1; i < argc; ++i) {
-        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL")) {
+        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "SERVICES") && strcasecmp(argv[i], "ALL")) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_CLEAR);
             #else
@@ -2490,7 +2490,18 @@ esp_err_t cmd_clear(int argc, char **argv) {
         if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
             err |= gravity_clear_sta();
         }
+        /* Remove services whether it's BT or BT SERVICES */
         if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
+            /* Clear BT Services */
+            #if defined(CONFIG_IDF_TARGET_ESP32)
+                return bt_service_rm_all();
+            #else
+                displayBluetoothUnsupported();
+            #endif
+        }
+        /* If we have BT and we don't have SERVICES then remove the BT devices as well */
+        if (((!strcasecmp(argv[i], "BT")) && (argc <= i + 1 || strcasecmp(argv[i + 1], "SERVICES"))) ||
+                !strcasecmp(argv[i], "ALL")) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
                 err |= gravity_clear_bt();
             #else

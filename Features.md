@@ -90,6 +90,12 @@
 
 ## Bugs / Todo
 
+* Revise clear bt - free relevant services variables
+* view bt services [ known | unknown ] [ selected ]
+* scan <ssid> may be broken - got a freeze after scan bn scan off
+* view bt stop displaying services
+* clear selected
+
 * Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY

@@ -1049,27 +1049,36 @@ esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev) {
    This function assumes that known_services has not been initialised - It will not free existing
    values, and it will malloc a new value. It's up to the user to manage memory appropriately.
 */
-esp_err_t identifyKnownServices(grav_bt_svc *thisDev) {
+esp_err_t identifyKnownServices(app_gap_cb_t *thisDev) {
     esp_err_t err = ESP_OK;
+    grav_bt_svc *bt_services = &(thisDev->bt_services);
 
     /* First, count the number of services that are known */
     uint8_t knownCount = 0;
     bt_uuid *thisSvc = NULL;
-    for (int i = 0; i < thisDev->num_services; ++i) {
-        if (thisDev->service_uuids[i].len == ESP_UUID_LEN_16) {
+    for (int i = 0; i < bt_services->num_services; ++i) {
+        if (bt_services->service_uuids[i].len == ESP_UUID_LEN_16) {
             /* Only 16-bit UUIDs are known */
             // TODO: What about 32?
-            thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
+            thisSvc = svcForUUID(bt_services->service_uuids[i].uuid.uuid16);
             if (thisSvc != NULL) {
                 ++knownCount;
             }
         }
     }
+    /* Display high-level results */
+    char bda_str[18];
+    bda2str(thisDev->bda, bda_str, 18);
+    #ifdef CONFIG_FLIPPER
+        printf("%u/%u Known Services\nFor %s\n", knownCount, bt_services->num_services, (thisDev->bdname_len > 0)?thisDev->bdName:bda_str);
+    #else
+        ESP_LOGI(BT_TAG, "%u/%u Services Identified for %s", knownCount, bt_services->num_services, (thisDev->bdname_len > 0)?thisDev->bdName:bda_str);
+    #endif
     /* Begin preparing known service attributes */
-    thisDev->known_services_len = knownCount;
+    bt_services->known_services_len = knownCount;
     if (knownCount > 0) {
-        thisDev->known_services = malloc(sizeof(bt_uuid *) * knownCount);
-        if (thisDev == NULL) {
+        bt_services->known_services = malloc(sizeof(bt_uuid *) * knownCount);
+        if (bt_services->known_services == NULL) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", STRINGS_MALLOC_FAIL);
             #else
@@ -1081,12 +1090,20 @@ esp_err_t identifyKnownServices(grav_bt_svc *thisDev) {
 
     /* A second loop through discovered services, this time collating known services as we go */
     uint8_t curSvc = 0;
-    for (int i = 0; i < thisDev->num_services; ++i) {
-        if (thisDev->service_uuids[i].len == ESP_UUID_LEN_16) {
-            thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
+    for (int i = 0; i < bt_services->num_services; ++i) {
+        if (bt_services->service_uuids[i].len == ESP_UUID_LEN_16) {
+            thisSvc = svcForUUID(bt_services->service_uuids[i].uuid.uuid16);
             if (thisSvc != NULL) {
+                /* Notify user of discovered service */
+                #ifdef CONFIG_DEBUG
+                    #ifdef CONFIG_FLIPPER
+                        printf("0x%04x: %s\n", thisSvc->uuid16, thisSvc->name);
+                    #else
+                        ESP_LOGI(BT_TAG, "-- UUID 0x%04x: %s", thisSvc->uuid16, thisSvc->name);
+                    #endif
+                #endif
                 /* Add thisSvc to known_uuids */
-                thisDev->known_services[curSvc++] = thisSvc;
+                bt_services->known_services[curSvc++] = thisSvc;
             }
         }
     }
@@ -1146,38 +1163,33 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
             /* Copy UUIDs from discovery results to thisDev */
             memcpy(thisDev->bt_services.service_uuids, param->rmt_srvcs.uuid_list, sizeof(esp_bt_uuid_t) * param->rmt_srvcs.num_uuids);
             /* Parse the UUIDs and collate known_uuids */
-            identifyKnownServices(&(thisDev->bt_services));
-            #ifdef CONFIG_DEBUG
-                #ifdef CONFIG_FLIPPER
-                    printf("%u/%u known services\nfor %s\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
-                #else
-                    ESP_LOGI(BT_TAG, "Found %u known services of %u total for %s.", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
-                #endif
-            #endif
+            identifyKnownServices(thisDev);
         }
-        for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
-            esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
-            // ESP_UUID_LEN_128 is uint8_t[16]
-            ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
-            if (u->len == ESP_UUID_LEN_128) {
-                char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
-                if (uuidStr == NULL) {
-                    #ifdef CONFIG_FLIPPER
-                        printf("%s\n", STRINGS_MALLOC_FAIL);
-                    #else
-                        ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
-                    #endif
-                    return;
-                }
-                if (bytes_to_string(u->uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
-                    printf ("bytes_to_string returned an error\n");
+        #ifdef CONFIG_DEBUG_VERBOSE
+            for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
+                esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
+                // ESP_UUID_LEN_128 is uint8_t[16]
+                ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+                if (u->len == ESP_UUID_LEN_128) {
+                    char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
+                    if (uuidStr == NULL) {
+                        #ifdef CONFIG_FLIPPER
+                            printf("%s\n", STRINGS_MALLOC_FAIL);
+                        #else
+                            ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+                        #endif
+                        return;
+                    }
+                    if (bytes_to_string(u->uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
+                        printf ("bytes_to_string returned an error\n");
+                        free(uuidStr);
+                        return;
+                    }
+                    ESP_LOGI(BT_TAG, "UUID128: %s", uuidStr);
                     free(uuidStr);
-                    return;
                 }
-                ESP_LOGI(BT_TAG, "UUID128: %s", uuidStr);
-                free(uuidStr);
             }
-        }
+        #endif
     }
     #ifdef CONFIG_DEBUG_VERBOSE
         printf("remote service callback - Outputs done, checking queue (len %u, addr %p)\n",
@@ -2115,6 +2127,37 @@ esp_err_t gravity_bt_disable_scan() {
         err |= esp_ble_gap_stop_scanning();
     }
     return err;
+}
+
+esp_err_t bt_service_rm_dev(app_gap_cb_t *device) {
+    esp_err_t err = ESP_OK;
+    grav_bt_svc *services = &(device->bt_services);
+    if (services->num_services > 0) {
+        free(services->service_uuids);
+        services->service_uuids = NULL;
+        services->num_services = 0;
+    }
+    if (services->known_services_len > 0) {
+        free(services->known_services);
+        services->known_services = NULL;
+        services->known_services_len = 0;
+    }
+    return err;
+}
+
+/* Remove all BT services from the specified devices
+   This function will release all memory reserved by services for the specified devices.
+*/
+esp_err_t bt_service_rm(app_gap_cb_t **devices, uint8_t devCount) {
+    esp_err_t err = ESP_OK;
+    for (int i = 0; i < devCount; ++i) {
+        err |= bt_service_rm_dev(devices[i]);
+    }
+    return err;
+}
+
+esp_err_t bt_service_rm_all() {
+    return bt_service_rm(gravity_bt_devices, gravity_bt_dev_count);
 }
 
 /* Purge all BLE records with the earliest lastSeen, unless lastSeen
