@@ -2121,10 +2121,10 @@ esp_err_t cmd_get(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | BT | SORT ( AGE | RSSI | SSID ) )+
+/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | BT [ SERVICES [ KNOWN | UNKNOWN ] ] | SORT ( AGE | RSSI | SSID ) )+
 */
 esp_err_t cmd_view(int argc, char **argv) {
-    if (argc < 2 || argc > 11) {
+    if (argc < 2 || argc > 12) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_VIEW);
         #else
@@ -2242,7 +2242,28 @@ esp_err_t cmd_view(int argc, char **argv) {
             }
         } else if (!strcasecmp(argv[i], "BT")) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                success = (success && gravity_bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
+                /* Are we looking for services or devices? */
+                /* This is gonna get crazy. Sorry for constantly changing i */
+                if (argc > i + 1 && !strcasecmp(argv[i  + 1], "SERVICES")) {
+                    ++i;
+                    /* All, selected, known or unknown devices? */
+                    if (argc > i + 1 && !strcasecmp(argv[i + 1], "SELECTED")) {
+                        ++i;
+                        // display services for selected HCIs
+                        return listKnownServices(gravity_selected_bt, gravity_sel_bt_count);
+                    } else if (argc > i + 1 && !strcasecmp(argv[i + 1], "KNOWN")) {
+                        ++i;
+                        return listKnownServices(gravity_bt_devices, gravity_bt_dev_count);
+                    } else if (argc > i + 1 && !strcasecmp(argv[i + 1], "UNKNOWN")) {
+                        ++i;
+                        // need a way to display unknown
+                    } else {
+                        // Display all services
+                        bt_listAllServices();
+                    }
+                } else {
+                    success = (success && gravity_bt_list_all_devices((scanResultExpiry != 0)) == ESP_OK);
+                }
             #else
                 displayBluetoothUnsupported();
             #endif

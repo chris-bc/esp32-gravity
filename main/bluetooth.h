@@ -73,6 +73,8 @@ extern uint8_t gravity_sel_bt_count;
 
 extern const char *BT_TAG;
 
+esp_err_t bt_listAllServices();
+esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev);
 esp_err_t bt_service_rm_all();
 esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount);
 esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev);

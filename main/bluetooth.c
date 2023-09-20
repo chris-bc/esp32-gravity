@@ -953,11 +953,21 @@ esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount) {
     esp_err_t err = ESP_OK;
     for (uint8_t i = 0; i < devCount; ++i) {
         err |= listKnownServicesDev(devices[i]);
+        printf("\n");
     }
     return err;
 }
 
-esp_err_t listAllServicesDev(app_gap_cb_t *thisDev) {
+esp_err_t bt_listAllServices() {
+    esp_err_t err = ESP_OK;
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        err |= bt_listAllServicesDev(gravity_bt_devices[i]);
+        printf("\n");
+    }
+    return err;
+}
+
+esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
     esp_err_t err = ESP_OK;
     char bda_str[18] = "";
     uint8_t knownIdx = 0;
@@ -984,6 +994,7 @@ esp_err_t listAllServicesDev(app_gap_cb_t *thisDev) {
             #else
                 ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_16, UUID 0x%04x, Service: %s", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
             #endif
+            ++knownIdx;
         } else {
             /* No name to display, just display UUID type and value */
             if (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_128) {
@@ -1709,8 +1720,6 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
         #endif
 
     }
-
-    err |= listKnownServices(devices, deviceCount);
     return err;
 }
 

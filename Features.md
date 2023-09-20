@@ -96,7 +96,6 @@
 * view bt stop displaying services
 * clear selected
 
-* Add SCAN BT SERVICES [selectedBT]
 * Add VIEW BT SERVICES [selectedBT]
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
 * Further testing of VIEW BT SORT *
