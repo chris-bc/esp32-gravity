@@ -1022,7 +1022,6 @@ esp_err_t identifyKnownServices(grav_bt_svc *thisDev) {
             thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
             if (thisSvc != NULL) {
                 /* Add thisSvc to known_uuids */
-                printf("0x%04x (%u): Adding service 0x%04x (%u) %s to known_services[%u] [%p]\n", thisDev->service_uuids[i].uuid.uuid16, thisDev->service_uuids[i].uuid.uuid16, thisSvc->uuid16, thisSvc->uuid16, thisSvc->name, curSvc, thisSvc);
                 thisDev->known_services[curSvc++] = thisSvc;
             }
         }
