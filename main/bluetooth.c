@@ -942,6 +942,7 @@ app_gap_cb_t *gravity_svc_disc_queue_pop() {
 /* Search the store of known UUIDs for the specified UUID */
 bt_uuid *svcForUUID(uint16_t uuid) {
     uint8_t svcIdx = 0;
+    for ( ; svcIdx < BT_UUID_COUNT && uuid != bt_uuids[svcIdx].uuid16; ++ svcIdx) {}
     if (svcIdx == BT_UUID_COUNT) {
         return NULL;
     }
