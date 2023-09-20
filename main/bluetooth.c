@@ -942,8 +942,6 @@ app_gap_cb_t *gravity_svc_disc_queue_pop() {
 /* Search the store of known UUIDs for the specified UUID */
 bt_uuid *svcForUUID(uint16_t uuid) {
     uint8_t svcIdx = 0;
-    for ( ; svcIdx < BT_UUID_COUNT && uuid != bt_uuids[svcIdx].uuid16; ++ svcIdx) {}
-
     if (svcIdx == BT_UUID_COUNT) {
         return NULL;
     }
@@ -1023,6 +1021,7 @@ esp_err_t identifyKnownServices(grav_bt_svc *thisDev) {
             thisSvc = svcForUUID(thisDev->service_uuids[i].uuid.uuid16);
             if (thisSvc != NULL) {
                 /* Add thisSvc to known_uuids */
+                printf("0x%04x (%u): Adding service 0x%04x (%u) %s to known_services[%u] [%p]\n", thisDev->service_uuids[i].uuid.uuid16, thisDev->service_uuids[i].uuid.uuid16, thisSvc->uuid16, thisSvc->uuid16, thisSvc->name, curSvc, thisSvc);
                 thisDev->known_services[curSvc++] = thisSvc;
             }
         }
@@ -1068,7 +1067,6 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
 
     state = APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE;
     if (param->rmt_srvcs.stat == ESP_BT_STATUS_SUCCESS) {
-        ESP_LOGI(BT_TAG, "Services for device %s found", bda_str);
         if (thisDev != NULL) {
             thisDev->bt_services.lastSeen = clock();
             thisDev->bt_services.num_services = param->rmt_srvcs.num_uuids;
@@ -1082,11 +1080,15 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
                 #endif
             }
             /* Copy UUIDs from discovery results to thisDev */
-            memcpy(thisDev->bt_services.service_uuids, param->rmt_srvcs.uuid_list, param->rmt_srvcs.num_uuids);
+            memcpy(thisDev->bt_services.service_uuids, param->rmt_srvcs.uuid_list, sizeof(esp_bt_uuid_t) * param->rmt_srvcs.num_uuids);
             /* Parse the UUIDs and collate known_uuids */
             identifyKnownServices(&(thisDev->bt_services));
             #ifdef CONFIG_DEBUG
-                printf("Found %u of %u known services for %s.\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
+                #ifdef CONFIG_FLIPPER
+                    printf("%u/%u known services\nfor %s\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
+                #else
+                    ESP_LOGI(BT_TAG, "Found %u known services of %u total for %s.\n", thisDev->bt_services.known_services_len, thisDev->bt_services.num_services, bda_str);
+                #endif
             #endif
         }
         for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
