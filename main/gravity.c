@@ -2121,7 +2121,7 @@ esp_err_t cmd_get(int argc, char **argv) {
 }
 
 /* Channel hopping is not catered for in this feature */
-/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | BT [ SERVICES [ KNOWN | UNKNOWN ] ] | SORT ( AGE | RSSI | SSID ) )+
+/* Usage: view ( ( AP [selectedSTA] ) | ( STA [selectedAP] ) | BT [ SERVICES [ SELECTED | KNOWN | UNKNOWN ] ] | SORT ( AGE | RSSI | SSID ) )+
 */
 esp_err_t cmd_view(int argc, char **argv) {
     if (argc < 2 || argc > 12) {
@@ -2250,13 +2250,13 @@ esp_err_t cmd_view(int argc, char **argv) {
                     if (argc > i + 1 && !strcasecmp(argv[i + 1], "SELECTED")) {
                         ++i;
                         // display services for selected HCIs
-                        return listKnownServices(gravity_selected_bt, gravity_sel_bt_count);
+                        return bt_listAllServicesFor(gravity_selected_bt, gravity_sel_bt_count);
                     } else if (argc > i + 1 && !strcasecmp(argv[i + 1], "KNOWN")) {
                         ++i;
                         return listKnownServices(gravity_bt_devices, gravity_bt_dev_count);
                     } else if (argc > i + 1 && !strcasecmp(argv[i + 1], "UNKNOWN")) {
                         ++i;
-                        // need a way to display unknown
+                        return listUnknownServices();
                     } else {
                         // Display all services
                         bt_listAllServices();
@@ -2487,6 +2487,7 @@ esp_err_t cmd_selected(int argc, char **argv) {
 
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_clear(int argc, char **argv) {
+    esp_err_t err = ESP_OK;
     if (argc != 2 && argc != 3) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_CLEAR);
@@ -2504,7 +2505,6 @@ esp_err_t cmd_clear(int argc, char **argv) {
             #endif
             return ESP_ERR_INVALID_ARG;
         }
-        esp_err_t err = ESP_OK;
         if (!(strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "ALL"))) {
             err |= gravity_clear_ap();
         }
@@ -2515,7 +2515,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
             /* Clear BT Services */
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                return bt_service_rm_all();
+                err |= bt_service_rm_all();
             #else
                 displayBluetoothUnsupported();
             #endif
@@ -2530,7 +2530,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
             #endif
         }
     }
-    return ESP_OK;
+    return err;
 }
 
 esp_err_t cmd_handshake(int argc, char **argv) {

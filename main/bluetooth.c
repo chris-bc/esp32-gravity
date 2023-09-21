@@ -949,6 +949,74 @@ bt_uuid *svcForUUID(uint16_t uuid) {
     return &(bt_uuids[svcIdx]);
 }
 
+esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
+    esp_err_t err = ESP_OK;
+    uint8_t knownCount = 0;
+    char bda_str[18];
+    bda2str(device->bda, bda_str, 18);
+
+    #ifdef CONFIG_FLIPPER
+        printf("%u/%u Unknown for\n%s\n", (device->bt_services.num_services - device->bt_services.known_services_len),
+                device->bt_services.num_services, (device->bdname_len > 0)?device->bdName:bda_str);
+    #else
+        ESP_LOGI(BT_TAG, "%u/%u Services are Unknown for %s", (device->bt_services.num_services - device->bt_services.known_services_len),
+                device->bt_services.num_services, (device->bdname_len > 0)?device->bdName:bda_str);
+    #endif
+
+    for (int i = 0; i < device->bt_services.num_services; ++i) {
+        /* Is the current device unknown? Thankfully service_uuids and known_uuids
+           are ordered in the same way
+        */
+        if (!(device->bt_services.known_services_len > knownCount && device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16 &&
+                device->bt_services.known_services[knownCount]->uuid16 == device->bt_services.service_uuids[i].uuid.uuid16)) {
+            /* Check UUID length */
+            if (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_128) {
+                /* Display 16 bytes */
+                char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
+                if (uuidStr == NULL) {
+                    #ifdef CONFIG_FLIPPER
+                        printf("%s\n", STRINGS_MALLOC_FAIL);
+                    #else
+                        ESP_LOGE(BT_TAG, "%s", STRINGS_MALLOC_FAIL);
+                    #endif
+                    return ESP_ERR_NO_MEM;
+                }
+                if (bytes_to_string(device->bt_services.service_uuids[i].uuid.uuid128, uuidStr, ESP_UUID_LEN_128) != ESP_OK) {
+                    printf ("bytes_to_string returned an error\n");
+                    free(uuidStr);
+                    return ESP_ERR_INVALID_RESPONSE;
+                }
+                #ifdef CONFIG_FLIPPER
+                    printf("%s:\n", uuidStr);
+                #else
+                    ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_128, UUID %s", uuidStr);
+                #endif
+                free(uuidStr);
+            } else {
+                /* 16 and 32 bit UUIDs can both be displayed */
+                #ifdef CONFIG_FLIPPER
+                    printf("0x%04x:\n", (device->bt_services.service_uuids[i].uuid.len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
+                #else
+                    ESP_LOGI(BT_TAG, "-- UUID Type %s, UUID 0x%04lx", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
+                #endif
+            }
+        } else {
+            ++knownCount;
+        }
+    }
+    return err;
+}
+
+esp_err_t listUnknownServices() {
+    esp_err_t err = ESP_OK;
+    
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        err |= listUnknownServicesDev(gravity_bt_devices[i]);
+        printf("\n");
+    }
+    return err;
+}
+
 esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount) {
     esp_err_t err = ESP_OK;
     for (uint8_t i = 0; i < devCount; ++i) {
@@ -959,9 +1027,13 @@ esp_err_t listKnownServices(app_gap_cb_t **devices, uint8_t devCount) {
 }
 
 esp_err_t bt_listAllServices() {
+    return bt_listAllServicesFor(gravity_bt_devices, gravity_bt_dev_count);
+}
+
+esp_err_t bt_listAllServicesFor(app_gap_cb_t **devices, uint8_t devCount) {
     esp_err_t err = ESP_OK;
-    for (int i = 0; i < gravity_bt_dev_count; ++i) {
-        err |= bt_listAllServicesDev(gravity_bt_devices[i]);
+    for (int i = 0; i < devCount; ++i) {
+        err |= bt_listAllServicesDev(devices[i]);
         printf("\n");
     }
     return err;
@@ -1362,6 +1434,11 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
         free(newDevices);
         return ESP_ERR_NO_MEM;
     }
+    newDevices[gravity_bt_dev_count]->bt_services.known_services = NULL;
+    newDevices[gravity_bt_dev_count]->bt_services.known_services_len = 0;
+    newDevices[gravity_bt_dev_count]->bt_services.num_services = 0;
+    newDevices[gravity_bt_dev_count]->bt_services.service_uuids = NULL;
+    newDevices[gravity_bt_dev_count]->bt_services.lastSeen = 0;
     newDevices[gravity_bt_dev_count]->bdname_len = bdNameLen;
     newDevices[gravity_bt_dev_count]->eir_len = eirLen;
     newDevices[gravity_bt_dev_count]->rssi = rssi;

@@ -90,23 +90,17 @@
 
 ## Bugs / Todo
 
-* Revise clear bt - free relevant services variables
-* view bt services [ known | unknown ] [ selected ]
 * scan <ssid> may be broken - got a freeze after scan bn scan off
-* view bt stop displaying services
 * clear selected
 
-* Add VIEW BT SERVICES [selectedBT]
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
 * Further testing of VIEW BT SORT *
-* Add BT service information
 * Add active BT scanning - connections
 * Additional command to inspect a device and its services
   * Move services callback handler into its own function
   * Manage a data model for the services rather than displaying them
   * Don't bother doing that until confirming they can provide useful information
 REFACTOR * Retrieve services for all devices
-* Interpret services based on their UUIDs
 * BT discovery Progress indicator?
 * Better formatting of remaining UIs
 * Sorting APs not working. Looks like it should :(
