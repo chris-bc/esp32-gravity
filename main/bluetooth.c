@@ -1316,7 +1316,7 @@ static void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param)
         case ESP_BT_GAP_DISC_STATE_CHANGED_EVT:
             if (param->disc_st_chg.state == ESP_BT_GAP_DISCOVERY_STOPPED) {
                 /* Display status & restart Discovery */
-                if (attack_status[ATTACK_SCAN_BT_CLASSIC]) {
+                if (attack_status[ATTACK_SCAN_BT_DISCOVERY]) {
                     state = APP_GAP_STATE_DEVICE_DISCOVERING;
                     esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, CONFIG_BT_SCAN_DURATION, 0);
                 }
@@ -1441,6 +1441,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->bt_services.lastSeen = 0;
     newDevices[gravity_bt_dev_count]->bdname_len = bdNameLen;
     newDevices[gravity_bt_dev_count]->eir_len = eirLen;
+    newDevices[gravity_bt_dev_count]->eir = NULL;
     newDevices[gravity_bt_dev_count]->rssi = rssi;
     newDevices[gravity_bt_dev_count]->cod = cod;
     newDevices[gravity_bt_dev_count]->scanType = devScanType;
@@ -1460,20 +1461,22 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     }
     strncpy(newDevices[gravity_bt_dev_count]->bdName, bdName, bdNameLen);
     newDevices[gravity_bt_dev_count]->bdName[bdNameLen] = '\0';
-    newDevices[gravity_bt_dev_count]->eir = gravity_ble_purge_and_malloc(sizeof(uint8_t) * eirLen);
-    if (newDevices[gravity_bt_dev_count]->eir == NULL) {
-        #ifdef CONFIG_FLIPPER
-            printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, eirLen);
-        #else
-            ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, eirLen);
-        #endif
-        if (newDevices[gravity_bt_dev_count]->bdName != NULL) {
-            free(newDevices[gravity_bt_dev_count]->bdName);
+    if (eirLen > 0) {
+        newDevices[gravity_bt_dev_count]->eir = gravity_ble_purge_and_malloc(sizeof(uint8_t) * eirLen);
+        if (newDevices[gravity_bt_dev_count]->eir == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%sfor EIR (len %u).\n", STRINGS_MALLOC_FAIL, eirLen);
+            #else
+                ESP_LOGE(BT_TAG, "%sfor EIR (length %u).", STRINGS_MALLOC_FAIL, eirLen);
+            #endif
+            if (newDevices[gravity_bt_dev_count]->bdName != NULL) {
+                free(newDevices[gravity_bt_dev_count]->bdName);
+            }
+            free(newDevices);
+            return ESP_ERR_NO_MEM;
         }
-        free(newDevices);
-        return ESP_ERR_NO_MEM;
+        memcpy(newDevices[gravity_bt_dev_count]->eir, eir, eirLen);
     }
-    memcpy(newDevices[gravity_bt_dev_count]->eir, eir, eirLen);
 
     /* Finally copy new device array into place */
     if (gravity_bt_devices != NULL) {
@@ -1689,9 +1692,9 @@ esp_err_t gravity_bt_scan_display_status() {
     esp_err_t err = ESP_OK;
 
     #ifdef CONFIG_FLIPPER
-        printf("BT Classic Scanning %s, BLE %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_CLASSIC]?"ON":"OFF", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
+        printf("BT Classic Scanning %s, BLE %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_DISCOVERY]?"ON":"OFF", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
     #else
-        ESP_LOGI(BT_TAG, "Bluetooth Classic Scanning %s, BLE Scanning %s\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_CLASSIC]?"Active":"Inactive", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
+        ESP_LOGI(BT_TAG, "Bluetooth Classic Scanning %s, BLE Scanning %s\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_DISCOVERY]?"Active":"Inactive", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
     #endif
 
     return err;
@@ -2258,7 +2261,7 @@ bool gravity_bt_isSelected(uint8_t selIndex) {
 esp_err_t gravity_bt_disable_scan() {
     esp_err_t err = ESP_OK;
 
-    if (attack_status[ATTACK_SCAN_BT_CLASSIC]) {
+    if (attack_status[ATTACK_SCAN_BT_DISCOVERY]) {
         err |= esp_bt_gap_cancel_discovery();
     }
     if (attack_status[ATTACK_SCAN_BLE]) {

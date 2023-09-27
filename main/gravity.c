@@ -417,7 +417,7 @@ esp_err_t cmd_info(int argc, char **argv) {
 }
 
 /* Send various types of incorrect 802.11 packets
-   Usage: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) )
+   Usage: fuzz OFF | ( ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED ) [ BROADCAST | TARGET-SSIDS | selectedSTA | selectedAP | RANDOM ] )
    Overflow: ssid_len has an accurate length, but it's greater than 32. Start with 33 and increment.
    Malformed: ssid_len does not match the SSID's length. Alternate counting down and up.
 */
@@ -1394,7 +1394,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
             }
         #endif
         attack_status[ATTACK_SCAN] = false;
-        attack_status[ATTACK_SCAN_BT_CLASSIC] = false;
+        attack_status[ATTACK_SCAN_BT_DISCOVERY] = false;
         attack_status[ATTACK_SCAN_BLE] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
         /* Initialise BT Classic mode and start discovery */
@@ -1409,7 +1409,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
                 }
             } else {
                 err |= gravity_bt_gap_start();
-                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+                attack_status[ATTACK_SCAN_BT_DISCOVERY] = true;
             }
         #else
             displayBluetoothUnsupported();
@@ -2790,7 +2790,7 @@ void app_main(void)
             case ATTACK_SNIFF:
             case ATTACK_DEAUTH:
             case ATTACK_SCAN:
-            case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BT_DISCOVERY:
             case ATTACK_SCAN_BLE:
             case ATTACK_MANA:
             case ATTACK_MANA_VERBOSE:
@@ -2820,7 +2820,7 @@ void app_main(void)
             case ATTACK_FUZZ:
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
-            case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BT_DISCOVERY:
             case ATTACK_SCAN_BLE:
             case ATTACK_MANA:
             case ATTACK_AP_DOS:
@@ -2857,7 +2857,7 @@ void app_main(void)
             case ATTACK_FUZZ:
             case ATTACK_SNIFF:
             case ATTACK_SCAN:
-            case ATTACK_SCAN_BT_CLASSIC:
+            case ATTACK_SCAN_BT_DISCOVERY:
             case ATTACK_SCAN_BLE:
             case ATTACK_DEAUTH:
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */

@@ -92,16 +92,10 @@
 
 * scan <ssid> may be broken - got a freeze after scan bn scan off
 * Very long usage strings display pretty well, but may be truncated - "scan" line 3: "UNNAMED | UNSE"
-* Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
-* Further testing of VIEW BT SORT *
+  * Add an ANSI cursor up for each line so the cursor stays in place
+  * `0112[03L01 sorta thing ... used in stalk mode.
 * Add active BT scanning - connections
-* Additional command to inspect a device and its services
-  * Move services callback handler into its own function
-  * Manage a data model for the services rather than displaying them
-  * Don't bother doing that until confirming they can provide useful information
-* BT discovery Progress indicator?
-* Better formatting of remaining UIs
-* Sorting APs not working. Looks like it should :(
+* Sorting not working. Looks like it should :(
 * MAC changing problems on ESP32
   * Dropped packets after setting MAC
     * Which bits to re-init?
@@ -112,7 +106,6 @@
   * Re-implement MAC spoofing for DOS (Used in 5 places)
 * parse additional packet types
 * Decode OUI when displaying MACs (in the same way Wireshark does)
-* Test using fuzz with multiple packet types
 * Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)

@@ -132,7 +132,7 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "fuzz",
         .hint = USAGE_FUZZ,
-        .help = "Sends different types of invalid 802.11 packets, to see what happens. Will send either beacon or probe request packets; in OVERFLOW mode will send variously-sized SSIDS that exceed the standard maximum of 32 bytes; in MALFORMED mode will send SSIDs of various sizes that exceed the length specified in ssid_len.",
+        .help = "Sends different types of invalid 802.11 packets, to see what happens. Will send beacon, probe request or probe response packets; in OVERFLOW mode will send variously-sized SSIDS that exceed the standard maximum of 32 bytes; in MALFORMED mode will send SSIDs of various sizes that exceed the length specified in ssid_len. If targets are not specified BROADCAST is selected, otherwise the specified targets - whether devices or SSIDs - are used as the destination for packets.",
         .func = cmd_fuzz
     }, {
         .command = "sniff",
@@ -210,11 +210,6 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .help = "Toggle monitoring of 802.11 traffic for a 4-way handshake to obtain key material from. Usage: handshake",
         .func = cmd_handshake
     }, {
-        .command = "commands",
-        .hint = USAGE_COMMANDS,
-        .help = "Display a BRIEF command summary",
-        .func = cmd_commands
-    }, {
         .command = "info",
         .hint = USAGE_INFO,
         .help = "Display help information for the specified command. Usage: info <command>",
@@ -234,6 +229,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_PURGE,
         .help = "Reduce memory usage - and UI clutter - by removing lower-priority devices from Gravity's cache. The type of device (WiFi, Bluetooth and/or BLE) can be selected, as can the method(s) used to prioritise devices.",
         .func = cmd_purge
+    }, {
+        .command = "commands",
+        .hint = USAGE_COMMANDS,
+        .help = "Display a BRIEF command summary",
+        .func = cmd_commands
     }
 };
 

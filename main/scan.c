@@ -1248,7 +1248,7 @@ esp_err_t gravity_clear_sta_selected() {
             #ifdef CONFIG_FLIPPER
                 printf("%u STAs, expected %u.\n", idx, newCount);
             #else
-                ESP_LOGI("%u STAs retained, expecting %u", idx, newCount);
+                ESP_LOGI(SCAN_TAG, "%u STAs retained, expecting %u", idx, newCount);
             #endif
         #endif
     }
@@ -1840,7 +1840,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
                 scan_filter_ssid_bssid[2] == 0x00 && scan_filter_ssid_bssid[3] == 0x00 &&
                 scan_filter_ssid_bssid[4] == 0x00 && scan_filter_ssid_bssid[5] == 0x00) {
             /* No MAC yet. Is there one in the current packet? */
-            if (payload[0] == 0x50 || payload[0] == 0x80) {
+            if (payload[0] == WIFI_FRAME_PROBE_RESP || payload[0] == WIFI_FRAME_BEACON) {
                 /* Probe response or beacon - Is it directed? Check SSID length field */
                 if (payload[37] == 0x00) {
                     /* No SSID. Skip this frame - we'll get one soon */

@@ -197,9 +197,9 @@ esp_err_t stalk_begin() {
         /* If selected BT devices */
         if (gravity_selected_bt != NULL && gravity_sel_bt_count > 0) {
             /* And not currently scanning BT */
-            if (!attack_status[ATTACK_SCAN_BT_CLASSIC]) {
+            if (!attack_status[ATTACK_SCAN_BT_DISCOVERY]) {
                 /* Start scanning BT */
-                attack_status[ATTACK_SCAN_BT_CLASSIC] = true;
+                attack_status[ATTACK_SCAN_BT_DISCOVERY] = true;
                 gravity_bt_gap_start();
             }
         }
