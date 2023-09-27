@@ -90,6 +90,7 @@ esp_err_t gravity_bt_scan_display_status();
 esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets);
 esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets);
 esp_err_t gravity_clear_bt();
+esp_err_t gravity_clear_bt_selected();
 esp_err_t gravity_select_bt(uint8_t selIndex);
 bool gravity_bt_isSelected(uint8_t selIndex);
 esp_err_t gravity_bt_disable_scan();

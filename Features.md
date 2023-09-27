@@ -91,8 +91,7 @@
 ## Bugs / Todo
 
 * scan <ssid> may be broken - got a freeze after scan bn scan off
-* clear selected
-
+* Very long usage strings display pretty well, but may be truncated - "scan" line 3: "UNNAMED | UNSE"
 * Rename ATTACK_SCAN_BT_CLASSIC to ATTACK_SCAN_BT_DISCOVERY
 * Further testing of VIEW BT SORT *
 * Add active BT scanning - connections

@@ -1159,6 +1159,113 @@ esp_err_t gravity_clear_sta() {
     return update_links();
 }
 
+/* Remove the selected APs from gravity_aps
+   Upon completion, gravity_selected_aps will be NULL
+*/
+esp_err_t gravity_clear_ap_selected() {
+    uint8_t newCount = gravity_ap_count - gravity_sel_ap_count;
+    if (newCount == gravity_ap_count) {
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("No APs selected\n");
+            #else
+                ESP_LOGI(SCAN_TAG, "No APs selected to clean");
+            #endif
+        #endif
+        return ESP_OK;
+    }
+    ScanResultAP *newAPs = NULL;
+    if (newCount > 0) {
+        newAPs = malloc(sizeof(ScanResultAP) * newCount);
+        if (newAPs == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(SCAN_TAG, "%s", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+        /* Copy unselected elements of gravity_aps into newAPs */
+        uint8_t idx = 0;
+        for (int i = 0; i < gravity_ap_count; ++i) {
+            if (!gravity_aps[i].selected) {
+                memcpy(&(newAPs[idx++]), &(gravity_aps[i]), sizeof(ScanResultAP));
+            }
+        }
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("%u APs; expected %u.\n", idx, newCount);
+            #else
+                ESP_LOGI(SCAN_TAG, "%u APs remaining. Expected %u.", idx, newCount);
+            #endif
+        #endif
+    }
+    /* Replace gravity_aps with newAPs */
+    if (gravity_aps != NULL && gravity_ap_count > 0) {
+        free(gravity_aps);
+    }
+    gravity_aps = newAPs;
+    gravity_ap_count = newCount;
+    /* Remove selected elements */
+    if (gravity_selected_aps != NULL && gravity_sel_ap_count > 0) {
+        free(gravity_selected_aps);
+        gravity_sel_ap_count = 0;
+    }
+    return update_links();
+}
+
+esp_err_t gravity_clear_sta_selected() {
+    uint8_t newCount = gravity_sta_count - gravity_sel_sta_count;
+    if (newCount == gravity_sta_count) {
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("No STAs selected\n");
+            #else
+                ESP_LOGI(SCAN_TAG, "No STAs selected");
+            #endif
+        #endif
+        return ESP_OK;
+    }
+    ScanResultSTA *newSTA = NULL;
+    if (newCount > 0) {
+        newSTA = malloc(sizeof(ScanResultSTA) * newCount);
+        if (newSTA == NULL) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n", STRINGS_MALLOC_FAIL);
+            #else
+                ESP_LOGE(SCAN_TAG, "%s", STRINGS_MALLOC_FAIL);
+            #endif
+            return ESP_ERR_NO_MEM;
+        }
+        /* Copy unselected STAs into newSTA */
+        uint8_t idx = 0;
+        for (int i = 0; i < gravity_sta_count; ++i) {
+            if (!gravity_stas[i].selected) {
+                memcpy(&(newSTA[idx++]), &(gravity_stas[i]), sizeof(ScanResultSTA));
+            }
+        }
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("%u STAs, expected %u.\n", idx, newCount);
+            #else
+                ESP_LOGI("%u STAs retained, expecting %u", idx, newCount);
+            #endif
+        #endif
+    }
+    /* Replace gravity_stas */
+    if (gravity_stas != NULL && gravity_sta_count > 0) {
+        free(gravity_stas);
+    }
+    gravity_stas = newSTA;
+    gravity_sta_count = newCount;
+    /* Remove selected STAs */
+    if (gravity_selected_stas != NULL && gravity_sel_sta_count > 0) {
+        free(gravity_selected_stas);
+        gravity_sel_sta_count = 0;
+    }
+    return update_links();
+}
+
 /* Merge the provided results into gravity_aps
    When a duplicate SSID is found the lastSeen attribute is used to select the most recent result */
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs) {

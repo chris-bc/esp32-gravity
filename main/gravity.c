@@ -2497,7 +2497,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
     for (int i=1; i < argc; ++i) {
-        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "SERVICES") && strcasecmp(argv[i], "ALL")) {
+        if (strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "SERVICES") && strcasecmp(argv[i], "ALL") && strcasecmp(argv[i], "SELECTED")) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_CLEAR);
             #else
@@ -2506,16 +2506,30 @@ esp_err_t cmd_clear(int argc, char **argv) {
             return ESP_ERR_INVALID_ARG;
         }
         if (!(strcasecmp(argv[i], "AP") && strcasecmp(argv[i], "ALL"))) {
-            err |= gravity_clear_ap();
+            if (argc > (i + 1) && !strcasecmp(argv[i + 1], "SELECTED")) {
+                err |= gravity_clear_ap_selected();
+            } else {
+                err |= gravity_clear_ap();
+            }
         }
         if (!(strcasecmp(argv[i], "STA") && strcasecmp(argv[i], "ALL"))) {
-            err |= gravity_clear_sta();
+            if (argc > (i + 1) && !strcasecmp(argv[i + 1], "SELECTED")) {
+                err |= gravity_clear_sta_selected();
+            } else {
+                err |= gravity_clear_sta();
+            }
         }
         /* Remove services whether it's BT or BT SERVICES */
         if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
             /* Clear BT Services */
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                err |= bt_service_rm_all();
+                /* Is it BT SERVICES SELECTED? */
+                if (argc >= (i + 2) && !strcasecmp(argv[i + 1], "SERVICES") && !strcasecmp(argv[i + 2], "SELECTED")) {
+                    /* TODO: Remove selected services */
+                } else if (argc <= (i + 1) || strcasecmp(argv[i + 1], "SELECTED")) {
+                    /* Don't clear all services if only selected BT devices are being cleared */
+                    err |= bt_service_rm_all();
+                }
             #else
                 displayBluetoothUnsupported();
             #endif
@@ -2524,7 +2538,12 @@ esp_err_t cmd_clear(int argc, char **argv) {
         if (((!strcasecmp(argv[i], "BT")) && (argc <= i + 1 || strcasecmp(argv[i + 1], "SERVICES"))) ||
                 !strcasecmp(argv[i], "ALL")) {
             #if defined(CONFIG_IDF_TARGET_ESP32)
-                err |= gravity_clear_bt();
+                if (argc > (i + 1) && !strcasecmp(argv[i + 1], "SELECTED")) {
+                    /* Remove selected BT devices */
+                    err |= gravity_clear_bt_selected();
+                } else {
+                    err |= gravity_clear_bt();
+                }
             #else
                 displayBluetoothUnsupported();
             #endif

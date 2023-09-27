@@ -995,7 +995,7 @@ esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
             } else {
                 /* 16 and 32 bit UUIDs can both be displayed */
                 #ifdef CONFIG_FLIPPER
-                    printf("0x%04x:\n", (device->bt_services.service_uuids[i].uuid.len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
+                    printf("0x%04lx:\n", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
                 #else
                     ESP_LOGI(BT_TAG, "-- UUID Type %s, UUID 0x%04lx", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
                 #endif
@@ -2102,8 +2102,60 @@ esp_err_t gravity_clear_bt() {
         gravity_bt_devices = NULL;
     }
     gravity_bt_dev_count = 0;
-
     return err;
+}
+
+esp_err_t gravity_clear_bt_selected() {
+    uint8_t newCount = gravity_bt_dev_count - gravity_sel_bt_count;
+
+    if (newCount == gravity_bt_dev_count) {
+        /* Nothing to do */
+        #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_FLIPPER
+                printf("No selected BT devices.\n");
+            #else
+                ESP_LOGI(BT_TAG, "No selected BT devices. Nothing to clear.");
+            #endif
+        #endif
+        return ESP_OK;
+    }
+
+    if (gravity_bt_devices == NULL || gravity_bt_dev_count == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("No BT devices discovered.\n");
+        #else
+            ESP_LOGI(BT_TAG, "No Bluetooth devices discovered, nothing to clear.");
+        #endif
+        return ESP_OK;
+    }
+
+    /* Clear the selected array to start */
+    if (gravity_selected_bt != NULL) {
+        free(gravity_selected_bt);
+        gravity_selected_bt = NULL;
+        gravity_sel_bt_count = 0;
+    }
+
+    for (int i = 0; i < gravity_bt_dev_count; ++i) {
+        if (gravity_bt_devices[i] != NULL && gravity_bt_devices[i]->selected) {
+            #ifdef CONFIG_DEBUG
+                char bda_str[18] = "";
+                bda2str(gravity_bt_devices[i]->bda, bda_str, 18);
+                printf("%s (%d) is selected\n", (gravity_bt_devices[i]->bdname_len > 0)?gravity_bt_devices[i]->bdName:bda_str, i);
+            #endif
+            /* Element i is selected, free it */
+            if (gravity_bt_devices[i]->bdName != NULL) {
+                free(gravity_bt_devices[i]->bdName);
+            }
+            if (gravity_bt_devices[i]->eir != NULL) {
+                free(gravity_bt_devices[i]->eir);
+            }
+            free(gravity_bt_devices[i]);
+            gravity_bt_devices[i] = NULL;
+        }
+    }
+
+    return gravity_bt_shrink_devices();
 }
 
 esp_err_t gravity_select_bt(uint8_t selIndex) {

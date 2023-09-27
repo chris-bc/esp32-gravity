@@ -23,6 +23,7 @@ esp_err_t purgeAP(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t
 esp_err_t purgeSTA(gravity_bt_purge_strategy_t strategy, uint16_t minAge, int32_t maxRssi);
 esp_err_t gravity_merge_results_ap(uint16_t newCount, ScanResultAP *newAPs);
 esp_err_t gravity_clear_ap();
+esp_err_t gravity_clear_ap_selected();
 esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPackets);
 esp_err_t gravity_list_all_aps(bool hideExpiredPackets);
 esp_err_t gravity_select_ap(int selIndex);
@@ -30,6 +31,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel);
 esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel);
 esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap);
 esp_err_t gravity_clear_sta();
+esp_err_t gravity_clear_sta_selected();
 esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredPackets);
 esp_err_t gravity_list_all_stas(bool hideExpiredPackets);
 esp_err_t gravity_select_sta(int selIndex);
