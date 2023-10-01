@@ -160,6 +160,14 @@ char *getRandomWord() {
     return gravityWordList[index];
 }
 
+esp_err_t extendSsidWithChars(char *ssid, char *prefix, int len) {
+	return ESP_OK;
+}
+
+esp_err_t extendSsidWithWords(char *ssid, char *prefix, int len) {
+	return ESP_OK;
+}
+
 /* Generate a random SSID of the specified length.
    This function uses the included dictionary file to generate a sequence of
    words separated by hyphen, to make up the length required.

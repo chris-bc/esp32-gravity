@@ -25,12 +25,23 @@ typedef enum FuzzMode {
     FUZZ_MODE_COUNT
 } FuzzMode;
 
+typedef enum FuzzTarget {
+    FUZZ_TARGET_BROADCAST = 0,
+    FUZZ_TARGET_TARGET_SSIDS,
+    FUZZ_TARGET_SELECTED_STA,
+    FUZZ_TARGET_SELECTED_AP,
+    FUZZ_TARGET_RANDOM
+} FuzzTarget;
+
 extern FuzzMode fuzzMode;
 extern FuzzPacketType fuzzPacketType;
+extern FuzzTarget fuzzTarget;
 extern int fuzzCounter;
 extern uint8_t malformedFrom;
 extern const char *FUZZ_TAG;
 
+/* Result may contain up to 13 bytes */
+esp_err_t fuzzTargetAsString(char *result);
 /* Function may use up to 38 bytes of memory at the
    location specified by result */
 esp_err_t fuzzPacketTypeAsString(char *result);
@@ -38,7 +49,7 @@ esp_err_t fuzzPacketTypeAsString(char *result);
    location specified by result */
 esp_err_t fuzzModeAsString(char *result);
 /* Initialise the module and start the fuzzing event loop */
-esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType);
+esp_err_t fuzz_start(FuzzMode newMode, FuzzPacketType newType, FuzzTarget newTarget);
 /* Clean up, free memory, halt event loop */
 esp_err_t fuzz_stop();
 /* Set the length of the starting SSID for malformed packets */

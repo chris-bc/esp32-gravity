@@ -426,40 +426,50 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     /* Flexible input parameters - loop through them to validate them */
     FuzzPacketType newPacketType = FUZZ_PACKET_NONE;
     FuzzMode newFuzzMode = FUZZ_MODE_NONE;
-    /* Skip command name, final argument is required to be 'overflow' or 'malformed' */
-    for (int i = 1; i < (argc - 1); ++i) {
+    FuzzTarget newFuzzTarget = FUZZ_TARGET_BROADCAST;
+
+    /* Rewrite argument validation - Check every argument and permit them to occur in any order */
+    for (int i = 1; i < argc; ++i) {
         if (!strcasecmp(argv[i], "BEACON")) {
             newPacketType |= FUZZ_PACKET_BEACON;
         } else if (!strcasecmp(argv[i], "REQ")) {
             newPacketType |= FUZZ_PACKET_PROBE_REQ;
         } else if (!strcasecmp(argv[i], "RESP")) {
             newPacketType |= FUZZ_PACKET_PROBE_RESP;
+        } else if (!strcasecmp(argv[i], "OVERFLOW")) {
+            newFuzzMode = FUZZ_MODE_SSID_OVERFLOW;
+        } else if (!strcasecmp(argv[i], "MALFORMED")) {
+            newFuzzMode = FUZZ_MODE_SSID_MALFORMED;
+        } else if (!strcasecmp(argv[i], "OFF")) {
+            newFuzzMode = FUZZ_MODE_OFF;
+        } else if (!strcasecmp(argv[i], "BROADCAST")) {
+            newFuzzTarget = FUZZ_TARGET_BROADCAST;
+        } else if (!strcasecmp(argv[i], "TARGET-SSIDs")) {
+            newFuzzTarget = FUZZ_TARGET_TARGET_SSIDS;
+        } else if (!strcasecmp(argv[i], "selectedSTA")) {
+            newFuzzTarget = FUZZ_TARGET_SELECTED_STA;
+        } else if (!strcasecmp(argv[i], "selectedAP")) {
+            newFuzzTarget = FUZZ_TARGET_SELECTED_AP;
+        } else if (!strcasecmp(argv[i], "RANDOM")) {
+            newFuzzTarget = FUZZ_TARGET_RANDOM;
         } else {
             #ifdef CONFIG_FLIPPER
-                printf("%s is invalid\nSkipping...\n", argv[i]);
+                printf("%s\n", USAGE_FUZZ);
             #else
-                ESP_LOGW(FUZZ_TAG, "Invalid packet type \"%s\". Skipping...", argv[i]);
+                ESP_LOGE(FUZZ_TAG, "%s", USAGE_FUZZ);
             #endif
-            continue;
+            return ESP_ERR_INVALID_ARG;
         }
-    }
-    /* Don't forget to check the final argument */
-    if (!strcasecmp(argv[argc - 1], "OVERFLOW")) {
-        newFuzzMode = FUZZ_MODE_SSID_OVERFLOW;
-    } else if (!strcasecmp(argv[argc - 1], "MALFORMED")) {
-        newFuzzMode = FUZZ_MODE_SSID_MALFORMED;
-    } else if (!strcasecmp(argv[argc - 1], "OFF")) {
-        newFuzzMode = FUZZ_MODE_OFF;
-    } else {
-        // This is addressed later
     }
 
     if (argc == 1) {
         char strFuzzMode[21];
         char strFuzzType[38];
+        char strFuzzTarget[25];
         char strTemp[15];
         err = fuzzModeAsString(strTemp);
         err |= fuzzPacketTypeAsString(strFuzzType);
+        err |= fuzzTargetAsString(strFuzzTarget);
         if (err != ESP_OK) {
             #ifdef CONFIG_FLIPPER
                 printf("Internal failure computing strings\n");
@@ -471,9 +481,9 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
         sprintf(strFuzzMode, "Mode: %s", strTemp);
 
         #ifdef CONFIG_FLIPPER
-            printf("Fuzz: %s\t%s\t%s\n", (attack_status[ATTACK_FUZZ])?"ON":"OFF", strFuzzType, strFuzzMode);
+            printf("Fuzz: %s\t%s\t%s\nTarget: %s\n", (attack_status[ATTACK_FUZZ])?"ON":"OFF", strFuzzType, strFuzzMode, strFuzzTarget);
         #else
-            ESP_LOGI(FUZZ_TAG, "Fuzz: %s\tPackets: %s\n%25s\n", (attack_status[ATTACK_FUZZ])?"Enabled":"Disabled", strFuzzType, strFuzzMode);
+            ESP_LOGI(FUZZ_TAG, "Fuzz: %s\tPackets: %s\n%25s\tTarget: %s\n", (attack_status[ATTACK_FUZZ])?"Enabled":"Disabled", strFuzzType, strFuzzMode, strFuzzTarget);
         #endif
         return ESP_OK;
     }
@@ -486,6 +496,18 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
             printf("%s\n", SHORT_FUZZ);
         #else
             ESP_LOGE(FUZZ_TAG, "Invalid arguments provided.\n%s", USAGE_FUZZ);
+        #endif
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Check that the selected target is valid */
+    /* Error if the selectehd target is target-SSIDs, selectedAP or selectedSTA and is empty */
+    if ((newFuzzTarget == FUZZ_TARGET_SELECTED_AP && gravity_sel_ap_count == 0) || (newFuzzTarget == FUZZ_TARGET_SELECTED_STA &&
+            gravity_sel_sta_count == 0) || (newFuzzTarget == FUZZ_TARGET_TARGET_SSIDS && countSsid() == 0)) {
+        #ifdef CONFIG_FLIPPER
+            printf("Specified Target is empty.\n");
+        #else
+            ESP_LOGE(FUZZ_TAG, "Specified Target is empty.");
         #endif
         return ESP_ERR_INVALID_ARG;
     }
@@ -504,7 +526,7 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     }
 
     if (attack_status[ATTACK_FUZZ]) {
-        return fuzz_start(newFuzzMode, newPacketType);
+        return fuzz_start(newFuzzMode, newPacketType, newFuzzTarget);
     } else {
         return fuzz_stop();
     }

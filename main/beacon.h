@@ -59,6 +59,8 @@ extern bool scrambledWords;
 char *getRandomWord();
 esp_err_t randomSsidWithWords(char *ssid, int len);
 esp_err_t randomSsidWithChars(char *ssid, int len);
+esp_err_t extendSsidWithWords(char *ssid, char *prefix, int len);
+esp_err_t extendSsidWithChars(char *ssid, char *prefix, int len);
 
 esp_err_t beacon_start(beacon_attack_t type, int authentication[], int authenticationCount, int ssidCount);
 esp_err_t beacon_stop();
