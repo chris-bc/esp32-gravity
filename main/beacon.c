@@ -195,6 +195,37 @@ esp_err_t extendSsidWithChars(char *ssid, char *prefix, int len) {
    dictionay to fill any remaining space requirements.
 */
 esp_err_t extendSsidWithWords(char *ssid, char *prefix, int len) {
+	uint8_t thisCount = 0;
+	memset(ssid, '\0', len + 1);
+	if (prefix != NULL && strlen(prefix) > 0) {
+		strncpy(ssid, prefix, len);
+		thisCount = strlen(prefix);
+	}
+	if (thisCount > len) {
+		thisCount = len;
+	}
+	/* Append a hyphen if there's space to do so */
+	if (thisCount < len) {
+		ssid[thisCount++] = '-';
+	}
+	/* Now generate random words to fill (len - thisCount) characters */
+	while (thisCount < len) {
+		char *word = getRandomWord();
+		if (strlen(word) <= (len - thisCount)) {
+			/* We can fit the whole word */
+			strcpy(&(ssid[thisCount]), word);
+			thisCount += strlen(word);
+			/* Can we fit a hyphen? */
+			if (len - thisCount >= 1) {
+				ssid[thisCount++] = '-';
+			}
+		} else {
+			/* Copy as much of the word as can fit */
+			memcpy(&(ssid[thisCount]), (uint8_t *)word, len - thisCount);
+			thisCount = len;
+		}
+		free(word);
+	}
 	return ESP_OK;
 }
 
@@ -225,6 +256,7 @@ esp_err_t randomSsidWithWords(char *ssid, int len) {
             memcpy(&ssid[currentLen], (uint8_t *)word, remaining);
             currentLen += remaining;
         }
+		free(word);
     }
     ssid[currentLen] = '\0';
 
