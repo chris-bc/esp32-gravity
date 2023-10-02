@@ -199,19 +199,19 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
                 err |= randomSsidWithWords(ssid, ssidSize);
             }
             /* Set probe response destAddr to broadcast if needed */
-            if (targetType == FUZZ_TARGET_BROADCAST && ptype == FUZZ_PACKET_PROBE_RESP) {
-                memset(&(outBytes[thisDestAddrOffset]), 0xFF, 6);
+            if (ptype == FUZZ_PACKET_PROBE_RESP) {
+                memset(&outBytes[thisDestAddrOffset], 0xFF, 6);
             }
             break;
         case FUZZ_TARGET_SELECTED_AP:
             ScanResultAP *thisAP = (ScanResultAP *)theTarget;
             /* Use the APs MAC as destAddr for probe requests */
             if (ptype == FUZZ_PACKET_PROBE_REQ) {
-                memcpy(&(outBytes[thisDestAddrOffset]), thisAP->espRecord.bssid, 6);
+                memcpy(&outBytes[thisDestAddrOffset], thisAP->espRecord.bssid, 6);
             } else if (ptype == FUZZ_PACKET_PROBE_RESP) {
                 /* Use APs MAC as BSSID and srcAddr for probe responses */
-                memcpy(&(outBytes[thisBssidOffset]), thisAP->espRecord.bssid, 6);
-                memcpy(&(outBytes[thisSrcAddrOffset]), thisAP->espRecord.bssid, 6);
+                memcpy(&outBytes[thisBssidOffset], thisAP->espRecord.bssid, 6);
+                memcpy(&outBytes[thisSrcAddrOffset], thisAP->espRecord.bssid, 6);
             }
             /* Use the AP's SSID */
             if (scrambledWords) {
@@ -219,7 +219,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             } else {
                 err |= extendSsidWithWords(ssid, (char *)thisAP->espRecord.ssid, ssidSize);
             }
-            memcpy(&(outBytes[thisSsidOffset]), ssid, ssidSize);
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
             break;
         case FUZZ_TARGET_TARGET_SSIDS:
             char *thisSsid = (char *)theTarget;
@@ -229,27 +229,27 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             } else {
                 err |= extendSsidWithWords(ssid, thisSsid, ssidSize);
             }
-            memcpy(&(outBytes[thisSsidOffset]), ssid, ssidSize);
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
             break;
         case FUZZ_TARGET_SELECTED_STA:
             ScanResultSTA *thisSTA = (ScanResultSTA *)theTarget;
             /* Set srcAddr regardless of packet type */
-            memcpy(&(outBytes[thisSrcAddrOffset]), thisSTA->mac, 6);
+            memcpy(&outBytes[thisSrcAddrOffset], thisSTA->mac, 6);
             /* Set BSSID for beacon and probe response packets */
             if (ptype == FUZZ_PACKET_BEACON || ptype == FUZZ_PACKET_PROBE_RESP) {
-                memcpy(&(outBytes[thisBssidOffset]), thisSTA->mac, 6);
+                memcpy(&outBytes[thisBssidOffset], thisSTA->mac, 6);
             }
             break;
         default:
             #ifdef CONFIG_FLIPPER
-                printf("Warning: Unknown target specifier (%d).\n", targetType);
+                printf("Warning: Unknown target (%d).\n", targetType);
             #else
                 ESP_LOGW(FUZZ_TAG, "Unrecognised target specifier (%d).", targetType);
             #endif
             break;
     }
 
-    /* Generate a random SSID of the required length */
+    /* Copy SSID into the packet being assembled unless something went wrong */
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
@@ -271,7 +271,8 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
 /* Will generate any packet type defined in FuzzPacketType.
    Returns the size of the resulting packet, which will be 
    stored in outBytes upon conclusion. Caller must allocate memory */
-int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
+int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
+        void *theTarget, uint8_t *outBytes) {
     uint8_t *packet_raw = NULL;
     int packet_len = 0;
     int thisSsidOffset = 0;
@@ -328,8 +329,69 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         #endif
         return 0;
     }
-    /* Generate a random SSID of the required length */
-    if (randomSsidWithWords(ssid, ssidSize) != ESP_OK) {
+    /* Use specified target to set srcAddr, destAddr, BSSID, SSID as needed */
+    esp_err_t err = ESP_OK;
+    switch (targetType) {
+        case FUZZ_TARGET_BROADCAST:
+        case FUZZ_TARGET_RANDOM:
+            /* Generate a random SSID of the required length */
+            if (scrambledWords) {
+                err |= randomSsidWithChars(ssid, ssidSize);
+            } else {
+                err |= randomSsidWithWords(ssid, ssidSize);
+            }
+            /* For probe response set destAddr to broadcast */
+            if (ptype == FUZZ_PACKET_PROBE_RESP) {
+                memset(&outBytes[thisDestAddrOffset], 0xFF, 6);
+            }
+            break;
+        case FUZZ_TARGET_SELECTED_AP:
+            ScanResultAP *thisAP = (ScanResultAP *)theTarget;
+            /* Use the AP's MAC as destAddr for probe requests */
+            if (ptype == FUZZ_PACKET_PROBE_REQ) {
+                memcpy(&outBytes[thisDestAddrOffset], thisAP->espRecord.bssid, 6);
+            } else if (ptype == FUZZ_PACKET_PROBE_RESP) {
+                /* Use AP's MAC as BSSID and srcAddr for probe responses */
+                memcpy(&outBytes[thisBssidOffset], thisAP->espRecord.bssid, 6);
+                memcpy(&outBytes[thisSrcAddrOffset], thisAP->espRecord.bssid, 6);
+            }
+            /* Use the AP's SSID */
+            if (scrambledWords) {
+                err |= extendSsidWithChars(ssid, (char *)thisAP->espRecord.ssid, ssidSize);
+            } else {
+                err |= extendSsidWithWords(ssid, (char *)thisAP->espRecord.ssid, ssidSize);
+            }
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
+            break;
+        case FUZZ_TARGET_TARGET_SSIDS:
+            char *thisSsid = (char *)theTarget;
+            /* Extend the specified SSID to meet length requirements if needed */
+            if (scrambledWords) {
+                err |= extendSsidWithChars(ssid, thisSsid, ssidSize);
+            } else {
+                err |= extendSsidWithWords(ssid, thisSsid, ssidSize);
+            }
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
+            break;
+        case FUZZ_TARGET_SELECTED_STA:
+            ScanResultSTA *thisSTA = (ScanResultSTA *)theTarget;
+            /* Set srcAddr */
+            memcpy(&outBytes[thisSrcAddrOffset], thisSTA->mac, 6);
+            /* Set BSSID for beacon & probe response packets */
+            if (ptype == FUZZ_PACKET_BEACON || ptype == FUZZ_PACKET_PROBE_RESP) {
+                memcpy(&outBytes[thisBssidOffset], thisSTA->mac, 6);
+            }
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Warning: Unknown target (%d).\n", targetType);
+            #else
+                ESP_LOGW(FUZZ_TAG, "Unrecognised target specifier (%d).", targetType);
+            #endif
+            break;
+    }
+    /* Copy SSID into the packet to be sent, unless an error occurred */
+    if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
             printf("Failed to generate an SSID!\n");
         #else
@@ -339,7 +401,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, uint8_t *outBytes) {
         return 0;
     }
     /* Append SSID to our packet */
-    memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
+    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, ssidSize);
     /* And the end */
     memcpy(&outBytes[thisSsidOffset + ssidSize], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
 
@@ -379,12 +441,99 @@ void fuzz_malformed_callback(void *pvParameter) {
             ssidLen = 0;
         }
     }
-    /* Generate a packet of the required type and SSID */
-    int pkt_len = fuzz_malformed_pkt(fuzzPacketType, ssidLen, pkt);
 
-    /* TODO: Set BSSID, SRCADDR, DESTADDR */
+    /* Check fuzzTarget to determine how/how many packets to send */
+    void *targetObject = NULL;
+    uint8_t targetCount = 0;
+    int targetElemSize = 0;
+    switch (fuzzTarget) {
+        case FUZZ_TARGET_BROADCAST:
+            targetCount = 1;
+            #ifdef CONFIG_DEBUG_VERBOSE
+                #ifdef CONFIG_FLIPPER
+                    printf("Generating BROADCAST malformed packets.\n");
+                #else
+                    ESP_LOGI(FUZZ_TAG, "Generating BROADCAST malformed packets.");
+                #endif
+            #endif
+            break;
+        case FUZZ_TARGET_RANDOM:
+            targetCount = 1;
+            #ifdef CONFIG_DEBUG_VERBOSE
+                #ifdef CONFIG_FLIPPER
+                    printf("Generating RANDOM malformed packets.\n");
+                #else
+                    ESP_LOGI(FUZZ_TAG, "Generating RANDOM malformed packets.");
+                #endif
+            #endif
+            break;
+        case FUZZ_TARGET_TARGET_SSIDS:
+            targetObject = lsSsid();
+            targetCount = countSsid();
+            targetElemSize = sizeof(char *);
+            #ifdef CONFIG_DEBUG_VERBOSE
+                #ifdef CONFIG_FLIPPER
+                    printf("Using %u Target-SSIDs\nfor malformed packets.\n", targetCount);
+                #else
+                    ESP_LOGI(FUZZ_TAG, "Using %u Target-SSIDs for malformed packets.", targetCount);
+                #endif
+            #endif
+            break;
+        case FUZZ_TARGET_SELECTED_AP:
+            targetObject = gravity_selected_aps;
+            targetCount = gravity_sel_ap_count;
+            targetElemSize = sizeof(ScanResultAP *);
+            #ifdef CONFIG_DEBUG_VERBOSE
+                #ifdef CONFIG_FLIPPER
+                    printf("Using %u selected APs\nfor malformed packets.\n", targetCount);
+                #else
+                    ESP_LOGI(FUZZ_TAG, "Using %u selected APs for malformed packets.", targetCount);
+                #endif
+            #endif
+            break;
+        case FUZZ_TARGET_SELECTED_STA:
+            targetObject = gravity_selected_stas;
+            targetCount = gravity_sel_sta_count;
+            targetElemSize = sizeof(ScanResultSTA *);
+            #ifdef CONFIG_DEBUG_VERBOSE
+                #ifdef CONFIG_FLIPPER
+                    printf("Using %u selected STAs\nfor malformed packets.", targetCount);
+                #else
+                    ESP_LOGI(FUZZ_TAG, "Using %u selected STAs for malformed packets.", targetCount);
+                #endif
+            #endif
+            break;
+        default:
+            #ifdef CONFIG_FLIPPER
+                printf("Unknown target (%d).\n", fuzzTarget);
+            #else
+                ESP_LOGE(FUZZ_TAG, "Unknown target specifier (%d).", fuzzTarget);
+            #endif
+            free(pkt);
+            // YAGNI: More elegant way to terminate FUZZ
+            fuzz_stop();
+    }
 
-    esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+    /* Depending on the target(s) specified we may need to send one or multiple packets */
+    int pkt_len = 0;
+    for (uint8_t targetIdx = 0; targetIdx < targetCount; ++targetIdx) {
+        /* Because targetObject is a void *, containing either a string, ScanResultAP
+           or ScanResultSTA, we can't index into it like an array. Instead we'll use
+           targetElemSize along with targetIdx to get a pointer to the required element
+        */
+        void *thisTarget = NULL;
+        if (targetObject != NULL) {
+            thisTarget = targetObject + (targetIdx * targetElemSize);
+        }
+        /* Generate an appropriate packet */
+        pkt_len = fuzz_malformed_pkt(fuzzPacketType, ssidLen, fuzzTarget, thisTarget, pkt);
+        /* Send the packet */
+        esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+        /* Delay the minimum configured delay between packets. If you want to remove this
+           change it to vTaskDelay(1) - Running a loop without vTaskDelay risks angering
+           the watchdog, which ensures FreeRTOS is able to do its thing */
+        vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
+    }
 
     /* Prepare for the next cycle */
     if (malformedPartOne) {
@@ -421,7 +570,8 @@ void fuzz_overflow_callback(void *pvParameter) {
     int targetElemSize = 0;
     switch (fuzzTarget) {
         case FUZZ_TARGET_BROADCAST:
-            #ifdef CONFIG_DEBUG
+            targetCount = 1;
+            #ifdef CONFIG_DEBUG_VERBOSE
                 #ifdef CONFIG_FLIPPER
                     printf("Generating BROADCAST\noverflow packet.\n");
                 #else
@@ -430,7 +580,8 @@ void fuzz_overflow_callback(void *pvParameter) {
             #endif
             break;
         case FUZZ_TARGET_RANDOM:
-            #ifdef CONFIG_DEBUG
+            targetCount = 1;
+            #ifdef CONFIG_DEBUG_VERBOSE
                 #ifdef CONFIG_FLIPPER
                     printf("Generating RANDOM overflow pkt.\n");
                 #else
@@ -442,7 +593,7 @@ void fuzz_overflow_callback(void *pvParameter) {
             targetObject = lsSsid();
             targetCount = countSsid();
             targetElemSize = sizeof(char *);
-            #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_DEBUG_VERBOSE
                 #ifdef CONFIG_FLIPPER
                     printf("Using %u Target-SSIDs\nfor overflow packets.\n", targetCount);
                 #else
@@ -454,7 +605,7 @@ void fuzz_overflow_callback(void *pvParameter) {
             targetObject = gravity_selected_aps;
             targetCount = gravity_sel_ap_count;
             targetElemSize = sizeof(ScanResultAP *);
-            #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_DEBUG_VERBOSE
                 #ifdef CONFIG_FLIPPER
                     printf("Using %u selected APs\nfor overflow packets.\n", targetCount);
                 #else
@@ -466,7 +617,7 @@ void fuzz_overflow_callback(void *pvParameter) {
             targetObject = gravity_selected_stas;
             targetCount = gravity_sel_sta_count;
             targetElemSize = sizeof(ScanResultSTA *);
-            #ifdef CONFIG_DEBUG
+            #ifdef CONFIG_DEBUG_VERBOSE
                 #ifdef CONFIG_FLIPPER
                     printf("Using %u selected STAs\nfor overflow packets.\n", targetCount);
                 #else
@@ -476,7 +627,7 @@ void fuzz_overflow_callback(void *pvParameter) {
             break;
         default:
             #ifdef CONFIG_FLIPPER
-                printf("Unknown target specifier (%d).\n", fuzzTarget);
+                printf("Unknown target (%d).\n", fuzzTarget);
             #else
                 ESP_LOGE(FUZZ_TAG, "Unknown target specifier (%d), halting.", fuzzTarget);
             #endif
@@ -493,7 +644,7 @@ void fuzz_overflow_callback(void *pvParameter) {
         /* Considering the merits of processing targets here vs. inside fuzz_overflow_pkt()
            doing it here will be quicker and easier, but also a bit of a kludge, and would
            make future enhancements, such as supporting additional packet types, much harder
-           to accommodate.
+            to accommodate.
         */
         // New sig: puzz_overflow_pkt(fuzzPacketType, fuzzCounter, fuzzTarget, *targetObj)
         // fuzzTarget shares the target type, allowing targetObj to be translated into:
@@ -504,18 +655,23 @@ void fuzz_overflow_callback(void *pvParameter) {
 
         /* targetObject currently contains the arrays containing all targets, extract the
            target at element targetIdx.
-           Because targetObject is a void* the compiler has no way of knowing the size of
+            Because targetObject is a void* the compiler has no way of knowing the size of
            elements - targetObject[targetIdx] will have undefined, but certainly undesirable,
            behaviour. Use targetElemSize to find the memory address of the target in question:
         */
-        void *thisTarget = targetObject + (targetIdx * targetElemSize);
+        void *thisTarget = NULL;
+        if (targetObject != NULL) {
+            thisTarget = targetObject + (targetIdx * targetElemSize);
+        }
 
         /* Generate a packet of the specified type with an appropriate SSID */
         pkt_len = fuzz_overflow_pkt(fuzzPacketType, fuzzCounter, fuzzTarget, thisTarget, pkt);
-//        pkt_len = fuzz_overflow_pkt(fuzzPacketType, fuzzCounter, pkt);
-
+        /* Finally, send the packet */
         esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
 
+        /* Pause between packets - If you want to remove the delay keep a taskDelay of 1
+           This allows FreeRTOS to do its thing and will avoid the watchdog timing out */
+        vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
     }
 
     ++fuzzCounter;

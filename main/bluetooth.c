@@ -1,17 +1,15 @@
 #include "bluetooth.h"
 #include "common.h"
-#include "esp_bt_defs.h"
-#include "esp_err.h"
-#include "esp_gap_bt_api.h"
 #include "probe.h"
 #include "sdkconfig.h"
 #include <stdint.h>
 #include <time.h>
+
+#if defined(CONFIG_BT_ENABLED)
+
 #include "uuids.c"
 
 esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev);
-
-#if defined(CONFIG_IDF_TARGET_ESP32)
 
 const char *BT_TAG = "bt@GRAVITY";
 

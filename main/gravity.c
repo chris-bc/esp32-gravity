@@ -190,7 +190,7 @@ esp_err_t rmSsid(char *ssid) {
 */
 esp_err_t cmd_bluetooth(int argc, char **argv) {
     esp_err_t err = ESP_OK;
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         //err |= gravity_ble_test();
         printf("BT Test harness currently inactive.\n");
     #else
@@ -203,7 +203,7 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
    Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+
 */
 esp_err_t cmd_purge(int argc, char **argv) {
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         const char PURGE_TAG[] = "purge@GRAVITY";
         /* Parameter validation */
         if (argc == 1) {
@@ -1237,7 +1237,7 @@ esp_err_t cmd_stalk(int argc, char **argv) {
     }
     /* If we reach this point argv == 2 */
     /* Only include variables from the Bluetooth module if Bluetooth is supported */
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0 && gravity_sel_bt_count == 0) {
     #else
         if (gravity_sel_ap_count == 0 && gravity_sel_sta_count == 0) {
@@ -1385,7 +1385,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     esp_err_t err = ESP_OK;
     if (argc == 1) {
         err = scan_display_status();
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             err = gravity_bt_scan_display_status();
         #endif
         /* Also display usage just in case */
@@ -1405,7 +1405,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     if (!strcasecmp(argv[1], "WIFI")) {
         attack_status[ATTACK_SCAN] = true;
     } else if (!strcasecmp(argv[1], "OFF")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             err = gravity_bt_disable_scan();
             if (err != ESP_OK) {
                 #ifdef CONFIG_FLIPPER
@@ -1420,7 +1420,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
         attack_status[ATTACK_SCAN_BLE] = false;
     } else if (!strcasecmp(argv[1], "BT")) {
         /* Initialise BT Classic mode and start discovery */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             /* Scanning for devices or services? */
             if (argc >= 3 && !strcasecmp(argv[2], "SERVICES")) {
                 bool selected = (argc > 3 && !strcasecmp(argv[3], "SELECTED"));
@@ -1438,7 +1438,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE")) {
         /* Initialise BT monitor mode and identify devices */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             /* Do we have purge arguments? */
             gravity_bt_purge_strategy_t purgeStrat = 0;
             if (argc > 3 && !strcasecmp(argv[1], "BLE") && !strcasecmp(argv[2], "PURGE")) {
@@ -1753,7 +1753,7 @@ esp_err_t cmd_set(int argc, char **argv) {
            Allow either a set of strings or a number to be specified
            Or SET BLE_PURGE_STRAT RSSI UNNAMED AGE UNSELECTED
         */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             if (argc < 3) {
                 #ifdef CONFIG_FLIPPER
                     printf("%s\n", SHORT_BT_STRAT);
@@ -1817,7 +1817,7 @@ esp_err_t cmd_set(int argc, char **argv) {
             return ESP_ERR_NOT_SUPPORTED;
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             if (argc != 3) {
                 #ifdef CONFIG_FLIPPER
                     printf("Value required for SET.\n");
@@ -1848,7 +1848,7 @@ esp_err_t cmd_set(int argc, char **argv) {
             return ESP_ERR_NOT_SUPPORTED;
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             if (argc != 3) {
                 #ifdef CONFIG_FLIPPER
                     printf("Value required for SET.\n");
@@ -1930,7 +1930,7 @@ esp_err_t cmd_get(int argc, char **argv) {
             ESP_LOGI(TAG, "SCRAMBLE_WORDS: %s", (scrambledWords)?"Enabled":"Disabled");
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             char strStrat[56] = "";
             purgeStrategyToString(purgeStrategy, strStrat);
             #ifdef CONFIG_FLIPPER
@@ -1944,7 +1944,7 @@ esp_err_t cmd_get(int argc, char **argv) {
             return ESP_ERR_NOT_SUPPORTED;
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             #ifdef CONFIG_FLIPPER
                 printf("Max Purge RSSI: %lddBm\n", PURGE_MAX_RSSI);
             #else
@@ -1955,7 +1955,7 @@ esp_err_t cmd_get(int argc, char **argv) {
             return ESP_ERR_NOT_SUPPORTED;
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             #ifdef CONFIG_FLIPPER
                 printf("Min Purge Age: %us\n", PURGE_MIN_AGE);
             #else
@@ -2082,7 +2082,7 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
         /* Syntax GET BLE_PURGE_STRAT */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             char stratStr[56];
             purgeStrategyToString(purgeStrategy, stratStr);
             #ifdef CONFIG_FLIPPER
@@ -2099,7 +2099,7 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MAX_RSSI")) {
         /* Syntax: GET BLE_PURGE_MAX_RSSI */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             #ifdef CONFIG_FLIPPER
                 printf("Max Purged RSSI %ld\n", PURGE_MAX_RSSI);
             #else
@@ -2114,7 +2114,7 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_MIN_AGE")) {
         /* Syntax: GET BLE_PURGE_MAX_AGE */
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             #ifdef CONFIG_FLIPPER
                 printf("Min Purged Age %ds\n", PURGE_MIN_AGE);
             #else
@@ -2263,7 +2263,7 @@ esp_err_t cmd_view(int argc, char **argv) {
                 success = (success && (gravity_list_all_stas((scanResultExpiry != 0)) == ESP_OK));
             }
         } else if (!strcasecmp(argv[i], "BT")) {
-            #if defined(CONFIG_IDF_TARGET_ESP32)
+            #if defined(CONFIG_BT_ENABLED)
                 /* Are we looking for services or devices? */
                 /* This is gonna get crazy. Sorry for constantly changing i */
                 if (argc > i + 1 && !strcasecmp(argv[i  + 1], "SERVICES")) {
@@ -2441,7 +2441,7 @@ esp_err_t cmd_select(int argc, char **argv) {
             }
         }
     } else if (!strcasecmp(argv[1], "BT")) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             /* All or some */
             if (selectAll) {
                 /* Toggle select status of all BT devices */
@@ -2497,7 +2497,7 @@ esp_err_t cmd_selected(int argc, char **argv) {
         printf("\n");
     }
     if (argc == 1 || (argc > 1 && !strcasecmp(argv[1], "BT")) || (argc > 2 && !strcasecmp(argv[2], "BT")) || (argc == 4  && !strcasecmp(argv[3], "BT"))) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONIG_BT_ENABLED)
             retVal |= gravity_bt_list_devices(gravity_selected_bt, gravity_sel_bt_count, (scanResultExpiry != 0));
         #else
             displayBluetoothUnsupported();
@@ -2544,7 +2544,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         /* Remove services whether it's BT or BT SERVICES */
         if (!(strcasecmp(argv[i], "BT") && strcasecmp(argv[i], "ALL"))) {
             /* Clear BT Services */
-            #if defined(CONFIG_IDF_TARGET_ESP32)
+            #if defined(CONFIG_BT_ENABLED)
                 /* Is it BT SERVICES SELECTED? */
                 if (argc >= (i + 2) && !strcasecmp(argv[i + 1], "SERVICES") && !strcasecmp(argv[i + 2], "SELECTED")) {
                     /* TODO: Remove selected services */
@@ -2559,7 +2559,7 @@ esp_err_t cmd_clear(int argc, char **argv) {
         /* If we have BT and we don't have SERVICES then remove the BT devices as well */
         if (((!strcasecmp(argv[i], "BT")) && (argc <= i + 1 || strcasecmp(argv[i + 1], "SERVICES"))) ||
                 !strcasecmp(argv[i], "ALL")) {
-            #if defined(CONFIG_IDF_TARGET_ESP32)
+            #if defined(CONFIG_BT_ENABLED)
                 if (argc > (i + 1) && !strcasecmp(argv[i + 1], "SELECTED")) {
                     /* Remove selected BT devices */
                     err |= gravity_clear_bt_selected();
@@ -2916,7 +2916,7 @@ void app_main(void)
     /* In Flipper mode remove all use of ESP logging except for errors (the line prefix is too long) */
     #ifdef CONFIG_FLIPPER
         esp_log_level_set(BEACON_TAG, ESP_LOG_ERROR);
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_BT_ENABLED)
             esp_log_level_set(BT_TAG, ESP_LOG_ERROR);
         #endif
         esp_log_level_set(DEAUTH_TAG, ESP_LOG_ERROR);

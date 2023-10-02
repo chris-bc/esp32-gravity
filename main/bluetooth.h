@@ -9,13 +9,13 @@
 #include <stddef.h>
 #include "common.h"
 
-#if defined(CONFIG_IDF_TARGET_ESP32)
+#if defined(CONFIG_BT_ENABLED)
 
 #include <esp_gap_ble_api.h>
+#include <esp_gap_bt_api.h>
 #include <esp_gattc_api.h>
 #include <esp_gatt_defs.h>
 #include <esp_gatt_common_api.h>
-#include <esp_gap_bt_api.h>
 #include <esp_bt.h>
 #include <esp_bt_main.h>
 #include <esp_bt_device.h>

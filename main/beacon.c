@@ -224,7 +224,6 @@ esp_err_t extendSsidWithWords(char *ssid, char *prefix, int len) {
 			memcpy(&(ssid[thisCount]), (uint8_t *)word, len - thisCount);
 			thisCount = len;
 		}
-		free(word);
 	}
 	return ESP_OK;
 }
@@ -256,7 +255,6 @@ esp_err_t randomSsidWithWords(char *ssid, int len) {
             memcpy(&ssid[currentLen], (uint8_t *)word, remaining);
             currentLen += remaining;
         }
-		free(word);
     }
     ssid[currentLen] = '\0';
 

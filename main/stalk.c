@@ -43,7 +43,7 @@ esp_err_t drawStalkFlipper() {
         printf("%3sAP%d%s| %3ddB  |%3lds\n", " ", i, (i == 1)?"  ":" ", gravity_selected_aps[i]->espRecord.rssi, elapsed);
     }
 
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         for (int i = 0; i < gravity_sel_bt_count; ++i) {
             clock_t nowTime = clock();
             unsigned long elapsed = (nowTime - gravity_selected_bt[i]->lastSeen) / CLOCKS_PER_SEC;
@@ -92,7 +92,7 @@ esp_err_t drawStalk() {
         unsigned long elapsed = (nowTime - gravity_selected_aps[i]->lastSeen) / CLOCKS_PER_SEC;
         printf(" %2lds", elapsed);
     }
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         GOTOXY(1, gravity_sel_sta_count + gravity_sel_ap_count + 8);
         printf(" Device Name               |  dB  | Age");
         GOTOXY(1, gravity_sel_ap_count + gravity_sel_sta_count + 9);
@@ -149,7 +149,7 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
         gravity_selected_aps[index]->espRecord.rssi = rx_ctrl.rssi;
         /* In case the channel has changed */
         gravity_selected_aps[index]->espRecord.primary = rx_ctrl.channel;
-        #if defined(CONFIG_IDF_TARGET_ESP32C6)
+        #if defined(CONFIG_IDF_TARGET_ESP32C6)                                      // TODO: Check whether this is still required
             gravity_selected_aps[index]->espRecord.second = rx_ctrl.second;
         #else
             gravity_selected_aps[index]->espRecord.second = rx_ctrl.secondary_channel;
@@ -162,7 +162,7 @@ esp_err_t stalk_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
             gravity_selected_stas[index]->rssi = rx_ctrl.rssi;
             /* In case channel has changed */
             gravity_selected_stas[index]->channel = rx_ctrl.channel;
-            #if defined(CONFIG_IDF_TARGET_ESP32C6)
+            #if defined(CONFIG_IDF_TARGET_ESP32C6)                                  // TODO: Check whether this is still required
                 gravity_selected_stas[index]->second = rx_ctrl.second;
             #else
                 gravity_selected_stas[index]->second = rx_ctrl.secondary_channel;
@@ -193,7 +193,7 @@ esp_err_t stalk_begin() {
     xTaskCreate(&stalkLoop, "stalkLoop", 2048, NULL, 5, &stalkTask);
 
     /* Ensure Bluetooth is scanning if we have Bluetooth and selected devices */
-    #if defined(CONFIG_IDF_TARGET_ESP32)
+    #if defined(CONFIG_BT_ENABLED)
         /* If selected BT devices */
         if (gravity_selected_bt != NULL && gravity_sel_bt_count > 0) {
             /* And not currently scanning BT */

@@ -63,6 +63,7 @@
     * Truncate lowest RSSI (could even write an incremental cutoff)
     * Halt scanning - esp_ble_gap_stop_scanning() - needs config option
   * Move max RSSI and min AGE into menuconfig and CLI parameters
+  * Fuzz now supports a variety of targets: Broadcast, Random, Target-SSIDs, selectedSTA & selectedAP
 
 
 
@@ -71,6 +72,7 @@
 
 ## Features TODO
 
+* FUZZ overflow will eventually run out of memory and fail inelegantly
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
@@ -106,7 +108,6 @@
   * Re-implement MAC spoofing for DOS (Used in 5 places)
 * parse additional packet types
 * Decode OUI when displaying MACs (in the same way Wireshark does)
-* Add non-broadcast targets to fuzz
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * Improve sniff implementation
