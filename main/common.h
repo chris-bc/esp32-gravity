@@ -164,6 +164,7 @@ extern bool *hop_defaults;
 extern int *hop_millis_defaults;
 extern long ATTACK_MILLIS;
 extern char **gravityWordList;
+extern int gravityWordCount;
 
 extern GRAVITY_SORT_TYPE sortResults[];
 extern int sortCount;

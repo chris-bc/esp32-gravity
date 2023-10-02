@@ -22,6 +22,8 @@ static PROBE_RESPONSE_AUTH_TYPE *beaconAuthTypes = NULL;
 static int beaconAuthCount = 0;
 static int SSID_COUNT;
 
+bool isDictionaryLoaded = false;
+
 static TaskHandle_t beaconTask = NULL;
 
 /* If true, scrambleWords generates random characters rather than random words */
@@ -154,7 +156,10 @@ void beaconSpam(void *pvParameter) {
 
 /* Alternative SSID generation, using 1000 dictionary words */
 char *getRandomWord() {
-    #include "words.c"
+	if (!isDictionaryLoaded) {
+	    #include "words.c"
+		isDictionaryLoaded = true;
+	}
 
     int index = rand() % gravityWordCount;
     return gravityWordList[index];

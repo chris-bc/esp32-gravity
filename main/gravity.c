@@ -40,6 +40,7 @@
 
 char **user_ssids = NULL;
 char **gravityWordList = NULL;
+int gravityWordCount = 1000;
 int user_ssid_count = 0;
 long ATTACK_MILLIS = CONFIG_DEFAULT_ATTACK_MILLIS;
 char FLIPPER_SEPARATOR = '0';

@@ -42,6 +42,8 @@ const char* BEACON_TAG = "beacon@GRAVITY";
 
 extern char **user_ssids;
 
+extern bool isDictionaryLoaded;
+
 extern uint8_t beacon_raw[];
 
 typedef enum {

@@ -4,8 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 
-int gravityWordCount = 1000;
-
 /* Return the 'i'th element of the wordlist, in a newly-malloc'd char* */
 char *processWord(int i) {
     char *theWord = NULL;
