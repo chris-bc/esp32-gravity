@@ -130,7 +130,8 @@ esp_err_t setMalformedSsidLength(int newLength) {
    stored in outBytes upon conclusion. Caller must allocate memory
    Returns the length of the generated SSID.
 */
-int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType, void *theTarget, uint8_t *outBytes) {
+int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
+        void *theTarget, uint8_t *outBytes) {
     uint8_t *packet_raw = NULL;
     int packet_len = 0;
     int thisSsidOffset = 0;
@@ -185,11 +186,8 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
         return 0;
     }
     esp_err_t err = ESP_OK;
-    /* If a valid target has been provided, use its attributes */
-    /* TODO: Much of this should act on the instance of the packet, near the bottom of the function.
-             I started here in order to control SSIDs and then just sort of got carried away.
-       This is a refactor worth doing.
-       IDIOT just change packet_raw to outByte! :'(
+    /* If a valid target has been provided, use its attributes to
+       set one or more of srcAddr, destAddr, BSSID, SSID
     */
     switch (targetType) {
         case FUZZ_TARGET_BROADCAST:
@@ -202,18 +200,18 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             }
             /* Set probe response destAddr to broadcast if needed */
             if (targetType == FUZZ_TARGET_BROADCAST && ptype == FUZZ_PACKET_PROBE_RESP) {
-                memset(&(packet_raw[thisDestAddrOffset]), 0xFF, 6);
+                memset(&(outBytes[thisDestAddrOffset]), 0xFF, 6);
             }
             break;
         case FUZZ_TARGET_SELECTED_AP:
             ScanResultAP *thisAP = (ScanResultAP *)theTarget;
             /* Use the APs MAC as destAddr for probe requests */
             if (ptype == FUZZ_PACKET_PROBE_REQ) {
-                memcpy(&(packet_raw[thisDestAddrOffset]), thisAP->espRecord.bssid, 6);
+                memcpy(&(outBytes[thisDestAddrOffset]), thisAP->espRecord.bssid, 6);
             } else if (ptype == FUZZ_PACKET_PROBE_RESP) {
                 /* Use APs MAC as BSSID and srcAddr for probe responses */
-                memcpy(&(packet_raw[thisBssidOffset]), thisAP->espRecord.bssid, 6);
-                memcpy(&(packet_raw[thisSrcAddrOffset]), thisAP->espRecord.bssid, 6);
+                memcpy(&(outBytes[thisBssidOffset]), thisAP->espRecord.bssid, 6);
+                memcpy(&(outBytes[thisSrcAddrOffset]), thisAP->espRecord.bssid, 6);
             }
             /* Use the AP's SSID */
             if (scrambledWords) {
@@ -221,7 +219,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             } else {
                 err |= extendSsidWithWords(ssid, (char *)thisAP->espRecord.ssid, ssidSize);
             }
-            memcpy(&(packet_raw[thisSsidOffset]), ssid, ssidSize);
+            memcpy(&(outBytes[thisSsidOffset]), ssid, ssidSize);
             break;
         case FUZZ_TARGET_TARGET_SSIDS:
             char *thisSsid = (char *)theTarget;
@@ -231,15 +229,15 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             } else {
                 err |= extendSsidWithWords(ssid, thisSsid, ssidSize);
             }
-            memcpy(&(packet_raw[thisSsidOffset]), ssid, ssidSize);
+            memcpy(&(outBytes[thisSsidOffset]), ssid, ssidSize);
             break;
         case FUZZ_TARGET_SELECTED_STA:
             ScanResultSTA *thisSTA = (ScanResultSTA *)theTarget;
             /* Set srcAddr regardless of packet type */
-            memcpy(&(packet_raw[thisSrcAddrOffset]), thisSTA->mac, 6);
+            memcpy(&(outBytes[thisSrcAddrOffset]), thisSTA->mac, 6);
             /* Set BSSID for beacon and probe response packets */
             if (ptype == FUZZ_PACKET_BEACON || ptype == FUZZ_PACKET_PROBE_RESP) {
-                memcpy(&(packet_raw[thisBssidOffset]), thisSTA->mac, 6);
+                memcpy(&(outBytes[thisBssidOffset]), thisSTA->mac, 6);
             }
             break;
         default:

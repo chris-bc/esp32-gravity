@@ -160,10 +160,40 @@ char *getRandomWord() {
     return gravityWordList[index];
 }
 
+/* Generate a random SSID of the specified length, which begins
+   with PREFIX followed by a hyphen. Any remainincg characters to
+   make up the required length are selected randomly
+   ssid must be initialised with at least (len + 1) bytes.
+*/
 esp_err_t extendSsidWithChars(char *ssid, char *prefix, int len) {
+	uint8_t thisCount = 0;
+	/* Set ssid to all NULL */
+	memset(ssid, '\0', len + 1);
+	/* Add the prefix, or len chars of it if it's too long*/
+	if (prefix != NULL && strlen(prefix) > 0) {
+		strncpy(ssid, prefix, len);
+		thisCount = strlen(prefix);
+	}
+	if (thisCount > len) {
+		thisCount = len;
+	}
+	if (thisCount < len) {
+		ssid[thisCount++] = '-';
+	}
+	/* thisCount specifies the total number of characters
+	   len - thisCount specifies the number of additional
+	   characters needed.
+	*/
+	while (thisCount < len) {
+		ssid[thisCount++] = ssid_chars[rand() % (strlen(ssid_chars) - 1)];
+	}
 	return ESP_OK;
 }
 
+/* Generate a random SSID of the specified length, which begins with
+   PREFIX followed by hyphen, using random words from Gravity's
+   dictionay to fill any remaining space requirements.
+*/
 esp_err_t extendSsidWithWords(char *ssid, char *prefix, int len) {
 	return ESP_OK;
 }
