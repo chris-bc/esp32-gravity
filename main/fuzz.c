@@ -198,6 +198,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             } else {
                 err |= randomSsidWithWords(ssid, ssidSize);
             }
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
             /* Set probe response destAddr to broadcast if needed */
             if (ptype == FUZZ_PACKET_PROBE_RESP) {
                 memset(&outBytes[thisDestAddrOffset], 0xFF, 6);
@@ -249,18 +250,15 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
             break;
     }
 
-    /* Copy SSID into the packet being assembled unless something went wrong */
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to generate an SSID!\n");
+            printf("Failed to configure packet!\n");
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssidSize);
+            ESP_LOGE(FUZZ_TAG, "Failed to set attributes for specified targets with SSID of length %d", ssidSize);
         #endif
         free(ssid);
         return 0;
     }
-    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, ssidSize);
-
     /* Finish the packet */
     memcpy(&outBytes[thisSsidOffset + ssidSize], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
 
@@ -344,6 +342,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType
             if (ptype == FUZZ_PACKET_PROBE_RESP) {
                 memset(&outBytes[thisDestAddrOffset], 0xFF, 6);
             }
+            memcpy(&outBytes[thisSsidOffset], ssid, ssidSize);
             break;
         case FUZZ_TARGET_SELECTED_AP:
             ScanResultAP *thisAP = (ScanResultAP *)theTarget;
@@ -393,15 +392,13 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType
     /* Copy SSID into the packet to be sent, unless an error occurred */
     if (err != ESP_OK) {
         #ifdef CONFIG_FLIPPER
-            printf("Failed to generate an SSID!\n");
+            printf("Failed to configure packet!\n");
         #else
-            ESP_LOGE(FUZZ_TAG, "Failed to generate an SSID of length %d", ssidSize);
+            ESP_LOGE(FUZZ_TAG, "Failed to set packet length %d", ssidSize);
         #endif
         free(ssid);
         return 0;
     }
-    /* Append SSID to our packet */
-    memcpy(&outBytes[thisSsidOffset], (uint8_t *)ssid, ssidSize);
     /* And the end */
     memcpy(&outBytes[thisSsidOffset + ssidSize], &packet_raw[thisSsidOffset], packet_len - thisSsidOffset);
 
@@ -523,7 +520,13 @@ void fuzz_malformed_callback(void *pvParameter) {
         */
         void *thisTarget = NULL;
         if (targetObject != NULL) {
-            thisTarget = targetObject + (targetIdx * targetElemSize);
+            /* Treat Target-SSIDs as a special case because targetObject is a void* and it's char **
+               It shouldn't matter, but it seems to... */
+            if (fuzzTarget == FUZZ_TARGET_TARGET_SSIDS) {
+                thisTarget = ((char **)targetObject)[targetIdx];
+            } else {
+                thisTarget = targetObject + (targetIdx * targetElemSize);
+            }
         }
         /* Generate an appropriate packet */
         pkt_len = fuzz_malformed_pkt(fuzzPacketType, ssidLen, fuzzTarget, thisTarget, pkt);
@@ -661,7 +664,12 @@ void fuzz_overflow_callback(void *pvParameter) {
         */
         void *thisTarget = NULL;
         if (targetObject != NULL) {
-            thisTarget = targetObject + (targetIdx * targetElemSize);
+            /* targetObject is a void* and Target-SSIDs is a char** - Cater for the difference here */
+            if (fuzzTarget == FUZZ_TARGET_TARGET_SSIDS) {
+                thisTarget = ((char **)targetObject)[targetIdx];
+            } else {
+                thisTarget = targetObject + (targetIdx * targetElemSize);
+            }
         }
 
         /* Generate a packet of the specified type with an appropriate SSID */
@@ -671,7 +679,7 @@ void fuzz_overflow_callback(void *pvParameter) {
 
         /* Pause between packets - If you want to remove the delay keep a taskDelay of 1
            This allows FreeRTOS to do its thing and will avoid the watchdog timing out */
-        vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
+        vTaskDelay(1 + CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
     }
 
     ++fuzzCounter;
