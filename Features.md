@@ -72,7 +72,6 @@
 
 ## Features TODO
 
-* I think words.c is being included every time getRandomWord() is called
 * FUZZ overflow will eventually run out of memory and fail inelegantly
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
