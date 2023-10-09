@@ -65,14 +65,131 @@
   * Move max RSSI and min AGE into menuconfig and CLI parameters
   * Fuzz now supports a variety of targets: Broadcast, Random, Target-SSIDs, selectedSTA & selectedAP
 
+## All Operations by Command
 
+* BEACON
+  * Status
+  * RickRoll
+  * Random [Count]
+  * Infinite
+  * Target-SSIDs
+  * APs
+  * AUTH ( OPEN | WPA )+
+* TARGET-SSIDs
+  * Add
+  * Remove
+  * List
+* PROBE
+  * Target-SSIDs
+  * APs
+  * Status
+* FUZZ
+  * Packet Types
+    * Beacon
+    * Probe REQuest
+    * Probe RESPonse
+  * Fuzz Type
+    * Overflow
+    * Malformed
+  * Target
+    * Broadcast
+    * Target-SSIDs
+    * SelectedSTA
+    * SelectedAP
+    * Random
+* SNIFF
+  * ON | OFF
+* DEAUTH
+  * Source MAC
+    * Frame: As seen in observed packets
+    * Device: Gravity device's MAC
+    * Spoof: Change the device MAC to the observed MAC
+  * Destination MAC
+    * STA: Selected Stations (Devices)
+    * AP: Selected APs
+    * Broadcast
+* MANA
+  * Clear | On | Off
+  * Authentication
+    * None
+    * WEP
+    * WPA
+  * MANA Loud
+* STALK
+  * ON | OFF
+* AP-DOS
+  * ON | OFF
+* AP-Clone
+  * ON | OFF
+  * Authentication
+    * Open
+    * WEP
+    * WPA
+* SCAN
+  * WiFi
+  * Bluetooth Classic
+    * Device Discovery
+    * Service Discovery
+  * BLE (Bluetooth Low-Energy)
+    * Device Discovery
+    * Service Discovery
+    * Purge Strategy:
+      * RSSI [Max RSSI]
+      * Age [Min Age]
+      * Unnamed Devices
+      * Unselected Devices
+* HOP [ <millis> ] [ ON | OFF | DEFAULT | KILL ]
+* SET <variable> <value>
+* GET <variable> <value>
+* VIEW
+  * Access Points
+    * Filter by selected Stations
+  * Stations
+    * Filter by selected Access Points
+  * Bluetooth Devices (Classic + BLE)
+  * Bluetooth Services
+    * For Selected/All Bluetooth Devices
+    * Show only services whose UUID can be matched in Gravity's dictionary
+    * Show only services whose UUID canNOT be matched in Gravity's dictionary
+  * Sort
+    * Age
+    * RSSI
+    * SSID
+    * CURRENTLY NOT WORKING
+* SELECT :  select ( AP | STA | BT ) <elementId>+
+  * AP: Access Point
+  * STA: Station
+  * BT: Bluetooth Device
+* SELECTED : SELECTED [ AP | STA | BT ]
+  * AP: Access Point
+  * STA: Station
+  * BT: Bluetooth Device
+* CLEAR :  clear ( AP [ SELECTED ] | STA [ SELECTED ] | BT [ SERVICES | SELECTED | ALL ] )
+  * Access Points: Selected or All
+  * Stations: Selected or All
+  * Bluetooth
+    * All Bluetooth Devices
+    * Selected Bluetooth Devices
+    * All Bluetooth Services
+* PURGE :  purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+
+  * Object of Purge:
+    * Access Points
+    * Wireless Stations
+    * Bluetooth Classic Devices
+    * Bluetooth Low-Energy Devices
+  * Purge Strategy
+    * Lowest Signal (RSSI) [ <maxRSSI> ]
+    * Highest Age [ <minAge> ]
+    * Unnamed Devices
+    * Unselected Devices
+* GRAVITY-VERSION
+* INFO <command>
 
 
 * **ONGOING** Receive and parse 802.11 frames
 
 ## Features TODO
 
-* FUZZ overflow will eventually run out of memory and fail inelegantly
 * Web Server serving a page and various endpoints
     * Since it's more useful for a Flipper Zero implementation, I'll build it with a console API first
     * Once complete can decide whether to go ahead with a web server
