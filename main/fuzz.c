@@ -183,6 +183,7 @@ int fuzz_overflow_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType,
         #else
             ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for an SSID", STRINGS_MALLOC_FAIL, ssidSize);
         #endif
+        //superDebug = true;
         return 0;
     }
     esp_err_t err = ESP_OK;
@@ -325,6 +326,7 @@ int fuzz_malformed_pkt(FuzzPacketType ptype, int ssidSize, FuzzTarget targetType
         #else
             ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for an SSID", STRINGS_MALLOC_FAIL, (ssidSize + 1));
         #endif
+        //superDebug = true;
         return 0;
     }
     /* Use specified target to set srcAddr, destAddr, BSSID, SSID as needed */
@@ -424,6 +426,12 @@ void fuzz_malformed_callback(void *pvParameter) {
             printf("%sfor universal packet\n", STRINGS_MALLOC_FAIL);
         #else
             ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for a universal packet", STRINGS_MALLOC_FAIL, biggestPktLen);
+        #endif
+        fuzz_stop();
+        #ifdef CONFIG_FLIPPER
+            printf("Fuzz Terminated.\n");
+        #else
+            ESP_LOGI(FUZZ_TAG, "Fuzz Terminated.");
         #endif
         return;
     }
@@ -530,8 +538,19 @@ void fuzz_malformed_callback(void *pvParameter) {
         }
         /* Generate an appropriate packet */
         pkt_len = fuzz_malformed_pkt(fuzzPacketType, ssidLen, fuzzTarget, thisTarget, pkt);
-        /* Send the packet */
-        esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+        /* Are we out of memory? */
+        if (pkt_len == 0) {
+            free(pkt);
+            #ifdef CONFIG_FLIPPER
+                printf("Fuzz Terminated.\n");
+            #else
+                ESP_LOGI(FUZZ_TAG, "Fuzz Terminated.");
+            #endif
+            fuzz_stop();
+        } else {
+            /* Send the packet */
+            esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+        }
         /* Delay the minimum configured delay between packets. If you want to remove this
            change it to vTaskDelay(1) - Running a loop without vTaskDelay risks angering
            the watchdog, which ensures FreeRTOS is able to do its thing */
@@ -563,6 +582,12 @@ void fuzz_overflow_callback(void *pvParameter) {
             printf("%sfor universal packet\n", STRINGS_MALLOC_FAIL);
         #else
             ESP_LOGE(FUZZ_TAG, "%s(%d bytes) for a universal packet template", STRINGS_MALLOC_FAIL, biggestPktLen);
+        #endif
+        fuzz_stop();
+        #ifdef CONFIG_FLIPPER
+            printf("Fuzz Terminated.\n");
+        #else
+            ESP_LOGI(FUZZ_TAG, "Fuzz Terminated.");
         #endif
         return;
     }
@@ -674,9 +699,19 @@ void fuzz_overflow_callback(void *pvParameter) {
 
         /* Generate a packet of the specified type with an appropriate SSID */
         pkt_len = fuzz_overflow_pkt(fuzzPacketType, fuzzCounter, fuzzTarget, thisTarget, pkt);
-        /* Finally, send the packet */
-        esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
-
+        /* Are we out of memory? */
+        if (pkt_len == 0) {
+            #ifdef CONFIG_FLIPPER
+                printf("Fuzz Terminated.\n");
+            #else
+                ESP_LOGI(FUZZ_TAG, "Fuzz Terminated.");
+            #endif
+            free(pkt);
+            fuzz_stop();
+        } else {
+            /* Finally, send the packet */
+            esp_wifi_80211_tx(WIFI_IF_AP, pkt, pkt_len, true);
+        }
         /* Pause between packets - If you want to remove the delay keep a taskDelay of 1
            This allows FreeRTOS to do its thing and will avoid the watchdog timing out */
         vTaskDelay(1 + CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
@@ -732,5 +767,6 @@ esp_err_t fuzz_stop() {
         vTaskDelete(fuzzTask);
         fuzzTask = NULL;
     }
+    attack_status[ATTACK_FUZZ] = false;
     return ESP_OK;
 }
