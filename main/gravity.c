@@ -500,7 +500,7 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
     /* Now that 'fuzz' with no arguments has returned, enforce the validation */
     /* Specifying packetType can be skipped provided it's already set, specifying mode cannot */
     if ((newPacketType == FUZZ_PACKET_NONE && fuzzPacketType == FUZZ_PACKET_NONE) ||
-            newFuzzMode == FUZZ_MODE_NONE || argc > 5) {
+            newFuzzMode == FUZZ_MODE_NONE || argc > 6) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_FUZZ);
         #else
@@ -1080,7 +1080,8 @@ esp_err_t cmd_deauth(int argc, char **argv) {
    an SSID it trusts to offer the open authentication it expects,
    the device will proceed to associate and allow Gravity to
    control its network connectivity.
-   Usage: mana ( CLEAR | ( [ VERBOSE ] [ ON | OFF ] ) | ( AUTH [ NONE | WEP | WPA ] ) | ( LOUD [ ON | OFF ] ) )
+
+   Usage: mana [ CLEAR ] [ VERBOSE ] [ LOUD ] [ AUTH [ NONE | WEP | WPA ] ] [ ON | OFF ]
    CLEAR   :  Erase Preferred Network Lists (PNLs) cached by Mana
    VERBOSE :  Display messages as packets are sent and received,
               providing attack status
@@ -1094,7 +1095,7 @@ esp_err_t cmd_deauth(int argc, char **argv) {
 
  */
 esp_err_t cmd_mana(int argc, char **argv) {
-    if (argc > 3) {
+    if (argc > 7) {
         #ifdef CONFIG_FLIPPER
             printf("%s\n", SHORT_MANA);
         #else
@@ -1103,122 +1104,73 @@ esp_err_t cmd_mana(int argc, char **argv) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    bool launchMana = false; /* Not a very elegant way to restructure channel hopping... */
-
     if (argc == 1) {
         mana_display_status();
-    } else if (!strcasecmp(argv[1], "VERBOSE")) {
-        if (argc == 2) {
-            #ifdef CONFIG_FLIPPER
-                printf("Mana verbose %s\n", (attack_status[ATTACK_MANA])?"ON":"OFF");
-            #else
-                ESP_LOGI(MANA_TAG, "Mana Verbose Logging is %s", (attack_status[ATTACK_MANA_VERBOSE])?"Enabled":"Disabled");
-            #endif
-        } else if (argc == 3 && (!strcasecmp(argv[2], "ON") || !strcasecmp(argv[2], "OFF"))) {
-            attack_status[ATTACK_MANA_VERBOSE] = strcasecmp(argv[2], "OFF");
-        } else {
-            #ifdef CONFIG_FLIPPER
-                printf("%s\n", SHORT_MANA);
-            #else
-                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
-            #endif
-            return ESP_ERR_INVALID_ARG;
-        }
-    } else if (!strcasecmp(argv[1], "OFF") || !strcasecmp(argv[1], "ON")) {
-        attack_status[ATTACK_MANA] = strcasecmp(argv[1], "OFF");
-    } else if (!strcasecmp(argv[1], "AUTH")) {
-        if (argc == 2) {
-            // return mana_auth
-            #ifdef CONFIG_FLIPPER
-                printf("Mana Auth: %s\n", (mana_auth == AUTH_TYPE_NONE)?"OPEN":(mana_auth == AUTH_TYPE_WEP)?"WEP":"WPA");
-            #else
-                ESP_LOGI(MANA_TAG, "Mana authentication method: %s", (mana_auth==AUTH_TYPE_NONE)?"Open Authentication":(mana_auth==AUTH_TYPE_WEP)?"Wireless Equivalent Privacy":"Wi-Fi Protected Access");
-            #endif
-            return ESP_OK;
-        } else if (argc == 3 && !(strcasecmp(argv[2], "NONE") && strcasecmp(argv[2], "WEP") && strcasecmp(argv[2], "WPA"))) {
-            // set mana_auth
-            if (!strcasecmp(argv[2], "NONE")) {
-                mana_auth = AUTH_TYPE_NONE;
-            } else if (!strcasecmp(argv[2], "WEP")) {
-                mana_auth = AUTH_TYPE_WEP;
-            } else if (!strcasecmp(argv[2], "WPA")) {
-                mana_auth = AUTH_TYPE_WPA;
-            }
-        } else {
-            #ifdef CONFIG_FLIPPER
-                printf("%s\n", SHORT_MANA);
-            #else
-                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
-            #endif
-            return ESP_ERR_INVALID_ARG;
-        }
-    } else if (!strcasecmp(argv[1], "LOUD")) {
-        if (argc == 2) {
-            #ifdef CONFIG_FLIPPER
-                printf("Mana %s; Loud %s\n", (attack_status[ATTACK_MANA])?"ON":"OFF", (attack_status[ATTACK_MANA_LOUD])?"ON":"OFF");
-            #else
-                ESP_LOGI(MANA_TAG, "Mana is %srunning : LOUD-Mana is %s", (attack_status[ATTACK_MANA])?"":"not ", (attack_status[ATTACK_MANA_LOUD])?"Enabled":"Disabled");
-            #endif
-            return ESP_OK;
-        }
-        if (!(strcasecmp(argv[2], "ON") && strcasecmp(argv[2], "OFF"))) {
-            attack_status[ATTACK_MANA_LOUD] = strcasecmp(argv[2], "OFF");
-
-            if (!attack_status[ATTACK_MANA]) {
-                /* Mana isn't running - Start it */
-                launchMana = true;
-            }
-        } else {
-            #ifdef CONFIG_FLIPPER
-                printf("%s\n", SHORT_MANA);
-            #else
-                ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
-            #endif
-            return ESP_ERR_INVALID_ARG;
-        }
-    } else if (!strcasecmp(argv[1], "clear")) {
-        /* Clean up networkList */
-        for (int i = 0; i < networkCount; ++i) {
-            if (networkList[i].ssidCount > 0) {
-                free(networkList[i].ssids);
-            }
-        }
-        free(networkList);
     } else {
-        #ifdef CONFIG_FLIPPER
-            printf("%s\n", SHORT_MANA);
-        #else
-            ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
-        #endif
-        return ESP_ERR_INVALID_ARG;
+        /* Reset all Mana args to false */
+        attack_status[ATTACK_MANA] = false;
+        attack_status[ATTACK_MANA_LOUD] = false;
+        attack_status[ATTACK_MANA_VERBOSE] = false;
+        for (int i = 1; i < argc; ++i) {
+            if (!strcasecmp(argv[i], "VERBOSE")) {
+                attack_status[ATTACK_MANA_VERBOSE] = true;
+            } else if (!strcasecmp(argv[i], "LOUD")) {
+                attack_status[ATTACK_MANA_LOUD] = true;
+            } else if (!strcasecmp(argv[i], "ON")) {
+                attack_status[ATTACK_MANA] = true;
+            } else if (!strcasecmp(argv[i], "OFF")) {
+                /* No need to do anything */
+            } else if (!strcasecmp(argv[i], "AUTH")) {
+                /* If Auth Type isn't the next argument return current auth setting */
+                if (strcasecmp(argv[i + 1], "NONE") && strcasecmp(argv[i + 1], "WEP") &&
+                        strcasecmp(argv[i + 1], "WPA")) {
+                    /* Display mana_auth */
+                    #ifdef CONFIG_FLIPPER
+                        printf("Mana Auth: %s\n", (mana_auth == AUTH_TYPE_NONE)?"OPEN":(mana_auth == AUTH_TYPE_WEP)?"WEP":"WPA");
+                    #else
+                        ESP_LOGI(MANA_TAG, "Mana authentication method: %s", (mana_auth == AUTH_TYPE_NONE)?"Open Authentication":(mana_auth == AUTH_TYPE_WEP)?"Wireless Equivalent Privacy (WEP)":"Wi-Fi Protected Access (WPA)");
+                    #endif
+                } else {
+                    /* Set mana_auth based on argv[i + 1] and skip next arg */
+                    ++i;
+                    if (!strcasecmp(argv[i], "NONE")) {
+                        mana_auth = AUTH_TYPE_NONE;
+                    } else if (!strcasecmp(argv[i], "WEP")) {
+                        mana_auth = AUTH_TYPE_WEP;
+                    } else {
+                        mana_auth = AUTH_TYPE_WPA;
+                    }
+                }
+            } else if (!strcasecmp(argv[i], "CLEAR")) {
+                /* Clear Mana cached network lists immediately */
+                for (int j = 0; j < networkCount; ++j) {
+                    if (networkList[j].ssidCount > 0) {
+                        free(networkList[j].ssids);
+                    }
+                }
+                free(networkList);
+            } else {
+                #ifdef CONFIG_FLIPPER
+                    printf("Invalid arg: %s\n%s\n", argv[i], USAGE_MANA);
+                #else
+                    ESP_LOGE(MANA_TAG, "Invalid argument: %s", argv[i]);
+                    ESP_LOGE(MANA_TAG, "%s", USAGE_MANA);
+                #endif
+                return ESP_ERR_INVALID_ARG;
+            }
+        }
+        /* Now that attack_status has been set correctly,
+           start or stop channel hopping as needed
+        */
+        esp_err_t err = setHopForNewCommand();
+        if (err != ESP_OK) {
+            #ifdef CONFIG_FLIPPER
+                printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
+            #else
+                ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
+            #endif
+        }
     }
-
-    /* Now that attack_status has been set correctly,
-       start or stop channel hopping as needed
-    */
-    esp_err_t err = setHopForNewCommand();
-    if (err != ESP_OK) {
-        #ifdef CONFIG_FLIPPER
-            printf("%s%s\n", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
-        #else
-            ESP_LOGW(HOP_TAG, "%s%s", STRINGS_HOP_STATE_FAIL, esp_err_to_name(err));
-        #endif
-    }
-
-    /* Now that channel hopping has been set appropriately,
-       launch Mana if needed
-    */
-    if (launchMana) {
-        #ifdef CONFIG_FLIPPER
-            printf("Starting Mana...\n");
-        #else
-            ESP_LOGI(MANA_TAG, "Mana is not running. Starting ...");
-        #endif
-        char *manaArgs[2] = { "mana", "ON" };
-        attack_status[ATTACK_MANA] = true;
-        cmd_mana(2, manaArgs);
-    }
-
     return ESP_OK;
 }
 

@@ -209,6 +209,7 @@
 
 ## Bugs / Todo
 
+* Fuzz claims to support multiple packet types, but fuzz_overflow_callback only calls fuzz_overflow_pkt once, passing the aggregate packet type (same for malformed). Modify callbacks to iteratively call fuzz_overflow_pkt when multiple packet types are selected
 * I think strFuzzType isn't being returned correctly in response to FUZZ (status)
 * Check service scanning - initial Flipper testing isn't finding services
 * purge strategy - ability to get & set as a whole rather than age, rssi & strategy separately
