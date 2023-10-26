@@ -209,6 +209,7 @@
 
 ## Bugs / Todo
 
+* I think strFuzzType isn't being returned correctly in response to FUZZ (status)
 * Check service scanning - initial Flipper testing isn't finding services
 * purge strategy - ability to get & set as a whole rather than age, rssi & strategy separately
     * Specifically for Flipper use case

@@ -486,7 +486,7 @@ esp_err_t cmd_fuzz(int argc, char **argv) {
         sprintf(strFuzzMode, "Mode: %s", strTemp);
 
         #ifdef CONFIG_FLIPPER
-            printf("Fuzz: %s\t%s\t%s\nTarget: %s\n", (attack_status[ATTACK_FUZZ])?"ON":"OFF", strFuzzType, strFuzzMode, strFuzzTarget);
+            printf("Fuzz: %s\n%s\n%s\nTarget: %s\n", (attack_status[ATTACK_FUZZ])?"ON":"OFF", strFuzzType, strFuzzMode, strFuzzTarget);
         #else
             ESP_LOGI(FUZZ_TAG, "Fuzz: %s\tPackets: %s\n%25s\tTarget: %s\n", (attack_status[ATTACK_FUZZ])?"Enabled":"Disabled", strFuzzType, strFuzzMode, strFuzzTarget);
         #endif

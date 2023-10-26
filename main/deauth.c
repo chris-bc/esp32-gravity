@@ -263,7 +263,7 @@ esp_err_t display_deauth_status() {
     err |= deauth_macSchemeToString(deauthMAC, macStr);
 
     #ifdef CONFIG_FLIPPER
-        printf("Deauth:\t\t %s\nDeauth Delay:\t%ldms\nMAC Scheme:\t%s\nDeauth Targets:\t%s\n", attack_status[ATTACK_DEAUTH]?"ON":"OFF", deauth_delay, macStr, modeStr);
+        printf("Deauth: %s\nDeauth Delay: %ldms\nMAC Scheme: %s\nDeauth Targets: %s\n", attack_status[ATTACK_DEAUTH]?"ON":"OFF", deauth_delay, macStr, modeStr);
     #else
         ESP_LOGI(DEAUTH_TAG, "Deauth is %sRunning.\t\t\tDeauth delay %ldms\n\t\t\t Deauth MAC Scheme: %s\tDeauth Targets: %s", attack_status[ATTACK_DEAUTH]?"":"Not ", deauth_delay, macStr, modeStr);
     #endif

@@ -1,6 +1,6 @@
 #include "sniff.h"
 
-const char *SNIFF_TAG = "sniff@GRAVITY";
+const char *SNIFF_TAG = "sniff";
 
 esp_err_t sniffPacket(uint8_t *payload) {
     switch (payload[0]) {

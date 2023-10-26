@@ -67,7 +67,7 @@ esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uin
     /* Directed probe request - Send a directed probe response in reply */
     char strDestMac[18];
     mac_bytes_to_string(bDestMac, strDestMac);
-    
+
     #ifdef CONFIG_FLIPPER
         char shortSsid[33];
         strcpy(shortSsid, ssid);
@@ -82,9 +82,9 @@ esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uin
     #else
         ESP_LOGI(MANA_TAG, "Received directed probe from %s for \"%s\"", strDestMac, ssid);
     #endif
-    
+
     /* Mana attack - Add the current SSID to the station's preferred network
-        list if it's not already there 
+        list if it's not already there
     */
     int i;
     /* Look for STA's MAC in networkList[] */
@@ -222,7 +222,7 @@ esp_err_t mana_display_status() {
     #ifdef CONFIG_FLIPPER
         char authType[45];
         err |= authTypeToString(mana_auth, authType, true);
-        printf("Mana: %sRunning\t\tLoud-Mana: %sRunning\nVerbose: %s\t\tMana Auth: %s\n",
+        printf("Mana: %sRunning\nLoud-Mana: %sRunning\nVerbose: %s\nMana Auth: %s\n",
                 attack_status[ATTACK_MANA]?"":"Not ", attack_status[ATTACK_MANA_LOUD]?"":"Not ",
                 attack_status[ATTACK_MANA_VERBOSE]?"ON":"OFF", authType);
     #else
