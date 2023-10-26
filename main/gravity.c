@@ -1393,12 +1393,10 @@ esp_err_t cmd_scan(int argc, char **argv) {
         #if defined(CONFIG_BT_ENABLED)
             err = gravity_bt_scan_display_status();
         #endif
-        /* Also display usage just in case */
+        /* Also display usage just in case - only if not Flipper */
         printf("\n");
-        #ifdef CONFIG_FLIPPER
-            printf("Usage: %s\n", SHORT_SCAN);
-        #else
-            ESP_LOGI(SCAN_TAG, "Usage: %s", SHORT_SCAN);
+        #ifndef CONFIG_FLIPPER
+            ESP_LOGI(SCAN_TAG, "Usage: %s", USAGE_SCAN);
         #endif
         return err;
     }

@@ -642,7 +642,7 @@ esp_err_t purge_ap_unnamed() {
     }
     gravity_aps = newAps;
     gravity_ap_count = namedCount;
-    
+
     update_links();
     return err;
 }
@@ -697,7 +697,7 @@ esp_err_t purge_sta_unselected() {
     return err;
 }
 
-/* Purge APs that are not selected 
+/* Purge APs that are not selected
    This really sucks having a * rather than **
    TODO: Refactor AP and STA caches to pass around pointers
 */
@@ -994,7 +994,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
     //             espRecord.rssi, espRecord.second, espRecord.ssid, espRecord.wps
     #ifdef CONFIG_FLIPPER
         printf(" ID | RSSI | Cli |  SSID\n");
-        printf("====|======|=====|========\n");
+        printf("===|====|===|=======\n");
     #else
         printf(" ID | RSSI | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS \n");
         printf("====|======|==================================|===================|=====|==========================|====|=====\n");
@@ -1068,7 +1068,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
                     aps[i]->espRecord.rssi, aps[i]->stationCount, strSsid);
         #else
             printf("%s%2d | %4d | %-32s | %-17s | %3d | %-24s | %2u | %s\n", (aps[i]->selected)?"*":" ", aps[i]->index,
-                    aps[i]->espRecord.rssi, strSsid, strBssid, aps[i]->stationCount, strTime, 
+                    aps[i]->espRecord.rssi, strSsid, strBssid, aps[i]->stationCount, strTime,
                     aps[i]->espRecord.primary, (aps[i]->espRecord.wps<<5 != 0)?"Yes":"No");
         #endif
     }
@@ -1083,7 +1083,7 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
 
     #ifdef CONFIG_FLIPPER
         printf(" ID | RSSI |  MAC  | AP\n");
-        printf("====|======|=======|=======\n");
+        printf("==|====|=====|===\n");
     #else
         printf(" ID | RSSI | MAC               | Access Point      | Ch | Last Seen               \n");
         printf("====|======|===================|===================|====|=========================\n");
@@ -1134,7 +1134,7 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             printf("%s%2d | %4d | %-17s | %-17s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
                     stas[i]->rssi, stas[i]->strMac, strAp, stas[i]->channel, strTime);
         #endif
-    }    
+    }
     return ESP_OK;
 }
 
@@ -1378,7 +1378,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
             ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new AP %s", strMac);
             return ESP_ERR_NO_MEM;
         }
-        
+
         int maxIndex = 0;
         /* Copy previous records across */
         for (int j=0; j < gravity_ap_count; ++j) {
@@ -1450,7 +1450,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
             ESP_LOGE(SCAN_TAG, "Insufficient memmory to cache new STA %s", strNewSTA);
             return ESP_ERR_NO_MEM;
         }
-        
+
         int maxIndex = 0;
         /* Copy previous records across */
         for (int j=0; j < gravity_sta_count; ++j) {
@@ -1536,7 +1536,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
             if (specSTA->ap->stationCount <= 1) {
                 return ESP_OK; // TODO : Is this right? Shouldn't I free stations?
             }
-            
+
             ScanResultSTA **newSTA = malloc(sizeof(ScanResultSTA *) * (specSTA->ap->stationCount - 1));
             if (newSTA == NULL) {
                 ESP_LOGE(SCAN_TAG, "Failed to allocate memory to shrink stations");
@@ -1874,7 +1874,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
                 /* AP isn't a direct sender or receiver. Check whether any known stations are */
                 /* First find the struct instance representing the AP */
                 int apIdx;
-                for (apIdx = 0; apIdx < gravity_ap_count && 
+                for (apIdx = 0; apIdx < gravity_ap_count &&
                             memcmp(gravity_aps[apIdx].espRecord.bssid, scan_filter_ssid_bssid, 6); ++apIdx) { }
                 if (apIdx == gravity_ap_count) {
                     char strAP[18];

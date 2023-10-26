@@ -511,7 +511,7 @@ static void esp_gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *par
             break;
         }
         #ifdef CONFIG_FLIPPER
-            printf("BLE scan status: %s %d cached BT devices.\n", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
+            printf("BLE scan status: %s\n%d cached BT devices.\n", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
         #else
             ESP_LOGI(BT_TAG, "Bluetooth LE scan status: %s Total Bluetooth devices (Classic + LE): %d.", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
         #endif
@@ -669,7 +669,7 @@ esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat) {
             printf("%s\n", esp_err_to_name(err));
             return err;
         }
-    
+
         err = esp_ble_gattc_register_callback(esp_gattc_cb);
         if (err != ESP_OK) {
             printf("%s\n", esp_err_to_name(err));
@@ -716,7 +716,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     uint8_t dev_eir[ESP_BT_GAP_EIR_DATA_LEN];
 
     /* Keep track of which parameters need writing to the data model */
-    bool paramUpdated[BT_PARAM_COUNT]; // TODO: Come back to me 
+    bool paramUpdated[BT_PARAM_COUNT]; // TODO: Come back to me
     for (int i = 0; i < BT_PARAM_COUNT; ++i) {
         paramUpdated[i] = false;
     }
@@ -725,7 +725,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     int deviceIdx = 0;
     memcpy(dev_bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
     bda2str(param->disc_res.bda, bda_str, 18);
-    for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda, 
+    for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda,
                     gravity_bt_devices[deviceIdx]->bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
 
     int numProp = param->disc_res.num_prop;
@@ -790,7 +790,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     //          !(esp_bt_gap_get_cod_major_dev(cod) == ESP_BT_COD_MAJOR_DEV_AV))) {
     //     return;
     // }
-    
+
     if (dev_bdname_len == 0) {
         get_string_name_from_eir(dev_eir, dev_bdname, &dev_bdname_len);
         if (dev_bdname_len > 0) {
@@ -1007,7 +1007,7 @@ esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
 
 esp_err_t listUnknownServices() {
     esp_err_t err = ESP_OK;
-    
+
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
         err |= listUnknownServicesDev(gravity_bt_devices[i]);
         printf("\n");
@@ -1050,7 +1050,7 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
         ESP_LOGI(BT_TAG, "%s :  %u / %u Known Services", (thisDev->bdname_len > 0)?thisDev->bdName:bda_str, thisDev->bt_services.known_services_len, thisDev->bt_services.num_services);
     #endif
 
-    /* Iterate through bt_service.service_uuids, displaying the next known service if 
+    /* Iterate through bt_service.service_uuids, displaying the next known service if
        current element has a matching UUID
     */
     for (uint8_t i = 0; i < thisDev->bt_services.num_services; ++i) {
@@ -1377,7 +1377,7 @@ esp_err_t gravity_bt_initialise() {
     return err;
 }
 
-/* Add a new Bluetooth device to gravity_bt_devices[] 
+/* Add a new Bluetooth device to gravity_bt_devices[]
    Creates a new BT device struct using the specified parameters and adds it to
    gravity_bt_devices[].
    A uniqueness check will be done using BDA prior to adding the specified device.
@@ -1506,7 +1506,7 @@ esp_err_t bt_dev_add(app_gap_cb_t *dev) {
 bool isBDAInArray(esp_bd_addr_t bda, app_gap_cb_t **array, uint8_t arrayLen) {
     int i = 0;
     for (; i < arrayLen && memcmp(bda, array[i]->bda, ESP_BD_ADDR_LEN); ++i) { }
-    
+
     /* If i < arrayLen then it was found */
     return (i < arrayLen);
 }
@@ -1690,7 +1690,7 @@ esp_err_t gravity_bt_scan_display_status() {
     esp_err_t err = ESP_OK;
 
     #ifdef CONFIG_FLIPPER
-        printf("BT Classic Scanning %s, BLE %s, %u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_DISCOVERY]?"ON":"OFF", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
+        printf("BT Classic %s, BLE %s\n%u Devices Discovered\n", attack_status[ATTACK_SCAN_BT_DISCOVERY]?"ON":"OFF", attack_status[ATTACK_SCAN_BLE]?"ON":"OFF", gravity_bt_dev_count);
     #else
         ESP_LOGI(BT_TAG, "Bluetooth Classic Scanning %s, BLE Scanning %s\t%u Devices Discovered", attack_status[ATTACK_SCAN_BT_DISCOVERY]?"Active":"Inactive", attack_status[ATTACK_SCAN_BLE]?"Active":"Inactive", gravity_bt_dev_count);
     #endif
@@ -1727,7 +1727,7 @@ esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, b
     // Print header
     #ifdef CONFIG_FLIPPER
         printf(" ID | RSSI |      Name      | Class | LastSeen\n");
-        printf("====|======|================|=======|==========\n");
+        printf("===|====|========|====|======\n");
     #else
         printf(" ID | RSSI | Name                   | BSSID             | Class    | Scan Method       | LastSeen\n");
         printf("====|======|========================|===================|==========|===================|===========================\n");
@@ -2364,7 +2364,7 @@ esp_err_t purgeAge(GravityDeviceType devType, uint16_t purge_min_age) {
     return err;
 }
 
-/* Purge all BLE records with the smallest RSSI, unless that 
+/* Purge all BLE records with the smallest RSSI, unless that
    is > CONFIG_GRAVITY_BLE_PURGE_MIN_RSSI, then return ESP_ERR_NOT_FOUND */
 esp_err_t purgeRSSI(GravityDeviceType devType, int32_t purge_max_rssi) {
     esp_err_t err = ESP_OK;
