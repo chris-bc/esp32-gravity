@@ -226,10 +226,10 @@ ScanResultAP **collateAPsOfSelectedSTAs(int *apCount) {
 }
 
 /* Retain current MAC */
-static uint8_t current_mac[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
+static uint8_t current_mac[6] = {0, 0, 0, 0, 0, 0};
 
 uint8_t *gravity_get_mac() {
-    if (current_mac[0] == NULL && current_mac[1] == NULL && current_mac[2] == NULL && current_mac[3] == NULL && current_mac[4] == NULL && current_mac[5] == NULL) {
+    if (current_mac[0] == 0 && current_mac[1] == 0 && current_mac[2] == 0 && current_mac[3] == 0 && current_mac[4] == 0 && current_mac[5] == 0) {
         if (esp_wifi_get_mac(WIFI_IF_AP, current_mac) != ESP_OK) {
             #ifdef CONFIG_FLIPPER
                 printf("Failed to get MAC\n");
@@ -269,7 +269,7 @@ esp_err_t gravity_set_mac(uint8_t *newMac) {
    * Multiple auth types can be read with bitwise 'and'
       if (authType & AUTH_TYPE_WPA) // Is WPA one of the specified types?
    theString is a char array initialised with enough space to hold the spacified authType
-    * That's 45 bytes, including the NULL terminator 
+    * That's 45 bytes, including the NULL terminator
 */
 esp_err_t authTypeToString(PROBE_RESPONSE_AUTH_TYPE authType, char theString[], bool flipperStrings) {
     esp_err_t err = ESP_OK;

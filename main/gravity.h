@@ -65,7 +65,7 @@ extern const char USAGE_HOP[];
 extern const char USAGE_SET[];
 extern const char USAGE_GET[];
 extern const char USAGE_VIEW[];
-extern const char USAGE_SELECT[];
+extern char USAGE_SELECT[];
 extern const char USAGE_SELECTED[];
 extern const char USAGE_CLEAR[];
 extern const char USAGE_HANDSHAKE[];

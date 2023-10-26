@@ -49,7 +49,11 @@ bool *attack_status;
 bool *hop_defaults;
 int *hop_millis_defaults;
 
-#define PROMPT_STR "gravity"
+#ifdef CONFIG_FLIPPER
+    #define PROMPT_STR ""
+#else
+    #define PROMPT_STR "gravity"
+#endif
 
 /* Console command history can be stored to and loaded from a file.
  * The easiest way to do this is to use FATFS filesystem on top of
@@ -93,7 +97,7 @@ esp_err_t initFlipperSep() {
     #endif
 
     /* Update SELECT usage string with the correct separator */
-    SHORT_SELECT[strlen(SHORT_SELECT) - 1] = FLIPPER_SEPARATOR;
+    USAGE_SELECT[strlen(USAGE_SELECT) - 1] = FLIPPER_SEPARATOR;
 
     return err;
 }
@@ -2335,7 +2339,7 @@ esp_err_t cmd_select(int argc, char **argv) {
         /* Turning hats into spaces doesn't create new array elements in argv. D'oh! */
         /* Count the number of hats */
         int numHats = 0;
-        for (int i = 0; i < strlen(argv); ++i) {
+        for (int i = 0; i < strlen(argv[2]); ++i) {
             if (argv[2][i] == FLIPPER_SEPARATOR) {
                 ++numHats;
             }

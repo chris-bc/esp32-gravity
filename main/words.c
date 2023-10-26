@@ -1768,6 +1768,7 @@ char *processWord(int i) {
             break;
         case 585:
             theWord = "player";
+            break;
         case 586:
             theWord = "poiuyt";
             break;
@@ -3041,6 +3042,6 @@ if (gravityWordList == NULL) {
             gravityWordList[i] = processWord(i);
 
         }
-    
+
     }
 }

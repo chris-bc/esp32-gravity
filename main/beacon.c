@@ -341,7 +341,7 @@ char **generateRandomSSids() {
 			}
 			strcpy(ssidType, "Words");
 		}
-		
+
 		if (len == 0) {
 			#ifdef CONFIG_FLIPPER
 				printf("randomSsidWith%s() failed!\n", ssidType);
@@ -567,7 +567,7 @@ esp_err_t displayBeaconSsids(char *prefix, bool includeAuthTypes) {
 	for (int i = 0; i < SSID_COUNT; ++i) {
 		if (includeAuthTypes) {
 			char thisAuthType[45] = "";
-			
+
 			#ifdef CONFIG_FLIPPER
 				if (authTypeToString(beaconAuthTypes[i], thisAuthType, true) != ESP_OK) {
 					// TODO
