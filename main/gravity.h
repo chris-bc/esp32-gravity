@@ -116,7 +116,7 @@ uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
-        .hint = SHORT_BEACON,
+        .hint = USAGE_BEACON,
         .help = "A beacon spam attack continously transmits forged beacon frames. RICKROLL will simulate eight APs named after popular song lyrics. RANDOM will generate COUNT random SSIDs between SSID_LEN_MIN and SSID_LEN_MAX in length. If COUNT is not specified DEFAULT_SSID_COUNT is used. TARGET-SSIDs will generate SSIDs as specified in target-ssids. APs will generate SSIDs based on selected scan results. It is STRONGLY RECOMMENDED that scanning remain active while in this mode.  INIFINITE will continuously broadcast random APs until it is stopped.",
         .func = cmd_beacon
     }, {

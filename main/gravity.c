@@ -411,7 +411,11 @@ esp_err_t cmd_info(int argc, char **argv) {
                 ESP_LOGW(TAG, "Invalid command \"%s\", skipping...", argv[i]);
             #endif
         } else {
-            printf("%15s:\t%s\n%15s\t%s\n\n", commands[command].command, commands[command].hint, "", commands[command].help);
+            #ifdef CONFIG_FLIPPER
+                printf("%s\n%s\n\n", commands[command].hint, commands[command].help);
+            #else
+                printf("%15s:\t%s\n%15s\t%s\n\n", commands[command].command, commands[command].hint, "", commands[command].help);
+            #endif
         }
     }
     return ESP_OK;
@@ -574,7 +578,7 @@ esp_err_t cmd_hop(int argc, char **argv) {
         }
         char tempStr[19];
         hopModeToString(hopMode, tempStr);
-        
+
         #ifdef CONFIG_FLIPPER
             char hopStr[21];
             sprintf(hopStr, "Dwell time %ldms", hop_millis);
@@ -676,13 +680,13 @@ esp_err_t cmd_commands(int argc, char **argv) {
 esp_err_t cmd_beacon(int argc, char **argv) {
     /* Usage beacon [ rickroll | random [ count ] | infinite | target-ssids | aps | off ] [ AUTH ( OPEN | WPA )+ ] */
     /* Initially the 'TARGET MAC' argument is unsupported, the attack only supports broadcast beacon frames */
-    
+
     /* Validate arguments:
        * 1: Status
        * 2 onwards: loop through looking for specified keywords.
           * If RANDOM is found then look for and handle COUNT at the same time
           * If AUTH is found then look for and handle authType at the same time
-       * Absolute maximum argc: beacon random 42 auth open wpa 
+       * Absolute maximum argc: beacon random 42 auth open wpa
     */
     if (argc > 6) {
         #ifdef CONFIG_FLIPPER
@@ -947,7 +951,7 @@ esp_err_t cmd_sniff(int argc, char **argv) {
 esp_err_t cmd_deauth(int argc, char **argv) {
     /* Usage: deauth [ <millis> ] [ FRAME | DEVICE | SPOOF ] [ STA | AP | BROADCAST | OFF ] */
     if (argc > 4 || (argc == 4 && strcasecmp(argv[3], "STA") && strcasecmp(argv[3], "BROADCAST") &&
-                strcasecmp(argv[3], "AP") && strcasecmp(argv[3], "OFF")) || 
+                strcasecmp(argv[3], "AP") && strcasecmp(argv[3], "OFF")) ||
             (argc == 4 && atol(argv[1]) == 0 && atol(argv[2]) == 0) ||
             (argc == 4 && strcasecmp(argv[1], "FRAME") && strcasecmp(argv[2], "FRAME") &&
                 strcasecmp(argv[1], "DEVICE") && strcasecmp(argv[2], "DEVICE") &&
@@ -2671,7 +2675,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         }
         strncpy(ssid, (char *)&payload[PROBE_SSID_OFFSET], ssid_len);
         ssid[ssid_len] = '\0';
-        
+
         #ifdef CONFIG_DEBUG_VERBOSE
             char srcMac[18];
             esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
@@ -2681,7 +2685,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
             mana_handleProbeRequest(payload, ssid, ssid_len);
         }
         free(ssid);
-    } 
+    }
     return;
 }
 
@@ -2885,7 +2889,7 @@ void app_main(void)
             case ATTACK_DEAUTH:
             case ATTACK_AP_DOS:                                     /* where hopping doesn't */
             case ATTACK_AP_CLONE:                                   /* make sense be */
-            case ATTACK_RANDOMISE_MAC: 
+            case ATTACK_RANDOMISE_MAC:
             case ATTACK_BT:                             /* treated differently somehow? */
                 hop_millis_defaults[i] = CONFIG_DEFAULT_HOP_MILLIS;
                 break;

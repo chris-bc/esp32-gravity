@@ -9,7 +9,7 @@
       * Scan APs - Fast (API)
       * Scan APs - Continual (SSID + lastSeen when beacons seen)
       * Commands to select/view/remove APs/STAs in scope
-      *  Scan STAs - Only include clients of selected AP(s), or all 
+      *  Scan STAs - Only include clients of selected AP(s), or all
       * Fix bug with hidden SSIDs being included in network scan and getting garbled names
       * Update client count when new STAs are found
       * Format timestamps for display
@@ -31,7 +31,7 @@
     * probe: probe [ ANY | SSIDS | AP | OFF ] - Send either directed (requesting a specific SSID) or broadcast probe requests continually, to disrupt legitimate users. SSIDs sourced either from user-specified target-ssids or selected APs from scan results.
     * deauth: deauth [ STA | AP | BROADCAST | OFF ] - Send deauthentication packets to broadcast if no parameters provided, to selected STAs if STA is specified, or to STAs who are or have been associated with selected APs if AP is specified. This attack will have much greater success if specific stations are specified, and greater success still if you adopt the MAC of the access point you are attempting to deauthenticate a device from
     * mana: mana ( ( [ VERBOSE ] [ ON | OFF ] ) | AUTH [ NONE | WEP | WPA ] ) - Enable or disable Mana, its
-      verbose output, and set the authentication type it indicates. If not specified returns the current status. 
+      verbose output, and set the authentication type it indicates. If not specified returns the current status.
       * Mana attack - Respond to all probes
       * Loud Mana - Respond with SSIDs from all STAs
     * beacon & probe fuzzing - send buffer-overflowed SSIDs (>32 char, > ssid_len) - FUZZ OFF | ( BEACON | REQ | RESP )+ ( OVERFLOW | MALFORMED )
@@ -132,7 +132,6 @@
     * Service Discovery
   * BLE (Bluetooth Low-Energy)
     * Device Discovery
-    * Service Discovery
     * Purge Strategy:
       * RSSI [Max RSSI]
       * Age [Min Age]
@@ -160,6 +159,7 @@
   * AP: Access Point
   * STA: Station
   * BT: Bluetooth Device
+  * All or Any of the above
 * SELECTED : SELECTED [ AP | STA | BT ]
   * AP: Access Point
   * STA: Station
@@ -209,6 +209,8 @@
 
 ## Bugs / Todo
 
+* purge strategy - ability to get & set as a whole rather than age, rssi & strategy separately
+    * Specifically for Flipper use case
 * scan <ssid> may be broken - got a freeze after scan bn scan off
 * Very long usage strings display pretty well, but may be truncated - "scan" line 3: "UNNAMED | UNSE"
   * Add an ANSI cursor up for each line so the cursor stays in place
@@ -228,7 +230,7 @@
 * Mana "Scream" - Broadcast known APs in beacon frames
 * Better support unicode SSIDs (captured, stored & printed correctly but messes up spacing in AP table - 1 japanese kanji takes 2 bytes.)
 * Improve sniff implementation
-    
+
 ## Testing / Packet verification
 
 | Feature              | Broadcast | selectedSTA (1) | selectedSTA (N>1) | target-SSIDs |
