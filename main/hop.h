@@ -11,11 +11,11 @@
 
 #define MAX_CHANNEL 11
 
-enum HopStatus {
+typedef enum HopStatus {
     HOP_STATUS_OFF,
     HOP_STATUS_ON,
     HOP_STATUS_DEFAULT
-};
+} HopStatus;
 
 typedef enum HopMode {
     HOP_MODE_SEQUENTIAL = 0,
@@ -25,7 +25,7 @@ typedef enum HopMode {
 
 extern const char *HOP_TAG;
 extern long hop_millis;
-extern enum HopStatus hopStatus;
+extern HopStatus hopStatus;
 extern HopMode hopMode;
 extern TaskHandle_t channelHopTask;
 

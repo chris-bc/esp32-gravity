@@ -3,7 +3,7 @@
 
 const char *HOP_TAG = "hop@GRAVITY";
 long hop_millis = 0;
-enum HopStatus hopStatus = HOP_STATUS_DEFAULT;
+HopStatus hopStatus = HOP_STATUS_DEFAULT;
 HopMode hopMode = HOP_MODE_SEQUENTIAL;
 TaskHandle_t channelHopTask = NULL;
 

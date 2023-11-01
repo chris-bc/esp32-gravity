@@ -21,6 +21,7 @@
 #include "probe.h"
 #include "sniff.h"
 #include "stalk.h"
+#include "sync.h"
 
 /* Purge methods, used by Bluetooth and Scan modules */
 // TODO: Rename from BLE

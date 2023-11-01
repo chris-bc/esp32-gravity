@@ -204,6 +204,48 @@ esp_err_t cmd_bluetooth(int argc, char **argv) {
     return err;
 }
 
+/* Run synchronisation */
+/* This function returns encoded state and configuration information to a client application.
+   It is intended to be consumed by a computer, not a person.
+   The client application should include the following ENUMs:
+      GravitySyncItem (sync.h)
+      AttackMode (common.h)
+      GravityCommand (common.h)
+      gravity_bt_purge_strategy_t (common.h)
+      HopStatus (hop.h)
+      HopMode (hop.h)
+   Usage: sync [ ALL | (SyncItem)+ ] -- SyncItem is an integer, defined by the GravitySyncItem enum
+*/
+esp_err_t cmd_sync(int argc, char **argv) {
+    /* Validate arguments - no args or a single ALL arg for all, otherwise each arg must be a valid sync item */
+    if (argc == 1 || (argc == 2 && !strcasecmp(argv[1], "all"))) {
+        return gravity_sync_all();
+    }
+
+    long temp;
+    char *endPtr;
+    GravitySyncItem *itemList = malloc(sizeof(GravitySyncItem) * (argc - 1));
+    if (itemList == NULL) {
+        printf("ERROR\n");
+        fflush(stdout);
+        return ESP_ERR_NO_MEM;
+    }
+    /* Validate arguments and copy their int values into itemList */
+    for (int i = 1; i < argc; ++i) {
+        temp = strtol(argv[i], &endPtr, 10);
+        /* Validation fails if strtol returns 0 and endPtr points to argv[i]; or if temp is outside
+           0 - GRAVITY_SYNC_ITEM_COUNT; or if the entire string is not consumed by strtol (e.g. sync 3 8foo) */
+        if ((temp == 0 && argv[i] == endPtr) || temp < 0 || temp >= GRAVITY_SYNC_ITEM_COUNT || endPtr[0] != '\0') {
+            printf("ERROR\n");
+            fflush(stdout);
+            return ESP_ERR_INVALID_ARG;
+        }
+        /* Don't need to keep track of itemList's index because arguments aren't being discarded */
+        itemList[i - 1] = temp;
+    }
+    return gravity_sync_items(itemList, argc - 1);
+}
+
 /* Manually execute purge methods
    Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+
 */

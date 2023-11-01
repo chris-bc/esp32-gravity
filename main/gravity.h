@@ -70,6 +70,7 @@ extern const char USAGE_SELECTED[];
 extern const char USAGE_CLEAR[];
 extern const char USAGE_HANDSHAKE[];
 extern const char USAGE_COMMANDS[];
+extern const char USAGE_SYNC[];
 
 /* Command specifications */
 esp_err_t cmd_bluetooth(int argc, char **argv);
@@ -96,6 +97,7 @@ esp_err_t cmd_commands(int argc, char **argv);
 esp_err_t cmd_hop(int argc, char **argv);
 esp_err_t cmd_info(int argc, char **argv);
 esp_err_t cmd_version(int argc, char **argv);
+esp_err_t cmd_sync(int argc, char **argv);
 
 bool gravitySniffActive();
 void initPromiscuous();
@@ -112,7 +114,7 @@ static bool WIFI_INITIALISED = false;
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-#define CMD_COUNT 24
+#define CMD_COUNT 25
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -234,6 +236,11 @@ esp_console_cmd_t commands[CMD_COUNT] = {
         .hint = USAGE_COMMANDS,
         .help = "Display a BRIEF command summary",
         .func = cmd_commands
+    }, {
+        .command = "sync",
+        .hint = USAGE_SYNC,
+        .help = "Synchronise Gravity state with a client application",
+        .func = cmd_sync
     }
 };
 

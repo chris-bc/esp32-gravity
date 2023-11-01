@@ -27,6 +27,7 @@ const char SHORT_INFO[] = "Provide help information for the specified command. U
 const char SHORT_VERSION[] = "Display esp32-Gravity version information. Usage: gravity-version";
 const char SHORT_BT_STRAT[] = "BLE Purge Strategy. Permitted values: RSSI AGE UNNAMED UNSELECTED NONE.\n\t\tAlternatively can be specified by providing a total value where\n\t\tRSSI is 1, AGE 2, UNNAMED 4, UNSELECTED 8, and NONE 16.";
 const char SHORT_PURGE[] = "Purge cached devices based on criteria. Usage: purge [ AP | STA | BT | BLE ]+\n\t\t[ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+";
+const char SHORT_SYNC[] = "Retrieve Gravity settings, configuration and state details for programmatic use. Usage: sync [syncItem]*";
 
 const char USAGE_PURGE[] = "purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+";
 const char USAGE_BT_STRAT[] = "set BLE_PURGE_STRAT ( RSSI | AGE | UNNAMED | UNSELECTED | NONE )+";
@@ -53,5 +54,6 @@ const char USAGE_HANDSHAKE[] = "handshake [ ON | OFF ]";
 const char USAGE_COMMANDS[] = "Brief command summary";
 const char USAGE_INFO[] = "Command help. info <cmd>";
 const char USAGE_VERSION[] = "gravity-version";
+const char USAGE_SYNC[] = "sync [syncItem]*";
 
 #endif
