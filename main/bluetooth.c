@@ -912,7 +912,7 @@ app_gap_cb_t *gravity_svc_disc_queue_pop() {
 
     app_gap_cb_t **newQ = NULL;
     if (gravity_svc_disc_count == 0) {
-        printf("queu is empty, returning NULL\n");
+        printf("queue is empty, returning NULL\n");
         return NULL;
     } else {
         /* Shrink the queue */
@@ -987,7 +987,7 @@ esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
                 #ifdef CONFIG_FLIPPER
                     printf("%s:\n", uuidStr);
                 #else
-                    ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_128, UUID %s", uuidStr);
+                    ESP_LOGI(BT_TAG, "ESP_UUID_LEN_128: %s", uuidStr);
                 #endif
                 free(uuidStr);
             } else {
@@ -995,7 +995,7 @@ esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
                 #ifdef CONFIG_FLIPPER
                     printf("0x%04lx:\n", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
                 #else
-                    ESP_LOGI(BT_TAG, "-- UUID Type %s, UUID 0x%04lx", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
+                    ESP_LOGI(BT_TAG, "%s: 0x%04lx", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (device->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?device->bt_services.service_uuids[i].uuid.uuid16:device->bt_services.service_uuids[i].uuid.uuid32);
                 #endif
             }
         } else {
@@ -1062,7 +1062,7 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
             #ifdef CONFIG_FLIPPER
                 printf("0x%04x:\n%s\n", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
             #else
-                ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_16, UUID 0x%04x, Service: %s", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
+                ESP_LOGI(BT_TAG, "ESP_UUID_LEN_16: 0x%04x, Service: %s", thisDev->bt_services.known_services[knownIdx]->uuid16, thisDev->bt_services.known_services[knownIdx]->name);
             #endif
             ++knownIdx;
         } else {
@@ -1086,7 +1086,7 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
                 #ifdef CONFIG_FLIPPER
                     printf("%s:\n", uuidStr);
                 #else
-                    ESP_LOGI(BT_TAG, "-- UUID Type ESP_UUID_LEN_128, UUID %s", uuidStr);
+                    ESP_LOGI(BT_TAG, "ESP_UUID_LEN_128: %s", uuidStr);
                 #endif
                 free(uuidStr);
             } else {
@@ -1094,7 +1094,7 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
                 #ifdef CONFIG_FLIPPER
                     printf("0x%04lx:\n", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?thisDev->bt_services.service_uuids[i].uuid.uuid16:thisDev->bt_services.service_uuids[i].uuid.uuid32);
                 #else
-                    ESP_LOGI(BT_TAG, "-- UUID Type %s, UUID 0x%04lx", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?thisDev->bt_services.service_uuids[i].uuid.uuid16:thisDev->bt_services.service_uuids[i].uuid.uuid32);
+                    ESP_LOGI(BT_TAG, "%s: 0x%04lx", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":"ESP_UUID_LEN_32", (thisDev->bt_services.service_uuids[i].len == ESP_UUID_LEN_16)?thisDev->bt_services.service_uuids[i].uuid.uuid16:thisDev->bt_services.service_uuids[i].uuid.uuid32);
                 #endif
             }
         }
@@ -1180,7 +1180,7 @@ esp_err_t identifyKnownServices(app_gap_cb_t *thisDev) {
                     #ifdef CONFIG_FLIPPER
                         printf("0x%04x: %s\n", thisSvc->uuid16, thisSvc->name);
                     #else
-                        ESP_LOGI(BT_TAG, "-- UUID 0x%04x: %s", thisSvc->uuid16, thisSvc->name);
+                        ESP_LOGI(BT_TAG, "UUID 0x%04x: %s", thisSvc->uuid16, thisSvc->name);
                     #endif
                 #endif
                 /* Add thisSvc to known_uuids */
@@ -1250,7 +1250,7 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
             for (int i = 0; i < param->rmt_srvcs.num_uuids; ++i) {
                 esp_bt_uuid_t *u = param->rmt_srvcs.uuid_list + i;
                 // ESP_UUID_LEN_128 is uint8_t[16]
-                ESP_LOGI(BT_TAG, "-- UUID type %s, UUID: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
+                ESP_LOGI(BT_TAG, "%s: 0x%04lx", (u->len == ESP_UUID_LEN_16)?"ESP_UUID_LEN_16":(u->len == ESP_UUID_LEN_32)?"ESP_UUID_LEN_32":"ESP_UUID_LEN_128", (u->len == ESP_UUID_LEN_16)?u->uuid.uuid16:(u->len == ESP_UUID_LEN_32)?u->uuid.uuid32:0);
                 if (u->len == ESP_UUID_LEN_128) {
                     char *uuidStr = malloc(sizeof(char) * (3 * ESP_UUID_LEN_128));
                     if (uuidStr == NULL) {
@@ -1289,7 +1289,7 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
         btServiceDiscoveryActive = false;
     } else {
         app_gap_cb_t *thisDev = gravity_svc_disc_queue_pop();
-        #ifdef CONFIG_DEBUG
+        #ifdef CONFIG_DEBUG_VERBOSE
             char bda_str[18] = "";
             if (thisDev != NULL) {
                 bda2str(thisDev->bda, bda_str, 18);
@@ -1364,7 +1364,9 @@ esp_err_t gravity_bt_initialise() {
 
     esp_err_t err = ESP_OK;
     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-    bt_cfg.mode = ESP_BT_MODE_BTDM;
+    #if defined(CONFIG_BT_CLASSIC_ENABLED)
+        bt_cfg.mode = ESP_BT_MODE_BTDM;
+    #endif
     //bt_cfg.mode = ESP_BT_MODE_CLASSIC_BT;
     err |= esp_bt_controller_init(&bt_cfg);
     /* Enable WiFi sleep mode in order for wireless coexistence to work */
@@ -1599,14 +1601,14 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
         #ifdef CONFIG_DEBUG_VERBOSE
             char bda_str[18] = "";
             bda2str(gravity_svc_disc_q[gravity_svc_disc_count - 1]->bda, bda_str, 18);
-            printf("BT Service discovery %s, queueing BDA %s (%s).\nDiscover queue is %u elements at address %p\n",
-                    btServiceDiscoveryActive?"Starting":"Stopped", bda_str, gravity_svc_disc_q[gravity_svc_disc_count - 1]->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
+            printf("Service discovery: %s, queueing BDA %s (%s) at index %u\n",
+                    btServiceDiscoveryActive?"Starting":"Stopped", bda_str, gravity_svc_disc_q[gravity_svc_disc_count - 1]->bdName, gravity_svc_disc_count);
         #endif
     } else {
         #ifdef CONFIG_DEBUG_VERBOSE
             char bda_str[18] = "";
             bda2str(dev->bda, bda_str, 18);
-            printf("Starting service discovery for %s (%s) starting.\nQueue length %u, address %p.\n",
+            printf("Starting service discovery for %s (%s).\nQueue length %u, address %p.\n",
                     bda_str, dev->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
         #endif
         /* Simply start service discovery */

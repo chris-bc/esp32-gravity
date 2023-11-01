@@ -210,12 +210,11 @@
 ## Bugs / Todo
 
 * Fuzz claims to support multiple packet types, but fuzz_overflow_callback only calls fuzz_overflow_pkt once, passing the aggregate packet type (same for malformed). Modify callbacks to iteratively call fuzz_overflow_pkt when multiple packet types are selected
-* I think strFuzzType isn't being returned correctly in response to FUZZ (status)
-* Check service scanning - initial Flipper testing isn't finding services
 * purge strategy - ability to get & set as a whole rather than age, rssi & strategy separately
     * Specifically for Flipper use case
+    * Just confirm the current approach works. YAGNI
 * scan <ssid> may be broken - got a freeze after scan bn scan off
-* Very long usage strings display pretty well, but may be truncated - "scan" line 3: "UNNAMED | UNSE"
+* Very long usage strings display pretty well, but may be truncated in non-flipper mode - "scan" line 3: "UNNAMED | UNSE"
   * Add an ANSI cursor up for each line so the cursor stays in place
   * `0112[03L01 sorta thing ... used in stalk mode.
 * Add active BT scanning - connections
