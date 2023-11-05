@@ -52,7 +52,7 @@ uint8_t beacon_raw[] = {
 static char currentSsid[32] = "";
 int currentSsidLen = 0;
 
-/* Callback for the beacon spam attack. This will pause 50ms if ATTACK_MILLIS is < 50ms >*/
+/* Callback for the beacon spam attack. This will pause ATTACK_MILLIS ms between packets */
 void beaconSpam(void *pvParameter) {
 	esp_err_t err;
 	uint8_t line = 0;
@@ -68,14 +68,7 @@ void beaconSpam(void *pvParameter) {
 	}
 
 	for (;;) {
-		/* Enforce the use of CONFIG_MIN_ATTACK_MILLIS if not Infinite Beacon spam and
-		   ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS
-		*/
-		if (beaconAttackType != ATTACK_BEACON_INFINITE && ATTACK_MILLIS < CONFIG_MIN_ATTACK_MILLIS) {
-			vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
-		} else {
-			vTaskDelay(ATTACK_MILLIS / portTICK_PERIOD_MS);
-		}
+		vTaskDelay(ATTACK_MILLIS / portTICK_PERIOD_MS);
 
 		// Pull the current SSID and SSID length into variables to more
 		//   easily implement infinite beacon spam

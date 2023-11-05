@@ -554,7 +554,7 @@ void fuzz_malformed_callback(void *pvParameter) {
         /* Delay the minimum configured delay between packets. If you want to remove this
            change it to vTaskDelay(1) - Running a loop without vTaskDelay risks angering
            the watchdog, which ensures FreeRTOS is able to do its thing */
-        vTaskDelay(CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
+        vTaskDelay((ATTACK_MILLIS  / portTICK_PERIOD_MS) + 1);
     }
 
     /* Prepare for the next cycle */
@@ -714,7 +714,7 @@ void fuzz_overflow_callback(void *pvParameter) {
         }
         /* Pause between packets - If you want to remove the delay keep a taskDelay of 1
            This allows FreeRTOS to do its thing and will avoid the watchdog timing out */
-        vTaskDelay(1 + CONFIG_MIN_ATTACK_MILLIS  / portTICK_PERIOD_MS);
+        vTaskDelay((ATTACK_MILLIS  / portTICK_PERIOD_MS) + 1);
     }
 
     ++fuzzCounter;

@@ -1723,7 +1723,7 @@ esp_err_t cmd_set(int argc, char **argv) {
         cmd_get(2, cmd);
         return ESP_OK;
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
-        long newMillis = atof(argv[1]);
+        long newMillis = strtol(argv[1], NULL, 10);
         if (newMillis == 0) {
             #ifdef CONFIG_FLIPPER
                 printf("%s\n", SHORT_SET);
@@ -1732,7 +1732,16 @@ esp_err_t cmd_set(int argc, char **argv) {
             #endif
             return ESP_ERR_INVALID_ARG;
         }
-        ATTACK_MILLIS = newMillis;
+        if (newMillis < CONFIG_MIN_ATTACK_MILLIS) {
+            #ifdef CONFIG_FLIPPER
+                printf("%ld < CONFIG_MIN_ATTACK_MILLIS\n", newMillis);
+            #else
+                ESP_LOGI(TAG, "%ld is less than CONFIG_MIN_ATTACK_MILLIS, using CONFIG_MIN_ATTACK_MILLIS", newMillis);
+            #endif
+            ATTACK_MILLIS = CONFIG_MIN_ATTACK_MILLIS;
+        } else {
+            ATTACK_MILLIS = newMillis;
+        }
         #ifdef CONFIG_FLIPPER
             printf("ATTACK_MILLIS is %ld\n", ATTACK_MILLIS);
         #else
@@ -2062,11 +2071,10 @@ esp_err_t cmd_get(int argc, char **argv) {
             ESP_LOGI(TAG, "Packet Expiry: %s", resultStr);
         #endif
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
-        //
         #ifdef CONFIG_FLIPPER
-            printf("Not Implemented\n");
+            printf("ATTACK_MILLIS: %ldms\n", ATTACK_MILLIS);
         #else
-            ESP_LOGI(TAG, "Not yet implemented");
+            ESP_LOGI(TAG, "ATTACK_MILLIS: Delaying %ldms between packets", ATTACK_MILLIS);
         #endif
     } else if (!strcasecmp(argv[1], "BLE_PURGE_STRAT")) {
         /* Syntax GET BLE_PURGE_STRAT */

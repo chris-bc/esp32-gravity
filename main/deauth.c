@@ -47,16 +47,6 @@ esp_err_t disassoc_standalone_packet(uint8_t *src, uint8_t *dest) {
 }
 
 void deauthLoop(void *pvParameter) {
-    /* Set deauth_delay appropriately if it's silly */
-    if (deauth_delay < CONFIG_MIN_ATTACK_MILLIS) {
-        #ifdef CONFIG_FLIPPER
-            printf("Deauth delay %ld less than minimum %d. using minimum\n", deauth_delay, CONFIG_MIN_ATTACK_MILLIS);
-        #else
-            ESP_LOGW(DEAUTH_TAG, "Deauth delay %ld is less than the configured minimum delay %d. Using minimum delay.", deauth_delay, CONFIG_MIN_ATTACK_MILLIS);
-        #endif
-        deauth_delay = (long)CONFIG_MIN_ATTACK_MILLIS;
-    }
-
     while (true) {
         /* Need to delay at least one tick to satisfy the watchdog */
         vTaskDelay((deauth_delay / portTICK_PERIOD_MS) + 1); /* Delay <delay>ms plus a smidge */
@@ -177,7 +167,17 @@ esp_err_t deauth_start(DeauthMode dMode, DeauthMAC setMAC, long millis) {
     }
     mode = dMode;
     deauthMAC = setMAC;
-    deauth_delay = millis;
+    /* Set deauth_delay appropriately if it's silly */
+    if (millis < CONFIG_MIN_ATTACK_MILLIS) {
+        #ifdef CONFIG_FLIPPER
+            printf("Deauth delay %ld less than minimum %d. using minimum\n", millis, CONFIG_MIN_ATTACK_MILLIS);
+        #else
+            ESP_LOGW(DEAUTH_TAG, "Deauth delay %ld is less than the configured minimum delay %d. Using minimum delay.", millis, CONFIG_MIN_ATTACK_MILLIS);
+        #endif
+        deauth_delay = (long)CONFIG_MIN_ATTACK_MILLIS;
+    } else {
+        deauth_delay = millis;
+    }
     if (mode == DEAUTH_MODE_OFF) {
         return ESP_OK;
     }
