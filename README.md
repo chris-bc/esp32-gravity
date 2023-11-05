@@ -478,16 +478,6 @@ in `esp.py menuconfig`.
 This setting was introduced because some firewalls will identify a sudden burst of
 packets as an attack.
 
-##### attack_pkts
-
-THIS FEATURE HAS NOT BEEN IMPLEMENTED.
-
-For attacks that don't interact with other
-devices, the number of packets to send as part of the attack. Once this number of
-packets have been sent the attack will end and Gravity will await your next command.
-
-This setting applies to `beacon`, `probe`, `deauth` and `fuzz`.
-
 ##### scramble_words
 
 This setting can override the value set in `idf.py menuconfig`. Several features,

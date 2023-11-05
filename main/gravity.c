@@ -1558,17 +1558,17 @@ esp_err_t cmd_scan(int argc, char **argv) {
    Usage: set <variable> <value>
    Allowed values for <variable> are:
       SCRAMBLE_WORDS, SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL,
-      MAC, ATTACK_PKTS, ATTACK_MILLIS, MAC_RAND, EXPIRY, HOP_MODE, SCRAMBLE_WORDS,
+      MAC, ATTACK_MILLIS, MAC_RAND, EXPIRY, HOP_MODE, SCRAMBLE_WORDS,
       BLE_PURGE_STRAT, BLE_PURGE_MAX_RSSI, BLE_PURGE_MIN_AGE */
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_set(int argc, char **argv) {
     if (argc != 3) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS |");
+            ESP_LOGE(TAG, "             MAC | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS |");
             ESP_LOGE(TAG, "             BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
@@ -1722,12 +1722,6 @@ esp_err_t cmd_set(int argc, char **argv) {
         char *cmd[] = { "GET", "EXPIRY"};
         cmd_get(2, cmd);
         return ESP_OK;
-    } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
-        #ifdef CONFIG_FLIPPER
-            printf("Not implemented\n");
-        #else
-            ESP_LOGI(TAG, "This command has not been implemented.");
-        #endif
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
         long newMillis = atof(argv[1]);
         if (newMillis == 0) {
@@ -1892,11 +1886,11 @@ esp_err_t cmd_set(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_SET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_SET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
+            ESP_LOGE(TAG, "             MAC | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
             ESP_LOGE(TAG, "             SCRAMBLE_WORDS | BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
@@ -1909,17 +1903,17 @@ esp_err_t cmd_set(int argc, char **argv) {
 /* Usage: set <variable> <value>
    Allowed values for <variable> are:
       SSID_LEN_MIN, SSID_LEN_MAX, DEFAULT_SSID_COUNT, CHANNEL, HOP_MODE
-      MAC, EXPIRY, MAC_RAND, ATTACK_PKTS (unused), ATTACK_MILLIS, BLE_PURGE_STRAT
+      MAC, EXPIRY, MAC_RAND, ATTACK_MILLIS, BLE_PURGE_STRAT
       BLE_PURGE_MAX_RSSI, BLE_PURGE_MIN_AGE */
 /* Channel hopping is not catered for in this feature */
 esp_err_t cmd_get(int argc, char **argv) {
     if (argc != 2) {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
+            printf("%s\nSCRAMBLE_WORDS,\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "%s", USAGE_GET);
-            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE | MAC");
-            ESP_LOGE(TAG, "             ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS | BLE_PURGE_STRAT");
+            ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL | HOP_MODE | MAC |");
+            ESP_LOGE(TAG, "             ATTACK_MILLIS | MAC_RAND | EXPIRY | SCRAMBLE_WORDS | BLE_PURGE_STRAT |");
             ESP_LOGE(TAG, "             BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;
@@ -2067,13 +2061,6 @@ esp_err_t cmd_get(int argc, char **argv) {
         #else
             ESP_LOGI(TAG, "Packet Expiry: %s", resultStr);
         #endif
-    } else if (!strcasecmp(argv[1], "ATTACK_PKTS")) {
-        //
-        #ifdef CONFIG_FLIPPER
-            printf("Not Implemented\n");
-        #else
-            ESP_LOGI(TAG, "Not yet implemented");
-        #endif
     } else if (!strcasecmp(argv[1], "ATTACK_MILLIS")) {
         //
         #ifdef CONFIG_FLIPPER
@@ -2130,11 +2117,11 @@ esp_err_t cmd_get(int argc, char **argv) {
         #endif
     } else {
         #ifdef CONFIG_FLIPPER
-            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,ATTACK_PKTS,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
+            printf("%s\nSSID_LEN_MIN,\nSSID_LEN_MAX,\nDEFAULT_SSID_COUNT,\nCHANNEL,\nATTACK_MILLIS,MAC,\nMAC_RAND,EXPIRY,\nHOP_MODE,\nSCRAMBLE_WORDS,\nBLE_PURGE_STRAT,\nBLE_PURGE_MAX_RSSI,\nBLE_PURGE_MIN_AGE\n", SHORT_GET);
         #else
             ESP_LOGE(TAG, "Invalid variable specified. %s", USAGE_GET);
             ESP_LOGE(TAG, "<variable> : SSID_LEN_MIN | SSID_LEN_MAX | DEFAULT_SSID_COUNT | CHANNEL |");
-            ESP_LOGE(TAG, "             MAC | ATTACK_PKTS | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
+            ESP_LOGE(TAG, "             MAC | ATTACK_MILLIS | MAC_RAND | EXPIRY | HOP_MODE");
             ESP_LOGE(TAG, "             SCRAMBLE_WORDS | BLE_PURGE_STRAT | BLE_PURGE_MAX_RSSI | BLE_PURGE_MIN_AGE");
         #endif
         return ESP_ERR_INVALID_ARG;

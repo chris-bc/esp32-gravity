@@ -49,9 +49,6 @@ esp_err_t gravity_sync_item(GravitySyncItem item, bool flushBuffer) {
                 }
             }
             break;
-        case GRAVITY_SYNC_ATTACK_PKTS:
-            // cmd_get() says it's Not implemented
-            break;
         case GRAVITY_SYNC_ATTACK_MILLIS:
             // cmd_get() says it isn't implemented
             printf("%ld", ATTACK_MILLIS);
