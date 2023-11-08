@@ -35,17 +35,18 @@ bool arrayContainsString(char **arr, int arrCnt, char *str) {
 /* Convert the specified string to a byte array
    bMac must be a pointer to 6 bytes of allocated memory */
 esp_err_t mac_string_to_bytes(char *strMac, uint8_t *bMac) {
-    int values[6];
-
-    if (6 == sscanf(strMac, "%x:%x:%x:%x:%x:%x%*c", &values[0],
-        &values[1], &values[2], &values[3], &values[4], &values[5])) {
-        // Now convert to uint8_t
-        for (int i = 0; i < 6; ++i) {
-            bMac[i] = (uint8_t)values[i];
-        }
-    } else {
-        ESP_LOGE(TAG, "Invalid MAC specified. Format: 12:34:56:78:90:AB");
+    uint8_t nBytes = (strlen(strMac) + 1) / 3; /* Support arbitrary-length string */
+    char *working = strMac;
+    if (nBytes == 0) {
+        #ifdef CONFIG_FLIPPER
+            printf("mac_string_to_bytes()\ninvalid input\n   \"%s\"\n", strMac);
+        #else
+            ESP_LOGE(TAG, "mac_string_to_bytes() called with an invalid string - There are no bytes\n\t%s\tExpected format 0A:1B:2C:3D:4E:5F:60", strMac);
+        #endif
         return ESP_ERR_INVALID_ARG;
+    }
+    for (int i = 0; i < nBytes; ++i, ++working) {
+        bMac[i] = strtol(working, &working, 10);
     }
     return ESP_OK;
 }
