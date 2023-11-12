@@ -57,7 +57,7 @@ esp_err_t gravity_sync_item(GravitySyncItem item, bool flushBuffer) {
             printf("%d", attack_status[ATTACK_RANDOMISE_MAC]);
             break;
         case GRAVITY_SYNC_PKT_EXPIRY:
-            printf("%f", scanResultExpiry);
+            printf("%.0f", scanResultExpiry);
             break;
         case GRAVITY_SYNC_HOP_MODE:
             printf("%d", hopMode);
