@@ -25,7 +25,7 @@ typedef enum {
 	ATTACK_PROBE_DIRECTED_SCAN
 } probe_attack_t;
 
-static const char* PROBE_TAG = "probe@GRAVITY";
+const char* PROBE_TAG = "probe@GRAVITY";
 
 extern char **user_ssids;
 extern int user_ssid_count;

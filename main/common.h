@@ -1,6 +1,13 @@
 #ifndef GRAVITY_COMMON_H
 #define GRAVITY_COMMON_H
 
+/* Macro to mark a variable as unused in order to prevent compiler warnings
+   This is defined in several of the bluetooth header files, but Bluetooth
+   may not be present in the current chipset */
+#ifndef UNUSED
+    #define UNUSED(x) (void)(x)
+#endif
+
 #include <stdbool.h>
 #include <string.h>
 

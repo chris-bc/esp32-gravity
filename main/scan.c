@@ -26,7 +26,7 @@ enum GravityScanType {
 /* Comparison function for sorting of ScanResultAPs */
 /* Provides a sort function that uses sortResults
 */
-static int ap_comparator(const void *varOne, const void *varTwo) {
+int ap_comparator(const void *varOne, const void *varTwo) {
     /* Return 0 if they're identical */
     if (sortCount == 0) {
         return 0;
@@ -1772,7 +1772,6 @@ esp_err_t parse_rts(uint8_t *payload) {
 
     /* RTS is sent from STA to AP */
     int sta_offset = 10;
-    int ap_offset = 0;
 
     uint8_t sta[6];
 
@@ -1979,6 +1978,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
 esp_err_t scan_display_status() {
     char strMsg[128];
     char working[64];
+    UNUSED(working);
     #ifdef CONFIG_FLIPPER
         sprintf(strMsg, "Scan %s; ", (attack_status[ATTACK_SCAN])?"ON":"OFF");
     #else

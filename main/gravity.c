@@ -252,6 +252,7 @@ esp_err_t cmd_sync(int argc, char **argv) {
 esp_err_t cmd_purge(int argc, char **argv) {
     #if defined(CONFIG_BT_ENABLED)
         const char PURGE_TAG[] = "purge@GRAVITY";
+        UNUSED(PURGE_TAG);
         /* Parameter validation */
         if (argc == 1) {
             /* Return purge settings */
@@ -797,7 +798,7 @@ esp_err_t cmd_beacon(int argc, char **argv) {
     /* Handle arguments to beacon */
     int ssidCount = DEFAULT_SSID_COUNT;
     if (!strcasecmp(argv[1], "rickroll")) {
-        ret = beacon_start(ATTACK_BEACON_RICKROLL, &specAuthType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_RICKROLL, (int *)&specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "random")) {
         if (SSID_LEN_MIN == 0) {
             SSID_LEN_MIN = CONFIG_SSID_LEN_MIN;
@@ -811,13 +812,13 @@ esp_err_t cmd_beacon(int argc, char **argv) {
                 ssidCount = DEFAULT_SSID_COUNT;
             }
         }
-        ret = beacon_start(ATTACK_BEACON_RANDOM, &specAuthType, 1, ssidCount);
+        ret = beacon_start(ATTACK_BEACON_RANDOM, (int *)&specAuthType, 1, ssidCount);
     } else if (!strcasecmp(argv[1], "target-ssids")) {
-        ret = beacon_start(ATTACK_BEACON_USER, &specAuthType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_USER, (int *)&specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "aps")) {
-        ret = beacon_start(ATTACK_BEACON_AP, &specAuthType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_AP, (int *)&specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "infinite")) {
-        ret = beacon_start(ATTACK_BEACON_INFINITE, &specAuthType, 1, 0);
+        ret = beacon_start(ATTACK_BEACON_INFINITE, (int *)&specAuthType, 1, 0);
     } else if (!strcasecmp(argv[1], "off")) {
         ret = beacon_stop();
     } else {
@@ -2006,6 +2007,7 @@ esp_err_t cmd_get(int argc, char **argv) {
             return err;
         }
         char *secondary;
+        UNUSED(secondary);
         switch (second) {
         case WIFI_SECOND_CHAN_NONE:
             secondary = "WIFI_SECOND_CHAN_NONE";
@@ -2781,6 +2783,11 @@ static int register_gravity_commands() {
 
 void app_main(void)
 {
+    /* Mark "unused" variables to suppress compiler warnings */
+    UNUSED(rick_ssids);
+    UNUSED(ssid_chars);
+    UNUSED(WIFI_INITIALISED);
+
     /* Initialise attack_status, hop_defaults and hop_millis_defaults */
     attack_status = malloc(sizeof(bool) * ATTACKS_COUNT);
     if (attack_status == NULL) {

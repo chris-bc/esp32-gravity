@@ -41,6 +41,6 @@ bool gravity_ap_isSelected(int index);
 esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl);
 esp_err_t scan_display_status();
 
-static int ap_comparator(const void *varOne, const void *varTwo);
+int ap_comparator(const void *varOne, const void *varTwo);
 
 #endif

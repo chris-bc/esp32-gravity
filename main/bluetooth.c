@@ -158,7 +158,7 @@ esp_err_t cod2shortStr(uint32_t cod, char *string, uint8_t *stringLen) {
     return err;
 }
 
-static char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
+char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
     if (bda == NULL || str == NULL || size < 18) {
         return NULL;
     }
@@ -168,7 +168,7 @@ static char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
     return str;
 }
 
-static char *uuid2str(esp_bt_uuid_t *uuid, char *str, size_t size) {
+char *uuid2str(esp_bt_uuid_t *uuid, char *str, size_t size) {
     if (uuid == NULL || str == NULL) {
         return NULL;
     }
@@ -1042,6 +1042,7 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
     char bda_str[18] = "";
     uint8_t knownIdx = 0;
     uint8_t allIdx = 0;
+    UNUSED(allIdx);
 
     bda2str(thisDev->bda, bda_str, 18);
     #ifdef CONFIG_FLIPPER
@@ -1390,7 +1391,9 @@ esp_err_t gravity_bt_initialise() {
 */
 esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameLen, uint8_t *eir,
                         uint8_t eirLen, uint32_t cod, int32_t rssi, gravity_bt_scan_t devScanType) {
-    esp_err_t err = ESP_OK, err2 = ESP_OK;
+    esp_err_t err = ESP_OK;
+    esp_err_t err2 = ESP_OK;
+    UNUSED(err2);
 
     /* Make sure the specified BDA doesn't already exist */
     if (isBDAInArray(bda, gravity_bt_devices, gravity_bt_dev_count)) {
@@ -1659,6 +1662,7 @@ esp_err_t gravity_bt_discover_selected_services() {
 */
 esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     esp_err_t err = ESP_OK;
+    UNUSED(err);
     if (!btInitialised) {
         gravity_bt_initialise();
     }
@@ -2307,6 +2311,7 @@ esp_err_t bt_service_rm_all() {
 esp_err_t purgeAge(GravityDeviceType devType, uint16_t purge_min_age) {
     esp_err_t err = ESP_OK;
     uint8_t newCount = 0;
+    UNUSED(newCount);
     gravity_bt_scan_t scanType = GRAVITY_BT_SCAN_TYPE_COUNT;
 
     switch (devType) {

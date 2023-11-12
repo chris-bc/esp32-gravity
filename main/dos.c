@@ -50,7 +50,7 @@ esp_err_t cloneStartStop(bool isStarting, int useAuthType) {
     /* Initialise/Clean-up Beacon attack as required */
     if (isStarting) {
         // TODO: authType properly
-        res |= beacon_start(ATTACK_BEACON_AP, &currentAuthType, 1, 0);
+        res |= beacon_start(ATTACK_BEACON_AP, (int *)&currentAuthType, 1, 0);
     } else {
         res |= beacon_stop();
     }

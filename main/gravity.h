@@ -109,7 +109,7 @@ extern bool *hop_defaults;
 extern int *hop_millis_defaults;
 extern char FLIPPER_SEPARATOR;
 
-static bool WIFI_INITIALISED = false;
+bool WIFI_INITIALISED = false;
 
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };

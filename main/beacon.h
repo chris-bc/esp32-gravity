@@ -16,8 +16,8 @@
 #include "common.h"
 
 // Allowable chars for randomly-generated SSIDs
-static char ssid_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-static char *rick_ssids[] = {
+char ssid_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+char *rick_ssids[] = {
 	"01 Never gonna give you up",
 	"02 Never gonna let you down",
 	"03 Never gonna run around",
