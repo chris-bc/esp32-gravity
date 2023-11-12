@@ -209,6 +209,30 @@
 
 ## Bugs / Todo
 
+* Save/Load data (entire application state)
+  * raw-data [set]
+  * Set UART callback to new function in Flipper app
+  * Function collects data in a global buffer until all retrieved
+    * Similar process/logic to sync
+  * Load operates in much the same way, but in reverse
+  * Content to save when saving state to Flipper:
+    * bool *attack_status
+    * char scan_filter_ssid[33]
+    * uint8_t scan_filter_ssid_bssid[6]
+    * char **user_ssids
+    * int user_ssid_count
+    * int gravity_ap_count
+    * int gravity_sel_ap_count
+    * int gravity_sta_count
+    * int gravity_sel_sta_count
+    * ScanResultAP *gravity_aps
+    * ScanResultSTA *gravity_stas
+    * ScanResultAP **gravity_selected_aps
+    * ScanResultSTA **gravity_selected_stas
+    * app_gap_cb_t **gravity_bt_devices
+    * uint8_t gravity_bt_dev_count
+    * app_gab_cb_t **gravity_selected_bt
+    * uint8_t gravity_sel_bt_count
 * Fuzz claims to support multiple packet types, but fuzz_overflow_callback only calls fuzz_overflow_pkt once, passing the aggregate packet type (same for malformed). Modify callbacks to iteratively call fuzz_overflow_pkt when multiple packet types are selected
 * purge strategy - ability to get & set as a whole rather than age, rssi & strategy separately
     * Specifically for Flipper use case
@@ -220,6 +244,7 @@
 * Add active BT scanning - connections
 * Sorting not working. Looks like it should :(
 * MAC changing problems on ESP32
+  * It's probably fixed as a result of changes to support a new Flipper UI - TEST IT
   * Dropped packets after setting MAC
     * Which bits to re-init?
     * Currently disabled MAC randomisation

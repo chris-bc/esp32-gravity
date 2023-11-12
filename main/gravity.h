@@ -98,6 +98,7 @@ esp_err_t cmd_hop(int argc, char **argv);
 esp_err_t cmd_info(int argc, char **argv);
 esp_err_t cmd_version(int argc, char **argv);
 esp_err_t cmd_sync(int argc, char **argv);
+esp_err_t cmd_raw_data(int argc, char **argv);
 
 bool gravitySniffActive();
 void initPromiscuous();
@@ -114,7 +115,7 @@ bool WIFI_INITIALISED = false;
 char scan_filter_ssid[33] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-#define CMD_COUNT 25
+#define CMD_COUNT 26
 esp_console_cmd_t commands[CMD_COUNT] = {
     {
         .command = "beacon",
@@ -239,8 +240,13 @@ esp_console_cmd_t commands[CMD_COUNT] = {
     }, {
         .command = "sync",
         .hint = USAGE_SYNC,
-        .help = "Synchronise Gravity state with a client application",
+        .help = "Synchronise Gravity settings with a client application",
         .func = cmd_sync
+    }, {
+        .command = "raw-data",
+        .hint = USAGE_RAW_DATA,
+        .help = "Synchronise Gravity application data and state with a client application",
+        .func = cmd_raw_data
     }
 };
 

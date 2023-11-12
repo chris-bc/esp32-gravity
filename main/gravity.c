@@ -246,6 +246,25 @@ esp_err_t cmd_sync(int argc, char **argv) {
     return gravity_sync_items(itemList, argc - 1);
 }
 
+/* Synchronise application data and state information with a client application
+   With no parameters will assemble a uint8_t[] representing all data items and
+   send it to stdout.
+   When the SET parameter is specified will decode the provided uint8_t[] to set
+   one or more data items.
+   Elements included in this process:
+   attackStatus[], scan SSID filter, BSSID of scan SSID filter, Target-SSIDs,
+   Target-SSID count, APs, AP Count, STAs, STA Count, BT Devices, BT Device Count,
+   Selected APs, Selected AP Count, Selected STAs, Selected STA Count, Selected BT
+   Devices, Seleted BT Device Count
+*/
+esp_err_t cmd_raw_data(int argc, char **argv) {
+    esp_err_t result = ESP_OK;
+
+    //
+
+    return result;
+}
+
 /* Manually execute purge methods
    Usage: purge [ AP | STA | BT | BLE ]+ [ RSSI [ <maxRSSI> ] | AGE [ <minAge> ] | UNNAMED | UNSELECTED | NONE ]+
 */
