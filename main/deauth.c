@@ -257,7 +257,7 @@ esp_err_t deauth_modeToString(DeauthMode theMode, char *theString) {
 esp_err_t display_deauth_status() {
     esp_err_t err = ESP_OK;
     char modeStr[24] = "";
-    char macStr[18] = "";
+    char macStr[MAC_STRLEN + 1] = "";
 
     err |= deauth_modeToString(mode, modeStr);
     err |= deauth_macSchemeToString(deauthMAC, macStr);

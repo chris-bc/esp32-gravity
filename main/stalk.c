@@ -81,7 +81,7 @@ esp_err_t drawStalk() {
     printf("------------------|------|------");
     for (int i = 0; i < gravity_sel_ap_count; ++i) {
         GOTOXY(1, gravity_sel_sta_count + i + 7);
-        char bssidStr[18] = "";
+        char bssidStr[MAC_STRLEN + 1] = "";
         mac_bytes_to_string(gravity_selected_aps[i]->espRecord.bssid, bssidStr);
         printf("%s", bssidStr);
         GOTOXY(19, gravity_sel_sta_count + i + 7);

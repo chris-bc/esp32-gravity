@@ -217,14 +217,14 @@ int ap_comparator(const void *varOne, const void *varTwo) {
 /* A compact display of STAs */
 /* TODO: Needs RSSI */
 void print_stas() {
-    char strMac[18];
+    char strMac[MAC_STRLEN + 1];
     char strSsid[MAX_SSID_LEN + 1];
     memset(strSsid, '\0', MAX_SSID_LEN + 1);
     for (int i=0; i < gravity_sta_count; ++i) {
         mac_bytes_to_string(gravity_stas[i].mac, strMac);
         printf("STA %s", strMac);
         if (gravity_stas[i].ap != NULL) {
-            char mac2[18];
+            char mac2[MAC_STRLEN + 1];
             mac_bytes_to_string(gravity_stas[i].apMac, mac2);
             strcpy(strSsid, (char *)gravity_stas[i].ap->espRecord.ssid);
             printf(", AP %s (%s)", mac2, strSsid);
@@ -234,7 +234,7 @@ void print_stas() {
 }
 
 void print_aps() {
-    char strMac[18];
+    char strMac[MAC_STRLEN + 1];
     char strSsid[MAX_SSID_LEN + 1];
     memset(strSsid, '\0', MAX_SSID_LEN + 1);
     for (int i=0; i < gravity_ap_count; ++i) {
@@ -306,8 +306,8 @@ esp_err_t update_links() {
                     memcmp(gravity_stas[idxSTA].apMac, gravity_aps[idxAPSearch].espRecord.bssid, 6);
                     ++idxAPSearch) { }
             if (idxAPSearch == gravity_ap_count) {
-                char strSTA[18];
-                char strAP[18];
+                char strSTA[MAC_STRLEN + 1];
+                char strAP[MAC_STRLEN + 1];
                 ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[idxSTA].apMac, strAP));
                 ESP_ERROR_CHECK(mac_bytes_to_string(gravity_stas[idxSTA].mac, strSTA));
                 ESP_LOGW(SCAN_TAG, "Unable to find AP %s that STA %s claims to be associated with. Continuing",
@@ -999,7 +999,7 @@ esp_err_t gravity_list_ap(ScanResultAP **aps, int apCount, bool hideExpiredPacke
         printf(" ID | RSSI | SSID                             | BSSID             | Cli | Last Seen                | Ch | WPS \n");
         printf("====|======|==================================|===================|=====|==========================|====|=====\n");
     #endif
-    char strBssid[18];
+    char strBssid[MAC_STRLEN + 1];
     char strTime[26];
     char strSsid[36];
     unsigned long nowTime;
@@ -1120,7 +1120,7 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             strcat(strTime, strTmp);
         #endif
         char strAp[53] = ""; // 53 == SSID (32) + " (" + MAC (17) + ")\0"
-        char strApMac[18] = "";
+        char strApMac[MAC_STRLEN + 1] = "";
         memset(strAp, 0, 53);
         if (stas[i]->ap == NULL) {
             strcpy(strAp, "Unknown");
@@ -1134,12 +1134,12 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
                 /* If this is a console append " (MAC)" */
                 #ifndef CONFIG_FLIPPER
                     strcat(strAp, " (");
-                    strncat(strAp, strApMac, 17);
+                    strncat(strAp, strApMac, MAC_STRLEN);
                     strcat(strAp, ")");
                 #endif
             } else {
                 /* No SSID, display MAC only */
-                strncpy(strAp, strApMac, 17);
+                strncpy(strAp, strApMac, MAC_STRLEN);
             }
         }
         #ifdef CONFIG_FLIPPER
@@ -1363,7 +1363,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
     }
     /* First make sure the MAC doesn't exist (multiple APs can share a SSID) */
     int i;
-    char strMac[18];
+    char strMac[MAC_STRLEN + 1];
     mac_bytes_to_string(newAP, strMac);
 
     for (i=0; i < gravity_ap_count && memcmp(newAP, gravity_aps[i].espRecord.bssid, 6); ++i) {}
@@ -1451,7 +1451,7 @@ esp_err_t gravity_add_sta(uint8_t newSTA[6], int channel) {
         }
     } else {
         /* STA is a new device */
-        char strNewSTA[18];
+        char strNewSTA[MAC_STRLEN + 1];
         ESP_ERROR_CHECK(mac_bytes_to_string(newSTA, strNewSTA));
 
         #ifdef CONFIG_DEBUG
@@ -1519,7 +1519,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
     ScanResultAP *specAP;
     for (idxSta = 0; idxSta < gravity_sta_count && memcmp(gravity_stas[idxSta].mac, sta, 6); ++idxSta) { }
     if (idxSta == gravity_sta_count) {
-        char strSTA[18];
+        char strSTA[MAC_STRLEN + 1];
         ESP_ERROR_CHECK(mac_bytes_to_string(sta, strSTA));
         ESP_LOGE(SCAN_TAG, "Unable to find specified STA %s", strSTA);
         return ESP_ERR_INVALID_ARG;
@@ -1528,13 +1528,13 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
 
     for (idxAp = 0; idxAp < gravity_ap_count && memcmp(gravity_aps[idxAp].espRecord.bssid, ap, 6); ++idxAp) { }
     if (idxAp == gravity_ap_count) {
-        char strAP[18];
+        char strAP[MAC_STRLEN + 1];
         ESP_ERROR_CHECK(mac_bytes_to_string(ap, strAP));
         ESP_LOGE(SCAN_TAG, "Unable to find specified AP %s", strAP);
         return ESP_ERR_INVALID_ARG;
     }
     specAP = &gravity_aps[idxAp];
-    char strMacAP[18];
+    char strMacAP[MAC_STRLEN + 1];
     mac_bytes_to_string(specAP->espRecord.bssid, strMacAP);
 
     /* Is the STA already associated with an AP? */
@@ -1545,7 +1545,7 @@ esp_err_t gravity_add_sta_ap(uint8_t *sta, uint8_t *ap) {
             /* The STA is already associated with the AP */
             return ESP_OK;
         } else {
-            char strOldAp[18];
+            char strOldAp[MAC_STRLEN + 1];
             mac_bytes_to_string(specSTA->apMac, strOldAp);
             /* STA has moved from one AP to another */
             /* First shrink specSTA->ap->stations */
@@ -1668,7 +1668,7 @@ esp_err_t parse_beacon(uint8_t *payload) {
     memcpy(ssid, &payload[ssid_offset], ssid_len);
     ssid[ssid_len] = '\0';
 
-    char strAp[18];
+    char strAp[MAC_STRLEN + 1];
     mac_bytes_to_string(ap, strAp);
 
     int channel = parseChannel(payload);
@@ -1893,7 +1893,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
                 for (apIdx = 0; apIdx < gravity_ap_count &&
                             memcmp(gravity_aps[apIdx].espRecord.bssid, scan_filter_ssid_bssid, 6); ++apIdx) { }
                 if (apIdx == gravity_ap_count) {
-                    char strAP[18];
+                    char strAP[MAC_STRLEN + 1];
                     mac_bytes_to_string(scan_filter_ssid_bssid, strAP);
                     ESP_LOGE(SCAN_TAG, "Unable to find object representing selected AP %s", strAP);
                     return ESP_OK;
@@ -1978,7 +1978,7 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
             #endif
         } else {
             #ifdef CONFIG_DEBUG_VERBOSE
-                char theMac[18] = "";
+                char theMac[MAC_STRLEN + 1] = "";
                 mac_bytes_to_string(&payload[10], theMac); // TODO: check result
                 #ifdef CONFIG_FLIPPER
                     printf("Packet from %s has not been parsed!\n", theMac);

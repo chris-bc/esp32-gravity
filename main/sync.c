@@ -34,7 +34,7 @@ esp_err_t gravity_sync_item(GravitySyncItem item, bool flushBuffer) {
             break;
         case GRAVITY_SYNC_MAC:
             uint8_t bMac[6];
-            char strMac[18];
+            char strMac[MAC_STRLEN + 1];
             tmpErr = esp_wifi_get_mac(WIFI_IF_AP, bMac);
             if (tmpErr != ESP_OK) {
                 printf("ERROR");

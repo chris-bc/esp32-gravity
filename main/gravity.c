@@ -1526,7 +1526,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
         if (i < gravity_ap_count) {
             /* Found the SSID in cached scan results */
             #ifdef CONFIG_DEBUG
-                char strMac[18] = "\0";
+                char strMac[MAC_STRLEN + 1] = "\0";
                 ESP_ERROR_CHECK(mac_bytes_to_string(scan_filter_ssid_bssid, strMac));
                 #ifndef CONFIG_FLIPPER
                     ESP_LOGI(SCAN_TAG, "Have already seen BSSID %s for AP \"%s\"", strMac, scan_filter_ssid);
@@ -2050,7 +2050,7 @@ esp_err_t cmd_get(int argc, char **argv) {
     } else if (!strcasecmp(argv[1], "MAC")) {
         //
         uint8_t bMac[6];
-        char strMac[18];
+        char strMac[MAC_STRLEN + 1];
         esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bMac);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to get MAC address from WiFi driver: %s", esp_err_to_name(err));
@@ -2689,7 +2689,7 @@ void wifi_pkt_rcvd(void *buf, wifi_promiscuous_pkt_type_t type) {
         ssid[ssid_len] = '\0';
 
         #ifdef CONFIG_DEBUG_VERBOSE
-            char srcMac[18];
+            char srcMac[MAC_STRLEN + 1];
             esp_err_t err = mac_bytes_to_string(&payload[PROBE_SRCADDR_OFFSET], srcMac);
             ESP_LOGI(TAG, "Probe for \"%s\" from %s", ssid, srcMac);
         #endif

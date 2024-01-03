@@ -153,7 +153,7 @@ void probeCallback(void *pvParameter) {
                 addr = rand() % 256;
                 probeBuffer[offset] = addr;
             }
-            char newMac[18];
+            char newMac[MAC_STRLEN + 1];
             mac_bytes_to_string(&probeBuffer[PROBE_SRCADDR_OFFSET], newMac);
             // Also set device MAC here to fool devices
             esp_err_t err = esp_wifi_set_mac(WIFI_IF_AP, &probeBuffer[PROBE_SRCADDR_OFFSET]);
@@ -168,7 +168,7 @@ void probeCallback(void *pvParameter) {
             if (err != ESP_OK) {
                 ESP_LOGW(PROBE_TAG, "Failed to get MAC: %s. Using default MAC", esp_err_to_name(err));
             }
-            char strMac[18];
+            char strMac[MAC_STRLEN + 1];
             ESP_ERROR_CHECK(mac_bytes_to_string(bMac, strMac));
 
             // TODO: The following line was commented out during initial testing. Test!
@@ -252,8 +252,8 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
 
     #ifdef CONFIG_DEBUG_VERBOSE
         printf("send_probe_response(): ");
-        char strSrcAddr[18];
-        char strDestAddr[18];
+        char strSrcAddr[MAC_STRLEN + 1];
+        char strDestAddr[MAC_STRLEN + 1];
         char strAuthType[15];
         mac_bytes_to_string(srcAddr, strSrcAddr);
         mac_bytes_to_string(destAddr, strDestAddr);
@@ -334,7 +334,7 @@ esp_err_t send_probe_response(uint8_t *srcAddr, uint8_t *destAddr, char *ssid, e
         debugLen += probeBuffer[PROBE_RESPONSE_SSID_OFFSET-1];
         sprintf(&debugOut[debugLen], "\"\tsrcAddr: ");
         debugLen += strlen("\"\tsrcAddr: ");
-        char strMac[18];
+        char strMac[MAC_STRLEN + 1];
         mac_bytes_to_string(&probeBuffer[PROBE_RESPONSE_SRC_ADDR_OFFSET], strMac);
         strncpy(&debugOut[debugLen], strMac, strlen(strMac));
         debugLen += strlen(strMac);

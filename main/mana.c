@@ -24,7 +24,7 @@ esp_err_t mana_handleBroadcastProbe(uint8_t *payload, uint8_t bCurrentMac[6], ui
     /* Update to Mana Loud - Do NOT send duplicate packets where many STAs know an AP */
     int loudSSIDCount = 0;
     char **loudSSIDs = NULL;
-    char strDestMac[18];
+    char strDestMac[MAC_STRLEN + 1];
     mac_bytes_to_string(bDestMac, strDestMac);
     int i;
     for (i = 0; i < networkCount; ++i) {
@@ -65,7 +65,7 @@ esp_err_t mana_handleBroadcastProbe(uint8_t *payload, uint8_t bCurrentMac[6], ui
 
 esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uint8_t bDestMac[6], uint16_t seqNum, char *ssid, int ssid_len) {
     /* Directed probe request - Send a directed probe response in reply */
-    char strDestMac[18];
+    char strDestMac[MAC_STRLEN + 1];
     mac_bytes_to_string(bDestMac, strDestMac);
 
     #ifdef CONFIG_FLIPPER
@@ -172,7 +172,7 @@ esp_err_t mana_handleProbeRequest(uint8_t *payload, char *ssid, int ssid_len) {
     */
     /* Prepare parameters that are needed to respond to both broadcast and directed probe requests */
     uint8_t bCurrentMac[6];
-    char strCurrentMac[18];
+    char strCurrentMac[MAC_STRLEN + 1];
     esp_err_t err = esp_wifi_get_mac(WIFI_IF_AP, bCurrentMac);
     if (err == ESP_OK) {
         mac_bytes_to_string(bCurrentMac, strCurrentMac);
@@ -184,7 +184,7 @@ esp_err_t mana_handleProbeRequest(uint8_t *payload, char *ssid, int ssid_len) {
     /* Copy destMac into a 6-byte array */
     uint8_t bDestMac[6];
     memcpy(bDestMac, &payload[PROBE_SRCADDR_OFFSET], 6);
-    char strDestMac[18];
+    char strDestMac[MAC_STRLEN + 1];
     err = mac_bytes_to_string(bDestMac, strDestMac);
     if (err != ESP_OK) {
         ESP_LOGE(MANA_TAG, "Unable to convert probe request source MAC from bytes to string: %s", esp_err_to_name(err));

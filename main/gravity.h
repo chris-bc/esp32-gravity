@@ -23,6 +23,7 @@
 #define GRAVITY_VERSION "1.0.0"
 #define MAX_16_BIT 65535
 #define MAX_SSID_LEN 32
+#define MAC_STRLEN 17
 
 #include <cmd_nvs.h>
 #include <cmd_system.h>

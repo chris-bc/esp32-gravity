@@ -159,7 +159,7 @@ esp_err_t cod2shortStr(uint32_t cod, char *string, uint8_t *stringLen) {
 }
 
 char *bda2str(esp_bd_addr_t bda, char *str, size_t size) {
-    if (bda == NULL || str == NULL || size < 18) {
+    if (bda == NULL || str == NULL || size < (MAC_STRLEN + 1)) {
         return NULL;
     }
 
@@ -701,7 +701,7 @@ esp_err_t gravity_ble_scan_start(gravity_bt_purge_strategy_t purgeStrat) {
    singe element per physical device.
 */
 void update_device_info(esp_bt_gap_cb_param_t *param) {
-    char bda_str[18];
+    char bda_str[MAC_STRLEN + 1];
     esp_bt_gap_dev_prop_t *p;
     char codDevType[59]; /* Placeholder to store COD major device type */
     uint8_t codDevTypeLen = 0;
@@ -724,7 +724,7 @@ void update_device_info(esp_bt_gap_cb_param_t *param) {
     /* Is it a new BDA (i.e. device we haven't seen before)? */
     int deviceIdx = 0;
     memcpy(dev_bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
-    bda2str(param->disc_res.bda, bda_str, 18);
+    bda2str(param->disc_res.bda, bda_str, MAC_STRLEN + 1);
     for (; deviceIdx < gravity_bt_dev_count && memcmp(param->disc_res.bda,
                     gravity_bt_devices[deviceIdx]->bda, ESP_BD_ADDR_LEN); ++deviceIdx) { }
 
@@ -905,8 +905,8 @@ esp_err_t updateDevice(bool *updatedFlags, esp_bd_addr_t theBda, int32_t theCod,
 
 app_gap_cb_t *gravity_svc_disc_queue_pop() {
     #ifdef CONFIG_DEBUG_VERBOSE
-        char bda_str[18] = "";
-        bda2str(gravity_svc_disc_q[0]->bda, bda_str, 18);
+        char bda_str[MAC_STRLEN + 1] = "";
+        bda2str(gravity_svc_disc_q[0]->bda, bda_str, MAC_STRLEN + 1);
         printf("Beginning of pop, first queue item is %s (%s).\n", bda_str, gravity_svc_disc_q[0]->bdName);
     #endif
 
@@ -950,8 +950,8 @@ bt_uuid *svcForUUID(uint16_t uuid) {
 esp_err_t listUnknownServicesDev(app_gap_cb_t *device) {
     esp_err_t err = ESP_OK;
     uint8_t knownCount = 0;
-    char bda_str[18];
-    bda2str(device->bda, bda_str, 18);
+    char bda_str[MAC_STRLEN + 1];
+    bda2str(device->bda, bda_str, MAC_STRLEN + 1);
 
     #ifdef CONFIG_FLIPPER
         printf("%u/%u Unknown for\n%s\n", (device->bt_services.num_services - device->bt_services.known_services_len),
@@ -1039,12 +1039,12 @@ esp_err_t bt_listAllServicesFor(app_gap_cb_t **devices, uint8_t devCount) {
 
 esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
     esp_err_t err = ESP_OK;
-    char bda_str[18] = "";
+    char bda_str[MAC_STRLEN + 1] = "";
     uint8_t knownIdx = 0;
     uint8_t allIdx = 0;
     UNUSED(allIdx);
 
-    bda2str(thisDev->bda, bda_str, 18);
+    bda2str(thisDev->bda, bda_str, MAC_STRLEN + 1);
     #ifdef CONFIG_FLIPPER
         printf("%s:\n\t%u/%u known services\n", (thisDev->bdname_len > 0)?thisDev->bdName:bda_str, thisDev->bt_services.known_services_len, thisDev->bt_services.num_services);
     #else
@@ -1106,8 +1106,8 @@ esp_err_t bt_listAllServicesDev(app_gap_cb_t *thisDev) {
 esp_err_t listKnownServicesDev(app_gap_cb_t *thisDev) {
     esp_err_t err = ESP_OK;
 
-    char bda_str[18] = "";
-    bda2str(thisDev->bda, bda_str, 18);
+    char bda_str[MAC_STRLEN + 1] = "";
+    bda2str(thisDev->bda, bda_str, MAC_STRLEN + 1);
     #ifdef CONFIG_FLIPPER
         printf("Known services for %s\n\t(%s)\n", bda_str, thisDev->bdName == NULL?"(No Name)":thisDev->bdName);
     #else
@@ -1149,8 +1149,8 @@ esp_err_t identifyKnownServices(app_gap_cb_t *thisDev) {
         }
     }
     /* Display high-level results */
-    char bda_str[18];
-    bda2str(thisDev->bda, bda_str, 18);
+    char bda_str[MAC_STRLEN + 1];
+    bda2str(thisDev->bda, bda_str, MAC_STRLEN + 1);
     #ifdef CONFIG_FLIPPER
         printf("%u/%u Known Services\nFor %s\n", knownCount, bt_services->num_services, (thisDev->bdname_len > 0)?thisDev->bdName:bda_str);
     #else
@@ -1211,8 +1211,8 @@ app_gap_cb_t *deviceWithBDA(esp_bd_addr_t bda) {
     - Calls an auxilliary function to identify and translate known UUIDs from the list
 */
 static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
-    char bda_str[18];
-    ESP_LOGI(BT_TAG, "Receiving services for BDA %s", bda2str(param->rmt_srvcs.bda, bda_str, 18));
+    char bda_str[MAC_STRLEN + 1];
+    ESP_LOGI(BT_TAG, "Receiving services for BDA %s", bda2str(param->rmt_srvcs.bda, bda_str, MAC_STRLEN + 1));
     if (state == APP_GAP_STATE_SERVICE_DISCOVERING)
         printf("state is APP_GAP_STATE_SERVICE_DISCOVERING\n");
     if (state == APP_GAP_STATE_SERVICE_DISCOVER_COMPLETE)
@@ -1291,9 +1291,9 @@ static void bt_remote_service_cb(esp_bt_gap_cb_param_t *param) {
     } else {
         app_gap_cb_t *thisDev = gravity_svc_disc_queue_pop();
         #ifdef CONFIG_DEBUG_VERBOSE
-            char bda_str[18] = "";
+            char bda_str[MAC_STRLEN + 1] = "";
             if (thisDev != NULL) {
-                bda2str(thisDev->bda, bda_str, 18);
+                bda2str(thisDev->bda, bda_str, MAC_STRLEN + 1);
             }
             #ifdef CONFIG_FLIPPER
                 printf("Service Discovery:\n\tPopped %s from the queue.\n", (thisDev==NULL)?"NULL":bda_str);
@@ -1397,11 +1397,11 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
 
     /* Make sure the specified BDA doesn't already exist */
     if (isBDAInArray(bda, gravity_bt_devices, gravity_bt_dev_count)) {
-        char bdaStr[18] = "";
+        char bdaStr[MAC_STRLEN + 1] = "";
         #ifdef CONFIG_FLIPPER
-            printf("Unable to add existing BT Dev:\n%25s\n", bda2str(bda, bdaStr, 18));
+            printf("Unable to add existing BT Dev:\n%25s\n", bda2str(bda, bdaStr, MAC_STRLEN + 1));
         #else
-            ESP_LOGE(BT_TAG, "Unable to add the requested Bluetooth device to Gravity's device array; BDA %s already exists.", bda2str(bda, bdaStr, 18));
+            ESP_LOGE(BT_TAG, "Unable to add the requested Bluetooth device to Gravity's device array; BDA %s already exists.", bda2str(bda, bdaStr, MAC_STRLEN + 1));
         #endif
         return ESP_ERR_NOT_SUPPORTED;
     }
@@ -1602,15 +1602,15 @@ esp_err_t gravity_bt_discover_services(app_gap_cb_t *dev) {
         ++gravity_svc_disc_count;
 
         #ifdef CONFIG_DEBUG_VERBOSE
-            char bda_str[18] = "";
-            bda2str(gravity_svc_disc_q[gravity_svc_disc_count - 1]->bda, bda_str, 18);
+            char bda_str[MAC_STRLEN + 1] = "";
+            bda2str(gravity_svc_disc_q[gravity_svc_disc_count - 1]->bda, bda_str, MAC_STRLEN + 1);
             printf("Service discovery: %s, queueing BDA %s (%s) at index %u\n",
                     btServiceDiscoveryActive?"Starting":"Stopped", bda_str, gravity_svc_disc_q[gravity_svc_disc_count - 1]->bdName, gravity_svc_disc_count);
         #endif
     } else {
         #ifdef CONFIG_DEBUG_VERBOSE
-            char bda_str[18] = "";
-            bda2str(dev->bda, bda_str, 18);
+            char bda_str[MAC_STRLEN + 1] = "";
+            bda2str(dev->bda, bda_str, MAC_STRLEN + 1);
             printf("Starting service discovery for %s (%s).\nQueue length %u, address %p.\n",
                     bda_str, dev->bdName, gravity_svc_disc_count, gravity_svc_disc_q);
         #endif
@@ -1628,9 +1628,9 @@ esp_err_t gravity_bt_discover_services_for(app_gap_cb_t **devices, uint8_t devic
     #ifdef CONFIG_DEBUG_VERBOSE
         printf("In discover_services_for(), bt_dev_count is %u\n", deviceCount);
         for (int i = 0; i < deviceCount; ++i) {
-            char strBda[18];
+            char strBda[MAC_STRLEN + 1];
             char strEir[ESP_BT_GAP_EIR_DATA_LEN + 1];
-            bda2str(devices[i]->bda, strBda, 18);
+            bda2str(devices[i]->bda, strBda, MAC_STRLEN + 1);
             memcpy(strEir, devices[i]->eir, devices[i]->eir_len);
             strEir[devices[i]->eir_len] = '\0';
             printf("Device %d:\t\tBDA \"%s\"\tCOD: %lu\tRSSI: %ld\nName Len: %u\tEIR Len: %u\tName: \"%s\"\nEIR: \"%s\"\n",i,strBda,devices[i]->cod, devices[i]->rssi,devices[i]->bdname_len, devices[i]->eir_len, devices[i]->bdName, strEir);
@@ -1638,8 +1638,8 @@ esp_err_t gravity_bt_discover_services_for(app_gap_cb_t **devices, uint8_t devic
     #endif
 
     for (int i = 0; i < deviceCount; ++i) {
-        char bda_str[18];
-        printf("Requesting services for %s\n", devices[i]->bdname_len > 0?devices[i]->bdName:bda2str(devices[i]->bda, bda_str, 18));
+        char bda_str[MAC_STRLEN + 1];
+        printf("Requesting services for %s\n", devices[i]->bdname_len > 0?devices[i]->bdName:bda2str(devices[i]->bda, bda_str, MAC_STRLEN + 1));
         res |= gravity_bt_discover_services(devices[i]);
     }
     return res;
@@ -1676,8 +1676,8 @@ esp_err_t gravity_bt_gap_services_discover(app_gap_cb_t *device) {
     }
     /* Display a warning if there are no BT devices, or there are but the specified device is non-NULL and not found */
     if (gravity_bt_dev_count == 0 || (device != NULL && !deviceFound)) {
-        char dev_bda[18];
-        bda2str(device->bda, dev_bda, 18);
+        char dev_bda[MAC_STRLEN + 1];
+        bda2str(device->bda, dev_bda, MAC_STRLEN + 1);
         #ifdef CONFIG_FLIPPER
             printf("Specified Device\n%25s\nNot in Gravity scan results. Services will not be stored.\n", dev_bda);
         #else
@@ -1722,7 +1722,7 @@ esp_err_t gravity_bt_list_all_devices(bool hideExpiredPackets) {
 esp_err_t gravity_bt_list_devices(app_gap_cb_t **devices, uint8_t deviceCount, bool hideExpiredPackets) {
     esp_err_t err = ESP_OK;
 
-    char strBssid[18];
+    char strBssid[MAC_STRLEN + 1];
     char strTime[26];
     char strName[25]; /* Hold a substring of device name */
     char strScanType[18];
@@ -2146,8 +2146,8 @@ esp_err_t gravity_clear_bt_selected() {
     for (int i = 0; i < gravity_bt_dev_count; ++i) {
         if (gravity_bt_devices[i] != NULL && gravity_bt_devices[i]->selected) {
             #ifdef CONFIG_DEBUG
-                char bda_str[18] = "";
-                bda2str(gravity_bt_devices[i]->bda, bda_str, 18);
+                char bda_str[MAC_STRLEN + 1] = "";
+                bda2str(gravity_bt_devices[i]->bda, bda_str, MAC_STRLEN + 1);
                 printf("%s (%d) is selected\n", (gravity_bt_devices[i]->bdname_len > 0)?gravity_bt_devices[i]->bdName:bda_str, i);
             #endif
             /* Element i is selected, free it */

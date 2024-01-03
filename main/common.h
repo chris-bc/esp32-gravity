@@ -59,7 +59,7 @@ struct ScanResultSTA {
     int index;
     bool selected;
     uint8_t mac[6];
-    char strMac[18];
+    char strMac[MAC_STRLEN + 1];
     uint8_t apMac[6];
     ScanResultAP *ap;
     int channel;

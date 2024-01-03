@@ -10,7 +10,7 @@
 
 typedef struct NetworkList {
     uint8_t bMac[6];
-    char strMac[18];
+    char strMac[MAC_STRLEN + 1];
     char **ssids;
     int ssidCount;
 } NetworkList;

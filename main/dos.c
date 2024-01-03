@@ -83,8 +83,8 @@ esp_err_t dosSendDeauth(uint8_t *srcAddr, uint8_t *destAddr, ScanResultAP *thisA
         }
 
         #ifdef CONFIG_DEBUG_VERBOSE
-            char strSrc[18];
-            char strDest[18];
+            char strSrc[MAC_STRLEN + 1];
+            char strDest[MAC_STRLEN + 1];
             mac_bytes_to_string(deauthSrc, strSrc);
             mac_bytes_to_string(deauthDest, strDest);
             #ifdef CONFIG_FLIPPER
@@ -200,8 +200,8 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
     memcpy(strSsid, ssid, payload[PROBE_SSID_OFFSET - 1]);
     strSsid[payload[PROBE_SSID_OFFSET - 1]] = '\0';
 
-    char srcStr[18];
-    char destStr[18];
+    char srcStr[MAC_STRLEN + 1];
+    char destStr[MAC_STRLEN + 1];
     mac_bytes_to_string(srcAddr, srcStr);
     mac_bytes_to_string(destAddr, destStr);
     #ifdef CONFIG_DEBUG
@@ -349,7 +349,7 @@ esp_err_t dosParseFrame(uint8_t *payload) {
             dosSendDeauth(srcAddr, destAddr, NULL, allClients[i]);
         } else {
             #ifndef CONFIG_FLIPPER
-                char src[18], dest[18];
+                char src[MAC_STRLEN + 1], dest[MAC_STRLEN + 1];
                 mac_bytes_to_string(destAddr, dest);
                 mac_bytes_to_string(srcAddr, src);
                 ESP_LOGI(DOS_TAG, "Ignoring packet [ %s ] => [ %s ]", src, dest);
