@@ -439,7 +439,7 @@ char **apListToStrings(ScanResultAP **aps, int apsCount) {
 	}
 
 	for (int i = 0; i < apsCount; ++i) {
-		res[i] = malloc(sizeof(char) * 33);
+		res[i] = malloc(sizeof(char) * (MAX_SSID_LEN + 1));
 		if (res[i] == NULL) {
 			ESP_LOGE(TAG, "Unable to allocate memory to hold AP %d", i);
 			free(res);
@@ -460,7 +460,7 @@ esp_err_t convert_bytes_to_string(uint8_t *bIn, char *sOut, int maxLen) {
 
 /* Convert */
 esp_err_t ssid_bytes_to_string(uint8_t *bSsid, char *ssid) {
-    return convert_bytes_to_string(bSsid, ssid, 32);
+    return convert_bytes_to_string(bSsid, ssid, MAX_SSID_LEN);
 }
 
 void displayBluetoothUnsupported() {

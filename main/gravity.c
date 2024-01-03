@@ -874,7 +874,7 @@ esp_err_t cmd_target_ssids(int argc, char **argv) {
     }
     char temp[40];
     if (argc == 1) {
-        char *strSsids = malloc(sizeof(char) * ssidCount * 32);
+        char *strSsids = malloc(sizeof(char) * ssidCount * MAX_SSID_LEN);
         if (strSsids == NULL) {
             ESP_LOGE(TAG, "Unable to allocate memory to display user SSIDs");
             return ESP_ERR_NO_MEM;
@@ -1375,7 +1375,7 @@ esp_err_t cmd_ap_clone(int argc, char **argv) {
 esp_err_t cmd_scan(int argc, char **argv) {
     if (argc > 9 || (argc == 2 && strcasecmp(argv[1], "WIFI") && strcasecmp(argv[1], "OFF") &&
     /* The following addition validates Bluetooth Classic scanning arguments i.e. scan BT ( DISCOVER | SNIFF | PROBE ) */
-                strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > 32) ||
+                strcasecmp(argv[1], "BT") && strcasecmp(argv[1], "BLE") && strlen(argv[1]) > MAX_SSID_LEN) ||
                 // TODO: The following lines have been remediated to support SCAN BT SERVICES [selected]
                 // Validate them
                 // argc=3 && (!wifi && (BT && !services)) orr (argc>3 & ( (!BLE | !PURGE) & (!BT | !SERVICES | !selected))
@@ -1420,7 +1420,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     }
 
     /* Zero out SSID filter */
-    memset(scan_filter_ssid, '\0', 33);
+    memset(scan_filter_ssid, '\0', MAX_SSID_LEN + 1);
     memset(scan_filter_ssid_bssid, 0x00, 6);
 
     if (!strcasecmp(argv[1], "WIFI")) {
@@ -1518,7 +1518,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     } else {
         /* Use argv[1] as an SSID filter */
         attack_status[ATTACK_SCAN] = true;
-        strncpy(scan_filter_ssid, argv[1], 32); /* SSID max 32 chars */
+        strncpy(scan_filter_ssid, argv[1], MAX_SSID_LEN);
         /* See if we've already seen the AP */
         int i;
         for (i = 0; i < gravity_ap_count && strcasecmp(scan_filter_ssid,
@@ -1538,7 +1538,7 @@ esp_err_t cmd_scan(int argc, char **argv) {
     #ifdef CONFIG_FLIPPER
         printf("Scanning %s\n", (attack_status[ATTACK_SCAN])?"ON":"OFF");
         if (strlen(scan_filter_ssid) > 0) {
-            char truncSsid[33];
+            char truncSsid[MAX_SSID_LEN + 1];
             strcpy(truncSsid, scan_filter_ssid);
             if (strlen(truncSsid) > 23) {
                 if (truncSsid[20] == ' ') {

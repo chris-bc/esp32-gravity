@@ -113,7 +113,7 @@ extern char FLIPPER_SEPARATOR;
 
 bool WIFI_INITIALISED = false;
 
-char scan_filter_ssid[33] = "\0";
+char scan_filter_ssid[MAX_SSID_LEN + 1] = "\0";
 uint8_t scan_filter_ssid_bssid[6] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 #define CMD_COUNT 26

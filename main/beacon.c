@@ -49,7 +49,7 @@ uint8_t beacon_raw[] = {
 	0x05, 0x04, 0x01, 0x02, 0x00, 0x00,		// 52-57: Traffic Indication Map
 };
 
-static char currentSsid[32] = "";
+static char currentSsid[MAX_SSID_LEN] = "";
 int currentSsidLen = 0;
 
 /* Callback for the beacon spam attack. This will pause ATTACK_MILLIS ms between packets */

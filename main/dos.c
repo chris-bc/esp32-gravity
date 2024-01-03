@@ -182,11 +182,11 @@ esp_err_t cloneProbeRequest(uint8_t *payload) {
 
     uint8_t destAddr[6];
     uint8_t srcAddr[6];
-    uint8_t ssid[32];
+    uint8_t ssid[MAX_SSID_LEN];
     char *strSsid;
     memcpy(destAddr, &payload[PROBE_DESTADDR_OFFSET], 6);
     memcpy(srcAddr, &payload[PROBE_SRCADDR_OFFSET], 6);
-    memset(ssid, '\0', 32);
+    memset(ssid, '\0', MAX_SSID_LEN);
     memcpy(ssid, &payload[PROBE_SSID_OFFSET], payload[PROBE_SSID_OFFSET - 1]);
     strSsid = malloc(sizeof(char) * (payload[PROBE_SSID_OFFSET - 1] + 1));
     if (strSsid == NULL) {

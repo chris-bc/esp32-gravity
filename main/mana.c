@@ -69,7 +69,7 @@ esp_err_t mana_handleDirectedProbe(uint8_t *payload, uint8_t bCurrentMac[6], uin
     mac_bytes_to_string(bDestMac, strDestMac);
 
     #ifdef CONFIG_FLIPPER
-        char shortSsid[33];
+        char shortSsid[MAX_SSID_LEN + 1];
         strcpy(shortSsid, ssid);
         if (strlen(shortSsid) > 20) {
             if (shortSsid[17] == ' ') {

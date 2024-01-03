@@ -218,8 +218,8 @@ int ap_comparator(const void *varOne, const void *varTwo) {
 /* TODO: Needs RSSI */
 void print_stas() {
     char strMac[18];
-    char strSsid[33];
-    memset(strSsid, '\0', 33);
+    char strSsid[MAX_SSID_LEN + 1];
+    memset(strSsid, '\0', MAX_SSID_LEN + 1);
     for (int i=0; i < gravity_sta_count; ++i) {
         mac_bytes_to_string(gravity_stas[i].mac, strMac);
         printf("STA %s", strMac);
@@ -235,8 +235,8 @@ void print_stas() {
 
 void print_aps() {
     char strMac[18];
-    char strSsid[33];
-    memset(strSsid, '\0', 33);
+    char strSsid[MAX_SSID_LEN + 1];
+    memset(strSsid, '\0', MAX_SSID_LEN + 1);
     for (int i=0; i < gravity_ap_count; ++i) {
         mac_bytes_to_string(gravity_aps[i].espRecord.bssid, strMac);
         strcpy(strSsid, (char *)gravity_aps[i].espRecord.ssid);
@@ -1371,7 +1371,7 @@ esp_err_t gravity_add_ap(uint8_t newAP[6], char *newSSID, int channel) {
         /* Found the MAC. Update SSID if necessary and update lastSeen */
         if (newSSID != NULL && strcasecmp(newSSID, (char *)gravity_aps[i].espRecord.ssid)) {
             /* This is probably unnecessary ... */
-            memset(gravity_aps[i].espRecord.ssid, '\0', 33);
+            memset(gravity_aps[i].espRecord.ssid, '\0', MAX_SSID_LEN + 1);
             strcpy((char *)gravity_aps[i].espRecord.ssid, (char *)newSSID);
         }
 
@@ -1862,8 +1862,8 @@ esp_err_t scan_wifi_parse_frame(uint8_t *payload, wifi_pkt_rx_ctrl_t rx_ctrl) {
                     /* No SSID. Skip this frame - we'll get one soon */
                     return ESP_OK;
                 }
-                char pktSsid[33];
-                for (int i=0; i < 33; ++i) {
+                char pktSsid[MAX_SSID_LEN + 1];
+                for (int i=0; i < (MAX_SSID_LEN + 1); ++i) {
                     pktSsid[i] = '\0';
                 }
                 memcpy(pktSsid, &payload[38], payload[37]);
