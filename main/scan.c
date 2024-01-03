@@ -1119,11 +1119,28 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             sprintf(strTmp, "%2lds", tmp);
             strcat(strTime, strTmp);
         #endif
-        char strAp[18] = "";
+        char strAp[53] = ""; // 53 == SSID (32) + " (" + MAC (17) + ")\0"
+        char strApMac[18] = "";
+        memset(strAp, 0, 53);
         if (stas[i]->ap == NULL) {
             strcpy(strAp, "Unknown");
         } else {
+            /* Flipper: Display SSID if present, otherwise MAC (retain existing truncation in output - %20s)
+               Console: Display SSID along with MAC if present, otherwise only MAC */
+            
             ESP_ERROR_CHECK(mac_bytes_to_string(stas[i]->apMac, strAp));
+            if (strlen((char *)stas[i]->ap->espRecord.ssid) > 0) {
+                strncpy(strAp, (char *)stas[i]->ap->espRecord.ssid, MAX_SSID_LEN);
+                /* If this is a console append " (MAC)" */
+                #ifndef CONFIG_FLIPPER
+                    strcat(strAp, " (");
+                    strncat(strAp, strApMac, 17);
+                    strcat(strAp, ")");
+                #endif
+            } else {
+                /* No SSID, display MAC only */
+                strncpy(strAp, strApMac, 17);
+            }
         }
         #ifdef CONFIG_FLIPPER
             printf("%s%2d | %4d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (stas[i]->selected)?"*":" ",
