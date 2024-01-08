@@ -1422,9 +1422,13 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
        brain and come up with a simple solution - Copy the memory contents of the first array
        to the second.
     */
-    //memcpy(newDevices, gravity_bt_devices, (gravity_bt_dev_count * sizeof(app_gap_cb_t *)));
+    /* Calculate max index while we're looping */
+    uint8_t maxIndex = 0;
     for (int i=0;i<gravity_bt_dev_count;++i) {
         newDevices[i] = gravity_bt_devices[i];
+        if (gravity_bt_devices[i]->index > maxIndex) {
+            maxIndex = gravity_bt_devices[i]->index;
+        }
     }
     /* Create new device at index gravity_bt_dev_count */
     newDevices[gravity_bt_dev_count] = gravity_ble_purge_and_malloc(sizeof(app_gap_cb_t));
@@ -1450,7 +1454,7 @@ esp_err_t bt_dev_add_components(esp_bd_addr_t bda, char *bdName, uint8_t bdNameL
     newDevices[gravity_bt_dev_count]->scanType = devScanType;
     newDevices[gravity_bt_dev_count]->lastSeen = clock();
     newDevices[gravity_bt_dev_count]->selected = false;
-    newDevices[gravity_bt_dev_count]->index = gravity_bt_dev_count;
+    newDevices[gravity_bt_dev_count]->index = maxIndex + 1;
     memcpy(newDevices[gravity_bt_dev_count]->bda, bda, ESP_BD_ADDR_LEN);
     newDevices[gravity_bt_dev_count]->bdName = gravity_ble_purge_and_malloc(sizeof(char) * (bdNameLen + 1));
     if (newDevices[gravity_bt_dev_count]->bdName == NULL) {
