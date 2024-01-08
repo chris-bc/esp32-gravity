@@ -1132,6 +1132,10 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             #ifdef CONFIG_FLIPPER
                 if (strlen((char *)stas[i]->ap->espRecord.ssid) > 0) {
                     strncpy(strAp, (char *)stas[i]->ap->espRecord.ssid, MAX_SSID_LEN);
+                    /* Truncate SSID if necessary to retain formatting */
+                    if (strlen(strAp) > 20) {
+                        strAp[20] = '\0';
+                    }
                 } else {
                     strncpy(strAp, strApMac, MAC_STRLEN);
                 }
