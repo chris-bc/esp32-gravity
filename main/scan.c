@@ -1085,8 +1085,8 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
         printf(" ID | RSSI |  MAC  | AP\n");
         printf("==|====|=====|===\n");
     #else
-        printf(" ID | RSSI | MAC               | Access Point      | Ch | Last Seen               \n");
-        printf("====|======|===================|===================|====|=========================\n");
+        printf(" ID | RSSI | MAC               | Access Point                         | Ch | Last Seen               \n");
+        printf("====|======|===================|======================================|====|=========================\n");
     #endif
 
     for (int i=0; i < staCount; ++i) {
@@ -1128,19 +1128,25 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
             /* Flipper: Display SSID if present, otherwise MAC (retain existing truncation in output - %20s)
                Console: Display SSID along with MAC if present, otherwise only MAC */
             
-            ESP_ERROR_CHECK(mac_bytes_to_string(stas[i]->apMac, strAp));
-            if (strlen((char *)stas[i]->ap->espRecord.ssid) > 0) {
-                strncpy(strAp, (char *)stas[i]->ap->espRecord.ssid, MAX_SSID_LEN);
-                /* If this is a console append " (MAC)" */
-                #ifndef CONFIG_FLIPPER
-                    strcat(strAp, " (");
-                    strncat(strAp, strApMac, MAC_STRLEN);
-                    strcat(strAp, ")");
-                #endif
-            } else {
-                /* No SSID, display MAC only */
+            ESP_ERROR_CHECK(mac_bytes_to_string(stas[i]->apMac, strApMac));
+            #ifdef CONFIG_FLIPPER
+                if (strlen((char *)stas[i]->ap->espRecord.ssid) > 0) {
+                    strncpy(strAp, (char *)stas[i]->ap->espRecord.ssid, MAX_SSID_LEN);
+                } else {
+                    strncpy(strAp, strApMac, MAC_STRLEN);
+                }
+            #else
                 strncpy(strAp, strApMac, MAC_STRLEN);
-            }
+                if (strlen((char *)stas[i]->ap->espRecord.ssid) > 0) {
+                    strcat(strAp, " (");
+                    strncat(strAp, (char *)stas[i]->ap->espRecord.ssid, MAX_SSID_LEN);
+                    strcat(strAp, ")");
+                }
+                /* Arbitrarily truncate this somewhere. Allocating 36 chars to AP isn't too fat in a console */
+                if (strlen(strAp) > 36) {
+                    strAp[36] = '\0';
+                }
+            #endif
         }
         #ifdef CONFIG_FLIPPER
             printf("%s%2d | %4d |%02x%02x:%02x%02x:%02x%02x\n%20s\n", (stas[i]->selected)?"*":" ",
@@ -1148,7 +1154,7 @@ esp_err_t gravity_list_sta(ScanResultSTA **stas, int staCount, bool hideExpiredP
                 stas[i]->mac[2], stas[i]->mac[3], stas[i]->mac[4],
                 stas[i]->mac[5], strAp);
         #else
-            printf("%s%2d | %4d | %-17s | %-17s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
+            printf("%s%2d | %4d | %-17s | %-36s | %2d | %-24s\n", (stas[i]->selected)?"*":" ", stas[i]->index,
                     stas[i]->rssi, stas[i]->strMac, strAp, stas[i]->channel, strTime);
         #endif
     }

@@ -20,7 +20,7 @@
  *                                                            *
  * Licensed under the MIT Open Source License.                *
  **************************************************************/
-#define GRAVITY_VERSION "1.0.0"
+#define GRAVITY_VERSION "1.0.1"
 #define MAX_16_BIT 65535
 #define MAX_SSID_LEN 32
 #define MAC_STRLEN 17
